@@ -1,0 +1,55 @@
+# Gradle / Android build output
+.gradle/
+.kotlin/
+build/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+out/
+
+# Local machine configuration
+local.properties
+*.local
+*.keystore
+*.jks
+keystore.properties
+
+# IDE files
+*.iml
+.idea/
+!.idea/codeStyles/
+!.idea/codeStyles/**
+
+# Kotlin / KMP
+*.klib
+*.kotlin_module
+
+# Android generated artifacts
+*.apk
+*.ap_
+*.aab
+*.aar
+*.dex
+*.class
+
+# iOS / Xcode generated artifacts
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/Pods/
+ios/build/
+
+# Logs and reports
+*.log
+repomix-output.*
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini

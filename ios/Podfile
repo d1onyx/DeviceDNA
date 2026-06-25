@@ -1,0 +1,9 @@
+platform :ios, '16.0'
+
+target 'DeviceDNAApp' do
+  use_frameworks!
+  pod 'FirebaseCore'
+  pod 'FirebaseAuth'
+  pod 'GoogleSignIn'
+  pod 'GoogleSignInSwift'
+end

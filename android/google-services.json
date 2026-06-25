@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "94121274344",
+    "project_id": "projektdna-4fc7d",
+    "storage_bucket": "projektdna-4fc7d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:94121274344:android:e568b5a74df3f81de9d25d",
+        "android_client_info": {
+          "package_name": "com.devstdvad.devicedna"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXF0WcHvNdXNX5wixR1_K-gUsr3c-vdj4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
