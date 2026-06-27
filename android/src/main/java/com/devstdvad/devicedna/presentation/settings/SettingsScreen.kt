@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.presentation.settings
 
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -69,25 +71,35 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.R
+import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
+import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
 import com.devstdvad.devicedna.data.settings.AppThemeMode
 import com.devstdvad.devicedna.data.settings.DataUnit
 import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.data.settings.TemperatureUnit
+import com.devstdvad.devicedna.data.subscription.PremiumEntitlements
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
+import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
     exportViewModel: ExportViewModel = koinViewModel(),
+    subscriptionRepository: SubscriptionRepository = koinInject(),
+    onSubscriptionClick: () -> Unit = {},
 ) {
     val colors = AppTheme.colors
     val settings by viewModel.settings.collectAsState()
     val user by viewModel.user.collectAsState()
     val exportState by exportViewModel.state.collectAsState()
+    val entitlements by subscriptionRepository.entitlements.collectAsState(initial = PremiumEntitlements.Empty)
+    val premiumActive = entitlements.hasFeature(PremiumFeature.RemoveAds)
     val feedback = LocalAppFeedback.current
     var privacyExpanded by remember { mutableStateOf(false) }
     val privacyScore by animateFloatAsState(
@@ -153,6 +165,48 @@ fun SettingsScreen(
                         Spacer(Modifier.size(6.dp))
                         Text(stringResource(R.string.settings_sign_out), color = colors.accent)
                     }
+                }
+            }
+        }
+
+        item {
+            SettingsPanel(title = stringResource(R.string.settings_premium), icon = Icons.Outlined.WorkspacePremium) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+                        .clickable {
+                            feedback?.light()
+                            onSubscriptionClick()
+                        }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_premium_manage),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.textPrimary,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.settings_premium_summary),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textSecondary,
+                        )
+                    }
+                    StatusPill(
+                        status = if (premiumActive) MetricStatus.Normal else MetricStatus.Unavailable,
+                        label = if (premiumActive) {
+                            stringResource(R.string.subscription_status_premium)
+                        } else {
+                            stringResource(R.string.subscription_status_free)
+                        },
+                    )
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
                 }
             }
         }

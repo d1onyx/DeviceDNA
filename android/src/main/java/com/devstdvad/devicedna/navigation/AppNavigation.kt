@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -58,6 +59,9 @@ import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
 import com.devstdvad.devicedna.core.feedback.SoundManager
 import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.data.subscription.PremiumEntitlements
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
+import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.presentation.apps.AppsScreen
 import com.devstdvad.devicedna.presentation.auth.AuthScreen
 import com.devstdvad.devicedna.presentation.auth.AuthUiState
@@ -66,6 +70,7 @@ import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.onboarding.OnboardingScreen
 import com.devstdvad.devicedna.presentation.overview.OverviewScreen
 import com.devstdvad.devicedna.presentation.settings.SettingsScreen
+import com.devstdvad.devicedna.presentation.subscription.SubscriptionScreen
 import com.devstdvad.devicedna.presentation.system.SystemHubScreen
 import com.devstdvad.devicedna.presentation.sync.SyncViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsScreen
@@ -108,6 +113,8 @@ fun AppNavigation(
 
     val hapticManager = koinInject<HapticManager>()
     val soundManager = koinInject<SoundManager>()
+    val subscriptionRepository = koinInject<SubscriptionRepository>()
+    val entitlements by subscriptionRepository.entitlements.collectAsState(initial = PremiumEntitlements.Empty)
     val feedback = remember(settings.hapticFeedback, settings.soundEffects) {
         AppFeedback(hapticManager, soundManager, settings.hapticFeedback, settings.soundEffects)
     }
@@ -127,7 +134,10 @@ fun AppNavigation(
 
         Scaffold(
             topBar = {
-                AdMobTopBanner(adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID)
+                AdMobTopBanner(
+                    adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID,
+                    enabled = !entitlements.hasFeature(PremiumFeature.RemoveAds),
+                )
             },
             bottomBar = {
                 AnimatedContent(
@@ -199,7 +209,15 @@ fun AppNavigation(
                     TestsScreen(contentPadding = padding)
                 }
                 composable(NavRoutes.SETTINGS) {
-                    SettingsScreen()
+                    SettingsScreen(
+                        onSubscriptionClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
+                    )
+                }
+                composable(NavRoutes.SUBSCRIPTION) {
+                    SubscriptionScreen(
+                        onBackClick = { navController.popBackStack() },
+                        contentPadding = padding,
+                    )
                 }
             }
         }

@@ -26,6 +26,10 @@ import com.devstdvad.devicedna.data.repository.StorageRepositoryImpl
 import com.devstdvad.devicedna.data.repository.SystemRepositoryImpl
 import com.devstdvad.devicedna.data.repository.ThermalRepositoryImpl
 import com.devstdvad.devicedna.data.settings.SettingsStore
+import com.devstdvad.devicedna.data.subscription.DevSubscriptionBillingGateway
+import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
+import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
+import com.devstdvad.devicedna.data.subscription.SubscriptionStore
 import com.devstdvad.devicedna.data.source.AndroidAppsDataSource
 import com.devstdvad.devicedna.data.source.AndroidBatteryDataSource
 import com.devstdvad.devicedna.data.source.AndroidCameraDataSource
@@ -77,6 +81,7 @@ import com.devstdvad.devicedna.presentation.overview.OverviewViewModel
 import com.devstdvad.devicedna.presentation.sensors.SensorsViewModel
 import com.devstdvad.devicedna.presentation.settings.ExportViewModel
 import com.devstdvad.devicedna.presentation.settings.SettingsViewModel
+import com.devstdvad.devicedna.presentation.subscription.SubscriptionViewModel
 import com.devstdvad.devicedna.presentation.system.SystemViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsViewModel
 import com.devstdvad.devicedna.presentation.thermal.ThermalViewModel
@@ -110,6 +115,7 @@ val appModule = module {
     single { AndroidSensorDataSource(androidContext()) }
     single { AndroidAppsDataSource(androidContext()) }
     single { SettingsStore(androidContext()) }
+    single { SubscriptionStore(androidContext()) }
 
     // Repositories
     single<DeviceRepository> { DeviceRepositoryImpl(get()) }
@@ -155,6 +161,10 @@ val appModule = module {
     }
     single { DeviceSyncManager(get(), get(), get(), get()) }
 
+    // Subscription
+    single<SubscriptionBillingGateway> { DevSubscriptionBillingGateway() }
+    single { SubscriptionRepository(get<SubscriptionStore>(), get()) }
+
     // ViewModels
     viewModelOf(::OverviewViewModel)
     viewModelOf(::DeviceViewModel)
@@ -171,4 +181,5 @@ val appModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::ExportViewModel)
     viewModelOf(::SyncViewModel)
+    viewModelOf(::SubscriptionViewModel)
 }

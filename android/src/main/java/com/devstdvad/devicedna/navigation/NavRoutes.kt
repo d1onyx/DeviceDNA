@@ -20,6 +20,7 @@ object NavRoutes {
 
     // Supplementary screens
     const val SETTINGS = "settings"
+    const val SUBSCRIPTION = "subscription"
 
     // Hardware sub-sections (used as tab IDs within HardwareScreen)
     const val DEVICE = "device"
