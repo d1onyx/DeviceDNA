@@ -29,6 +29,15 @@ android {
             ?: (project.findProperty("syncBaseUrl") as String?)
             ?: "https://devicedna-sync.workers.dev"
         buildConfigField("String", "SYNC_BASE_URL", "\"$syncBaseUrl\"")
+
+        val adMobAppId = localProperties.getProperty("adMobAppId")
+            ?: (project.findProperty("adMobAppId") as String?)
+            ?: "ca-app-pub-3940256099942544~3347511713"
+        val adMobBannerAdUnitId = localProperties.getProperty("adMobBannerAdUnitId")
+            ?: (project.findProperty("adMobBannerAdUnitId") as String?)
+            ?: "ca-app-pub-3940256099942544/9214589741"
+        manifestPlaceholders["adMobAppId"] = adMobAppId
+        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$adMobBannerAdUnitId\"")
     }
 
     buildTypes {
@@ -79,6 +88,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.play.services.auth)
+    implementation(libs.play.services.ads)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
 

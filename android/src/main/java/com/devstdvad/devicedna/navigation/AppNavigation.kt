@@ -50,6 +50,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.devstdvad.devicedna.BuildConfig
+import com.devstdvad.devicedna.ads.AdMobTopBanner
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.feedback.AppFeedback
 import com.devstdvad.devicedna.core.feedback.HapticManager
@@ -124,6 +126,9 @@ fun AppNavigation(
         val showBottomBar = currentRoute in rootRoutes
 
         Scaffold(
+            topBar = {
+                AdMobTopBanner(adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID)
+            },
             bottomBar = {
                 AnimatedContent(
                     targetState = showBottomBar,
