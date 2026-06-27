@@ -23,7 +23,10 @@ import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ThermalScreen(viewModel: ThermalViewModel = koinViewModel()) {
+fun ThermalScreen(
+    viewModel: ThermalViewModel = koinViewModel(),
+    contentPadding: PaddingValues = PaddingValues(),
+) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
 
@@ -42,7 +45,12 @@ fun ThermalScreen(viewModel: ThermalViewModel = koinViewModel()) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 12.dp,
+            bottom = 12.dp + contentPadding.calculateBottomPadding(),
+        ),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

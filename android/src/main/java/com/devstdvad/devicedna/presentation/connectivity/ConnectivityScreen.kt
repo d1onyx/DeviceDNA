@@ -19,7 +19,10 @@ import com.devstdvad.devicedna.presentation.network.NetworkViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ConnectivityScreen(viewModel: NetworkViewModel = koinViewModel()) {
+fun ConnectivityScreen(
+    viewModel: NetworkViewModel = koinViewModel(),
+    contentPadding: PaddingValues = PaddingValues(),
+) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
 
@@ -30,7 +33,12 @@ fun ConnectivityScreen(viewModel: NetworkViewModel = koinViewModel()) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 12.dp,
+            bottom = 12.dp + contentPadding.calculateBottomPadding(),
+        ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         state.connectivity?.let { conn ->

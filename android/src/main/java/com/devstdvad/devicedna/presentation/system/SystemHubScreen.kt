@@ -92,12 +92,15 @@ fun SystemHubScreen(contentPadding: PaddingValues = PaddingValues()) {
             }
         }
 
+        // Pass the system navigation bar inset down so each sub-tab can keep
+        // its last items above the bottom navigation bar.
+        val bottomInset = PaddingValues(bottom = contentPadding.calculateBottomPadding())
         HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), beyondViewportPageCount = 1) { page ->
             when (page) {
-                0 -> SystemScreen()
-                1 -> NetworkScreen()
-                2 -> ConnectivityScreen()
-                3 -> SensorsScreen()
+                0 -> SystemScreen(contentPadding = bottomInset)
+                1 -> NetworkScreen(contentPadding = bottomInset)
+                2 -> ConnectivityScreen(contentPadding = bottomInset)
+                3 -> SensorsScreen(contentPadding = bottomInset)
             }
         }
     }

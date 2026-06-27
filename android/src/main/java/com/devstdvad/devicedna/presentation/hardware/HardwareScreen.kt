@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
@@ -115,18 +117,21 @@ fun HardwareScreen(contentPadding: PaddingValues = PaddingValues()) {
             }
         }
 
+        // Pass the system navigation bar inset down so each sub-tab can keep
+        // its last items above the bottom navigation bar.
+        val bottomInset = PaddingValues(bottom = contentPadding.calculateBottomPadding())
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f),
             beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
-                0 -> DeviceScreen()
-                1 -> CpuScreen()
-                2 -> BatteryScreen()
-                3 -> DisplayScreen()
-                4 -> CameraScreen()
-                5 -> ThermalScreen()
+                0 -> DeviceScreen(contentPadding = bottomInset)
+                1 -> CpuScreen(contentPadding = bottomInset)
+                2 -> BatteryScreen(contentPadding = bottomInset)
+                3 -> DisplayScreen(contentPadding = bottomInset)
+                4 -> CameraScreen(contentPadding = bottomInset)
+                5 -> ThermalScreen(contentPadding = bottomInset)
             }
         }
     }

@@ -166,10 +166,10 @@ fun AppNavigation(
                     SystemHubScreen(contentPadding = padding)
                 }
                 composable(NavRoutes.APPS) {
-                    AppsScreen()
+                    AppsScreen(contentPadding = padding)
                 }
                 composable(NavRoutes.TESTS) {
-                    TestsScreen()
+                    TestsScreen(contentPadding = padding)
                 }
                 composable(NavRoutes.SETTINGS) {
                     SettingsScreen()

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults.contentPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -27,7 +28,10 @@ import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun DeviceScreen(viewModel: DeviceViewModel = koinViewModel()) {
+fun DeviceScreen(
+    viewModel: DeviceViewModel = koinViewModel(),
+    contentPadding: PaddingValues = PaddingValues(),
+) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
 
@@ -178,6 +182,8 @@ fun DeviceScreen(viewModel: DeviceViewModel = koinViewModel()) {
                 )
             }
         }
+
+        item { Spacer(Modifier.height(contentPadding.calculateBottomPadding())) }
     }
 }
 
