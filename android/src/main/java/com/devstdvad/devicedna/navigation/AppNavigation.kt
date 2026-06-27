@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -62,7 +63,9 @@ import com.devstdvad.devicedna.presentation.onboarding.OnboardingScreen
 import com.devstdvad.devicedna.presentation.overview.OverviewScreen
 import com.devstdvad.devicedna.presentation.settings.SettingsScreen
 import com.devstdvad.devicedna.presentation.system.SystemHubScreen
+import com.devstdvad.devicedna.presentation.sync.SyncViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsScreen
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 @Composable
@@ -81,6 +84,10 @@ fun AppNavigation(
         OnboardingScreen(onFinished = onOnboardingComplete, reducedMotion = settings.reducedMotion)
         return
     }
+
+    // Check/sync the device on startup (runs in background, does not block UI).
+    val syncViewModel = koinViewModel<SyncViewModel>()
+    LaunchedEffect(authState.user?.email) { syncViewModel.triggerOnce() }
 
     val hapticManager = koinInject<HapticManager>()
     val soundManager = koinInject<SoundManager>()

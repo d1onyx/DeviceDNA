@@ -54,6 +54,16 @@ class AuthRepository(private val context: Context) {
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
+    /** Current user's Firebase UID, or null if not signed in. */
+    val uid: String?
+        get() = firebaseAuth?.currentUser?.uid
+
+    /** Fresh Firebase ID token for authorizing backend requests. */
+    suspend fun getIdToken(): String? {
+        val user = firebaseAuth?.currentUser ?: return null
+        return user.getIdToken(false).await().token
+    }
+
     fun createGoogleSignInIntent(): Intent? {
         val clientId = webClientId.takeIf { it.isNotBlank() } ?: return null
         val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

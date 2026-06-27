@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CpuInfo(
     val chipsetName: String,
     val architecture: String,
@@ -16,6 +19,7 @@ data class CpuInfo(
     val maxFreqMhz: Int = 0,
 )
 
+@Serializable
 data class CpuCore(
     val index: Int,
     val currentFrequencyKhz: Long?,
@@ -24,6 +28,7 @@ data class CpuCore(
     val isOnline: Boolean,
 )
 
+@Serializable
 data class CpuCluster(
     val name: String,
     val coreIndices: List<Int>,
@@ -31,6 +36,7 @@ data class CpuCluster(
     val maxFrequencyMhz: Int,
 )
 
+@Serializable
 data class GpuInfo(
     val renderer: String,
     val vendor: String,

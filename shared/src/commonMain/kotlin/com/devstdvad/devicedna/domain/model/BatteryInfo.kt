@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class BatteryInfo(
     val levelPercent: Int,
     val status: BatteryStatus,
@@ -17,6 +20,11 @@ data class BatteryInfo(
     val isPowerSaveMode: Boolean = false,
 )
 
+@Serializable
 enum class BatteryStatus { Charging, Discharging, Full, NotCharging, Unknown }
+
+@Serializable
 enum class BatteryHealth { Good, Overheat, Dead, OverVoltage, Failure, Cold, Unknown }
+
+@Serializable
 enum class ChargeSource { AC, USB, Wireless, Dock, Unknown }

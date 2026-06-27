@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class RamInfo(
     val totalBytes: Long,
     val availableBytes: Long,
@@ -10,6 +13,7 @@ data class RamInfo(
     val thresholdBytes: Long = 0L,
 )
 
+@Serializable
 data class StorageInfo(
     val totalBytes: Long,
     val usedBytes: Long,

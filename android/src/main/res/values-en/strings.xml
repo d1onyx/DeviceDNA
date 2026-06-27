@@ -62,6 +62,13 @@
     <string name="auth_value_device">Device profile</string>
     <string name="auth_google">Continue with Google</string>
     <string name="auth_terms">By continuing, you use Firebase Authentication for identity. Diagnostics stay local unless a feature explicitly says it needs the network.</string>
+    <string name="auth_privacy_accept_prefix">I have read and accept the</string>
+    <string name="auth_privacy_link">Privacy Policy</string>
+    <string name="auth_privacy_required">You need to accept the Privacy Policy to continue.</string>
+    <string name="auth_privacy_policy_title">Privacy Policy</string>
+    <string name="auth_privacy_policy_summary">How your device data is stored on third-party services.</string>
+    <string name="auth_privacy_policy_body">TODO</string>
+    <string name="auth_privacy_policy_close">Got it</string>
 
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_back">Back</string>
@@ -138,4 +145,14 @@
     <string name="test_nfc_detail">Checks NFC adapter availability and enabled state.</string>
     <string name="test_usb">USB / OTG</string>
     <string name="test_usb_detail">Guided check for cable, accessory and OTG readiness.</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_hardware">Hardware</string>
+    <string name="nav_system_hub">System</string>
+    <string name="settings_export">Export data</string>
+    <string name="settings_export_button">Export &amp; Share</string>
+    <string name="settings_export_exporting">Exporting…</string>
+    <string name="settings_export_format">Format</string>
+    <string name="settings_feedback">Feedback</string>
+    <string name="settings_haptic_feedback">Haptic feedback</string>
+    <string name="settings_sound_effects">Sound effects</string>
 </resources>

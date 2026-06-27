@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class NetworkInfo(
     val connectionType: ConnectionType,
     val ssid: String?,
@@ -30,8 +33,10 @@ data class NetworkInfo(
     val httpProxyPort: Int? = null,
 )
 
+@Serializable
 enum class ConnectionType { WiFi, Cellular, Ethernet, None, Unknown }
 
+@Serializable
 data class ConnectivityInfo(
     val hasWifi: Boolean,
     val hasWifi5Ghz: Boolean,

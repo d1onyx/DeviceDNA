@@ -65,6 +65,13 @@
     <string name="auth_value_device">Device profile</string>
     <string name="auth_google">Continue with Google</string>
     <string name="auth_terms">By continuing, you use Firebase Authentication for identity. Diagnostics stay local unless a feature explicitly says it needs the network.</string>
+    <string name="auth_privacy_accept_prefix">I have read and accept the</string>
+    <string name="auth_privacy_link">Privacy Policy</string>
+    <string name="auth_privacy_required">You need to accept the Privacy Policy to continue.</string>
+    <string name="auth_privacy_policy_title">Privacy Policy</string>
+    <string name="auth_privacy_policy_summary">How your device data is stored on third-party services.</string>
+    <string name="auth_privacy_policy_body">TODO</string>
+    <string name="auth_privacy_policy_close">Got it</string>
 
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_back">Back</string>

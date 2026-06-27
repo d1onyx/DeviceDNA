@@ -1,9 +1,16 @@
 package com.devstdvad.devicedna.di
 
+import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.SoundManager
 import com.devstdvad.devicedna.data.auth.AuthRepository
+import com.devstdvad.devicedna.data.sync.DeviceSnapshotBuilder
+import com.devstdvad.devicedna.data.sync.DeviceSyncManager
+import com.devstdvad.devicedna.data.sync.SyncApi
+import com.devstdvad.devicedna.data.sync.SyncStateStore
+import com.devstdvad.devicedna.data.sync.createSyncHttpClient
 import com.devstdvad.devicedna.presentation.auth.AuthViewModel
+import com.devstdvad.devicedna.presentation.sync.SyncViewModel
 import com.devstdvad.devicedna.data.export.ExportManager
 import com.devstdvad.devicedna.data.repository.AppsRepositoryImpl
 import com.devstdvad.devicedna.data.repository.BatteryRepositoryImpl
@@ -136,6 +143,18 @@ val appModule = module {
     single { GetAppsUseCase(get()) }
     single { GetHealthScoreUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
 
+    // Sync (Cloudflare Worker)
+    single { createSyncHttpClient() }
+    single { SyncApi(get(), BuildConfig.SYNC_BASE_URL) }
+    single { SyncStateStore(androidContext()) }
+    single {
+        DeviceSnapshotBuilder(
+            get(), get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
+    single { DeviceSyncManager(get(), get(), get(), get()) }
+
     // ViewModels
     viewModelOf(::OverviewViewModel)
     viewModelOf(::DeviceViewModel)
@@ -151,4 +170,5 @@ val appModule = module {
     viewModelOf(::TestsViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::ExportViewModel)
+    viewModelOf(::SyncViewModel)
 }

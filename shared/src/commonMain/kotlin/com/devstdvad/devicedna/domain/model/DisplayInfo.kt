@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class DisplayInfo(
     val widthPx: Int,
     val heightPx: Int,

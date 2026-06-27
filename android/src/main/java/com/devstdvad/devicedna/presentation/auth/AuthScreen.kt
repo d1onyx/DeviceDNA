@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -25,18 +26,34 @@ import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.design.AppTheme
@@ -48,6 +65,8 @@ fun AuthScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
+    var privacyAccepted by rememberSaveable { mutableStateOf(false) }
+    var showPolicy by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -91,25 +110,43 @@ fun AuthScreen(
             Spacer(Modifier.height(24.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                AuthValue(Icons.Outlined.Fingerprint, stringResource(R.string.auth_value_private), Modifier.weight(1f))
+//                AuthValue(Icons.Outlined.Fingerprint, stringResource(R.string.auth_value_private), Modifier.weight(1f))
                 AuthValue(Icons.Outlined.CloudDone, stringResource(R.string.auth_value_sync), Modifier.weight(1f))
                 AuthValue(Icons.Outlined.Memory, stringResource(R.string.auth_value_device), Modifier.weight(1f))
             }
         }
 
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            state.errorMessage?.let { message ->
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.warning,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
+            PrivacyConsentRow(
+                accepted = privacyAccepted,
+                onAcceptedChange = { privacyAccepted = it },
+                onPolicyClick = { showPolicy = true },
+            )
+
+            // Reserved slot below the card: keeps the card fixed in place while the
+            // error / consent message appears or disappears.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 44.dp)
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                val message = state.errorMessage
+                    ?: stringResource(R.string.auth_privacy_required).takeIf { !privacyAccepted }
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.warning,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
+
             Button(
                 onClick = onGoogleSignIn,
-                enabled = !state.isLoading,
+                enabled = privacyAccepted && !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
@@ -136,6 +173,131 @@ fun AuthScreen(
                 color = colors.textMuted,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+
+    if (showPolicy) {
+        PrivacyPolicySheet(onDismiss = { showPolicy = false })
+    }
+}
+
+@Composable
+private fun PrivacyConsentRow(
+    accepted: Boolean,
+    onAcceptedChange: (Boolean) -> Unit,
+    onPolicyClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val linkText = stringResource(R.string.auth_privacy_link)
+    val consentText = buildAnnotatedString {
+        append(stringResource(R.string.auth_privacy_accept_prefix))
+        append(" ")
+        withLink(
+            LinkAnnotation.Clickable(
+                tag = "privacy_policy",
+                styles = TextLinkStyles(
+                    style = SpanStyle(
+                        color = colors.accent,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = TextDecoration.Underline,
+                    ),
+                ),
+            ) { onPolicyClick() },
+        ) {
+            append(linkText)
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.surfaceElevated)
+            .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = consentText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(
+            checked = accepted,
+            onCheckedChange = onAcceptedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = colors.background,
+                checkedTrackColor = colors.accent,
+                uncheckedThumbColor = colors.textMuted,
+                uncheckedTrackColor = colors.surfaceHover,
+                uncheckedBorderColor = colors.border,
+            ),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PrivacyPolicySheet(onDismiss: () -> Unit) {
+    val colors = AppTheme.colors
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colors.surfaceElevated,
+        dragHandle = null,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 22.dp, vertical = 24.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(colors.accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.Security, contentDescription = null, tint = colors.accent, modifier = Modifier.size(26.dp))
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.auth_privacy_policy_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = colors.textPrimary,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.auth_privacy_policy_summary),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.auth_privacy_policy_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(24.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.accent,
+                    contentColor = colors.background,
+                ),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text(stringResource(R.string.auth_privacy_policy_close), style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

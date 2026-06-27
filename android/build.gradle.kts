@@ -1,7 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -15,6 +22,13 @@ android {
         versionCode = 4
         versionName = "1.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Deployed Cloudflare Worker URL (set after `wrangler deploy`). No trailing slash.
+        // Override via local.properties -> syncBaseUrl, or a -PsyncBaseUrl Gradle property.
+        val syncBaseUrl = localProperties.getProperty("syncBaseUrl")
+            ?: (project.findProperty("syncBaseUrl") as String?)
+            ?: "https://devicedna-sync.workers.dev"
+        buildConfigField("String", "SYNC_BASE_URL", "\"$syncBaseUrl\"")
     }
 
     buildTypes {
@@ -35,6 +49,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -55,6 +70,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.play.services.auth)

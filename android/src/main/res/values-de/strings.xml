@@ -62,6 +62,13 @@
     <string name="auth_value_device">Geräteprofil</string>
     <string name="auth_google">Mit Google fortfahren</string>
     <string name="auth_terms">Wenn du fortfährst, nutzt du Firebase Authentication für die Identität. Diagnosen bleiben lokal, sofern eine Funktion nicht ausdrücklich Netzwerkzugriff benötigt.</string>
+    <string name="auth_privacy_accept_prefix">Ich habe die folgende Richtlinie gelesen und akzeptiere sie:</string>
+    <string name="auth_privacy_link">Datenschutzrichtlinie</string>
+    <string name="auth_privacy_required">Du musst die Datenschutzrichtlinie akzeptieren, um fortzufahren.</string>
+    <string name="auth_privacy_policy_title">Datenschutzrichtlinie</string>
+    <string name="auth_privacy_policy_summary">Wie deine Gerätedaten auf Drittanbieter-Diensten gespeichert werden.</string>
+    <string name="auth_privacy_policy_body">TODO</string>
+    <string name="auth_privacy_policy_close">Verstanden</string>
 
     <string name="onboarding_skip">Überspringen</string>
     <string name="onboarding_back">Zurück</string>
@@ -138,4 +145,14 @@
     <string name="test_nfc_detail">Prüfung von NFC-Adapter und Aktivierungsstatus.</string>
     <string name="test_usb">USB / OTG</string>
     <string name="test_usb_detail">Geführte Prüfung von Kabel, Zubehör und OTG-Bereitschaft.</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_hardware">Hardware</string>
+    <string name="nav_system_hub">System</string>
+    <string name="settings_export">Daten exportieren</string>
+    <string name="settings_export_button">Exportieren &amp; Teilen</string>
+    <string name="settings_export_exporting">Exportieren…</string>
+    <string name="settings_export_format">Format</string>
+    <string name="settings_feedback">Feedback</string>
+    <string name="settings_haptic_feedback">Haptisches Feedback</string>
+    <string name="settings_sound_effects">Soundeffekte</string>
 </resources>

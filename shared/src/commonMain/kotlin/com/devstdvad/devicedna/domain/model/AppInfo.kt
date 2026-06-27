@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class AppListInfo(
     val totalCount: Int,
     val userCount: Int,
@@ -7,6 +10,7 @@ data class AppListInfo(
     val apps: List<AppDetails>,
 )
 
+@Serializable
 data class AppDetails(
     val name: String,
     val packageName: String,

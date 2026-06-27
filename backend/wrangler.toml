@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Account-specific values to change during migration are marked [MIGRATE].
+# Full checklist: ../MIGRATION.md
+# ─────────────────────────────────────────────────────────────────────────────
+
+# [MIGRATE] (optional) worker name — affects the URL <name>.<subdomain>.workers.dev
+name = "devicedna-sync"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Public (non-secret) variables
+[vars]
+# [MIGRATE] MUST match the app's Firebase project_id (android/google-services.json).
+# Otherwise ID token verification will fail.
+FIREBASE_PROJECT_ID = "device-dna-test"
+PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"
+
+# [MIGRATE] KV namespace for caching Google's public keys (JWKS).
+# The id is obtained via:  wrangler kv namespace create PUBLIC_JWK_CACHE_KV
+# (or automatically via ./setup-cloudflare.sh)
+[[kv_namespaces]]
+binding = "PUBLIC_JWK_CACHE_KV"
+id = "04db2110228248379bfe1bf58411a632"
+
+# [MIGRATE] The DATABASE_URL (Neon) secret is set separately, NOT here:
+#   wrangler secret put DATABASE_URL

@@ -1,0 +1,11 @@
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import * as schema from "./schema";
+
+// Neon HTTP driver works in Cloudflare Workers (no TCP/WebSocket).
+export function getDb(databaseUrl: string) {
+  const sql = neon(databaseUrl);
+  return drizzle(sql, { schema });
+}
+
+export type Db = ReturnType<typeof getDb>;

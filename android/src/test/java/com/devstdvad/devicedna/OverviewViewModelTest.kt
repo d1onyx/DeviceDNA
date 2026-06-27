@@ -1,5 +1,6 @@
 package com.devstdvad.devicedna
 
+import com.devstdvad.devicedna.core.common.AppError
 import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryInfo
@@ -15,7 +16,9 @@ import com.devstdvad.devicedna.domain.model.StorageInfo
 import com.devstdvad.devicedna.domain.usecase.GetCpuInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetHealthScoreUseCase
+import com.devstdvad.devicedna.domain.usecase.GetNetworkInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetStorageInfoUseCase
+import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
 import com.devstdvad.devicedna.presentation.overview.OverviewViewModel
@@ -49,6 +52,8 @@ class OverviewViewModelTest {
     private val getHealthScore: GetHealthScoreUseCase = mockk()
     private val getCpu: GetCpuInfoUseCase = mockk()
     private val getDevice: GetDeviceInfoUseCase = mockk()
+    private val getNetwork: GetNetworkInfoUseCase = mockk()
+    private val getThermal: GetThermalInfoUseCase = mockk()
 
     private fun battery(level: Int = 85) = BatteryInfo(
         levelPercent = level,
@@ -117,7 +122,11 @@ class OverviewViewModelTest {
         coEvery { getHealthScore() } returns HealthScore(overall = 88, battery = 90, thermal = 85, security = 80, storage = 92, performance = 88, insights = emptyList())
         coEvery { getCpu() } returns AppResult.Success(cpu())
         coEvery { getDevice() } returns AppResult.Success(device())
-        return OverviewViewModel(observeBattery, observeRam, getStorage, getHealthScore, getCpu, getDevice)
+        every { getNetwork.observe() } returns flowOf(AppResult.Error(AppError.Unavailable()))
+        every { getThermal.observe() } returns flowOf(AppResult.Error(AppError.Unavailable()))
+        return OverviewViewModel(
+            observeBattery, observeRam, getStorage, getHealthScore, getCpu, getDevice, getNetwork, getThermal,
+        )
     }
 
     @Test

@@ -62,6 +62,13 @@
     <string name="auth_value_device">Профиль устройства</string>
     <string name="auth_google">Продолжить с Google</string>
     <string name="auth_terms">Продолжая, вы используете Firebase Authentication для входа. Диагностика остаётся локальной, если функция явно не сообщает, что ей нужен интернет.</string>
+    <string name="auth_privacy_accept_prefix">Я прочитал(а) и принимаю</string>
+    <string name="auth_privacy_link">Политику конфиденциальности</string>
+    <string name="auth_privacy_required">Чтобы продолжить, необходимо принять Политику конфиденциальности.</string>
+    <string name="auth_privacy_policy_title">Политика конфиденциальности</string>
+    <string name="auth_privacy_policy_summary">Как данные вашего устройства хранятся на сторонних сервисах.</string>
+    <string name="auth_privacy_policy_body">TODO</string>
+    <string name="auth_privacy_policy_close">Понятно</string>
 
     <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_back">Назад</string>
@@ -138,4 +145,14 @@
     <string name="test_nfc_detail">Проверяет наличие и включение NFC-адаптера.</string>
     <string name="test_usb">USB / OTG</string>
     <string name="test_usb_detail">Ручная проверка кабеля, аксессуара и готовности OTG.</string>
+    <string name="nav_dashboard">Панель</string>
+    <string name="nav_hardware">Оборудование</string>
+    <string name="nav_system_hub">Система</string>
+    <string name="settings_export">Экспорт данных</string>
+    <string name="settings_export_button">Экспорт и отправка</string>
+    <string name="settings_export_exporting">Экспорт…</string>
+    <string name="settings_export_format">Формат</string>
+    <string name="settings_feedback">Отклик</string>
+    <string name="settings_haptic_feedback">Виброотклик</string>
+    <string name="settings_sound_effects">Звуковые эффекты</string>
 </resources>

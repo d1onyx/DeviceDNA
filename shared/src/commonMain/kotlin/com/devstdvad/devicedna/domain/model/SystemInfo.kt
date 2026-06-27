@@ -1,5 +1,8 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class SystemInfo(
     val androidVersion: String,
     val apiLevel: Int,

@@ -1,9 +1,13 @@
 package com.devstdvad.devicedna.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CameraInfo(
     val cameras: List<CameraDetails>,
 )
 
+@Serializable
 data class CameraDetails(
     val id: String,
     val facing: CameraFacing,
@@ -17,4 +21,5 @@ data class CameraDetails(
     val supportedModes: List<String>,
 )
 
+@Serializable
 enum class CameraFacing { Back, Front, External, Unknown }
