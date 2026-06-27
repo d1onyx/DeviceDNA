@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -59,6 +60,7 @@ import com.devstdvad.devicedna.presentation.apps.AppsScreen
 import com.devstdvad.devicedna.presentation.auth.AuthScreen
 import com.devstdvad.devicedna.presentation.auth.AuthUiState
 import com.devstdvad.devicedna.presentation.hardware.HardwareScreen
+import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.onboarding.OnboardingScreen
 import com.devstdvad.devicedna.presentation.overview.OverviewScreen
 import com.devstdvad.devicedna.presentation.settings.SettingsScreen
@@ -75,6 +77,19 @@ fun AppNavigation(
     onGoogleSignIn: () -> Unit,
     onOnboardingComplete: () -> Unit,
 ) {
+    // Wait for Firebase to restore the session before deciding what to show,
+    // otherwise the sign-in screen flashes for already-signed-in users.
+    if (authState.isInitializing) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppTheme.colors.background),
+        ) {
+            LoadingScreen()
+        }
+        return
+    }
+
     if (!authState.isSignedIn) {
         AuthScreen(state = authState, onGoogleSignIn = onGoogleSignIn)
         return

@@ -17,6 +17,9 @@ data class AuthUiState(
     val isConfigured: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    // True until Firebase reports the first auth state — avoids flashing the
+    // sign-in screen while the session is still being restored.
+    val isInitializing: Boolean = true,
 ) {
     val isSignedIn: Boolean get() = user != null
 }
@@ -36,11 +39,12 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             isConfigured = authRepository.isConfigured,
             isLoading = loading,
             errorMessage = error,
+            isInitializing = false,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AuthUiState(isConfigured = authRepository.isConfigured),
+        initialValue = AuthUiState(isConfigured = authRepository.isConfigured, isInitializing = true),
     )
 
     fun createGoogleSignInIntent(): Intent? {
