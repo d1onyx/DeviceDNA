@@ -239,6 +239,29 @@
     <string name="battery_session_ongoing">Ongoing</string>
     <string name="battery_periods_title">Charging periods</string>
 
+    <!-- Smart Alerts -->
+    <string name="settings_smart_alerts">Smart Alerts</string>
+    <string name="settings_smart_alerts_summary">Premium proactive notifications for critical device conditions.</string>
+    <string name="settings_smart_alerts_master">Enable Smart Alerts</string>
+    <string name="settings_smart_alerts_premium_title">Premium feature</string>
+    <string name="settings_smart_alerts_premium_body">Upgrade to receive alerts for overheating, low battery, full storage, high RAM and slow charging.</string>
+    <string name="settings_alert_cpu_overheating">CPU overheating</string>
+    <string name="settings_alert_low_battery">Low battery</string>
+    <string name="settings_alert_storage_full">Storage nearly full</string>
+    <string name="settings_alert_high_ram">High RAM usage</string>
+    <string name="settings_alert_slow_charging">Slow charging</string>
+    <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="alert_cpu_overheating_title">CPU is overheating</string>
+    <string name="alert_cpu_overheating_body">Device temperature is high. Let it cool down to avoid throttling and battery stress.</string>
+    <string name="alert_low_battery_title">Battery is low</string>
+    <string name="alert_low_battery_body">Battery level is below 15% and the device is not charging.</string>
+    <string name="alert_storage_full_title">Storage is nearly full</string>
+    <string name="alert_storage_full_body">Internal storage is above 90%. Free space to keep the device stable.</string>
+    <string name="alert_high_ram_title">RAM usage is high</string>
+    <string name="alert_high_ram_body">RAM usage is above 90%. Close heavy apps if the device feels slow.</string>
+    <string name="alert_slow_charging_title">Charging is slow</string>
+    <string name="alert_slow_charging_body">Charging power is low. Check the cable, wall adapter, port, heat and background load.</string>
+
     <string name="settings_widgets_title">Home-screen widgets</string>
     <string name="settings_widgets_summary">Battery, memory and CPU widgets</string>
     <string name="widgets_title">Widgets</string>

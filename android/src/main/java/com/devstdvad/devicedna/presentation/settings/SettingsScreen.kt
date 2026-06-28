@@ -77,6 +77,7 @@ import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
+import com.devstdvad.devicedna.data.alerts.SmartAlertType
 import com.devstdvad.devicedna.data.settings.AppThemeMode
 import com.devstdvad.devicedna.data.settings.DataUnit
 import com.devstdvad.devicedna.data.settings.ExportFormat
@@ -101,6 +102,7 @@ fun SettingsScreen(
     val exportState by exportViewModel.state.collectAsState()
     val entitlements by subscriptionRepository.entitlements.collectAsState(initial = PremiumEntitlements.Empty)
     val premiumActive = entitlements.hasFeature(PremiumFeature.RemoveAds)
+    val smartAlertsUnlocked = entitlements.hasFeature(PremiumFeature.SmartAlerts)
     val feedback = LocalAppFeedback.current
     var privacyExpanded by remember { mutableStateOf(false) }
     val privacyScore by animateFloatAsState(
@@ -367,6 +369,25 @@ fun SettingsScreen(
         }
 
         item {
+            SmartAlertsSettingsPanel(
+                settings = settings,
+                unlocked = smartAlertsUnlocked,
+                onSubscribeClick = {
+                    feedback?.light()
+                    onSubscriptionClick()
+                },
+                onMasterChanged = {
+                    viewModel.setSmartAlertsEnabled(it)
+                    feedback?.toggle(it)
+                },
+                onTypeChanged = { type, enabled ->
+                    viewModel.setSmartAlertTypeEnabled(type.key, enabled)
+                    feedback?.toggle(enabled)
+                },
+            )
+        }
+
+        item {
             SettingsPanel(title = stringResource(R.string.settings_feedback), icon = Icons.Outlined.Vibration) {
                 SwitchRow(
                     icon = Icons.Outlined.Vibration,
@@ -477,6 +498,81 @@ private fun SettingsPanel(
         Spacer(Modifier.height(14.dp))
         content()
     }
+}
+
+@Composable
+private fun SmartAlertsSettingsPanel(
+    settings: com.devstdvad.devicedna.data.settings.UserSettings,
+    unlocked: Boolean,
+    onSubscribeClick: () -> Unit,
+    onMasterChanged: (Boolean) -> Unit,
+    onTypeChanged: (SmartAlertType, Boolean) -> Unit,
+) {
+    val colors = AppTheme.colors
+    SettingsPanel(title = stringResource(R.string.settings_smart_alerts), icon = Icons.Outlined.MonitorHeart) {
+        Text(
+            text = stringResource(R.string.settings_smart_alerts_summary),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(8.dp))
+        if (!unlocked) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+                    .clickable(onClick = onSubscribeClick)
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_smart_alerts_premium_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colors.textPrimary,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_smart_alerts_premium_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textSecondary,
+                    )
+                }
+                StatusPill(
+                    status = MetricStatus.Unavailable,
+                    label = stringResource(R.string.subscription_status_premium),
+                )
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
+            }
+            return@SettingsPanel
+        }
+
+        SwitchRow(
+            icon = Icons.Outlined.MonitorHeart,
+            label = stringResource(R.string.settings_smart_alerts_master),
+            value = settings.smartAlertsEnabled,
+            onChanged = onMasterChanged,
+        )
+        SmartAlertType.entries.forEach { type ->
+            SwitchRow(
+                icon = type.settingsIcon(),
+                label = stringResource(type.settingRes),
+                value = type.key in settings.smartAlertTypes,
+                onChanged = { enabled -> onTypeChanged(type, enabled) },
+            )
+        }
+    }
+}
+
+private fun SmartAlertType.settingsIcon(): ImageVector = when (this) {
+    SmartAlertType.CpuOverheating -> Icons.Outlined.Thermostat
+    SmartAlertType.LowBattery -> Icons.Outlined.Security
+    SmartAlertType.StorageFull -> Icons.Outlined.DataUsage
+    SmartAlertType.HighRam -> Icons.Outlined.Speed
+    SmartAlertType.SlowCharging -> Icons.Outlined.MonitorHeart
 }
 
 @Composable

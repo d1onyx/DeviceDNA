@@ -232,6 +232,29 @@
     <string name="battery_session_ongoing">Идёт</string>
     <string name="battery_periods_title">Периоды зарядки</string>
 
+    <!-- Smart Alerts -->
+    <string name="settings_smart_alerts">Smart Alerts</string>
+    <string name="settings_smart_alerts_summary">Премиум-уведомления о критических состояниях устройства.</string>
+    <string name="settings_smart_alerts_master">Включить Smart Alerts</string>
+    <string name="settings_smart_alerts_premium_title">Премиум-функция</string>
+    <string name="settings_smart_alerts_premium_body">Оформите Premium, чтобы получать предупреждения о перегреве, низком заряде, заполненной памяти, высокой RAM и медленной зарядке.</string>
+    <string name="settings_alert_cpu_overheating">Перегрев CPU</string>
+    <string name="settings_alert_low_battery">Низкий заряд</string>
+    <string name="settings_alert_storage_full">Память почти заполнена</string>
+    <string name="settings_alert_high_ram">Высокая загрузка RAM</string>
+    <string name="settings_alert_slow_charging">Медленная зарядка</string>
+    <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="alert_cpu_overheating_title">CPU перегревается</string>
+    <string name="alert_cpu_overheating_body">Температура устройства высокая. Дайте ему остыть, чтобы избежать троттлинга и нагрузки на батарею.</string>
+    <string name="alert_low_battery_title">Низкий заряд батареи</string>
+    <string name="alert_low_battery_body">Заряд ниже 15%, и устройство не заряжается.</string>
+    <string name="alert_storage_full_title">Память почти заполнена</string>
+    <string name="alert_storage_full_body">Внутренняя память занята более чем на 90%. Освободите место для стабильной работы.</string>
+    <string name="alert_high_ram_title">Высокая загрузка RAM</string>
+    <string name="alert_high_ram_body">RAM занята более чем на 90%. Закройте тяжёлые приложения, если устройство работает медленно.</string>
+    <string name="alert_slow_charging_title">Зарядка медленная</string>
+    <string name="alert_slow_charging_body">Мощность зарядки низкая. Проверьте кабель, адаптер, порт, нагрев и фоновые процессы.</string>
+
     <string name="settings_widgets_title">Виджеты на экране</string>
     <string name="settings_widgets_summary">Виджеты батареи, памяти и CPU</string>
     <string name="widgets_title">Виджеты</string>

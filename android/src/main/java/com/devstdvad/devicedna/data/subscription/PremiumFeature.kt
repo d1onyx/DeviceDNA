@@ -4,6 +4,7 @@ enum class PremiumFeature(val key: String) {
     RemoveAds("remove_ads"),
     Widgets("widgets"),
     BatteryIntelligence("battery_intelligence"),
+    SmartAlerts("smart_alerts"),
     ;
 
     companion object {

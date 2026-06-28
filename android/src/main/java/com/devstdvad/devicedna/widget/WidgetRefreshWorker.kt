@@ -5,6 +5,7 @@ import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.devstdvad.devicedna.core.common.getOrNull
+import com.devstdvad.devicedna.data.alerts.SmartAlertsManager
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
@@ -35,9 +36,10 @@ class WidgetRefreshWorker(
     private val subscriptionRepository: SubscriptionRepository by inject()
     private val batteryRepository: BatteryRepository by inject()
     private val batteryHistoryStore: BatteryIntelligenceHistoryStore by inject()
+    private val smartAlertsManager: SmartAlertsManager by inject()
 
     override suspend fun doWork(): Result = try {
-        loader.refresh()
+        val snapshot = loader.refresh()
         BatteryWidget().updateAll(applicationContext)
         MemoryWidget().updateAll(applicationContext)
         CpuThermalWidget().updateAll(applicationContext)
@@ -46,6 +48,7 @@ class WidgetRefreshWorker(
         ThermalGuardWidget().updateAll(applicationContext)
         GuardianWidget().updateAll(applicationContext)
         recordBatteryHistory()
+        runCatching { smartAlertsManager.evaluateAndNotify(snapshot) }
         Result.success()
     } catch (_: Exception) {
         Result.retry()

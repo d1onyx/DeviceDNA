@@ -232,6 +232,29 @@
     <string name="battery_session_ongoing">Läuft</string>
     <string name="battery_periods_title">Ladezeiträume</string>
 
+    <!-- Smart Alerts -->
+    <string name="settings_smart_alerts">Smart Alerts</string>
+    <string name="settings_smart_alerts_summary">Premium-Warnungen für kritische Gerätezustände.</string>
+    <string name="settings_smart_alerts_master">Smart Alerts aktivieren</string>
+    <string name="settings_smart_alerts_premium_title">Premium-Funktion</string>
+    <string name="settings_smart_alerts_premium_body">Mit Premium erhalten Sie Warnungen bei Überhitzung, niedrigem Akku, vollem Speicher, hoher RAM-Nutzung und langsamem Laden.</string>
+    <string name="settings_alert_cpu_overheating">CPU-Überhitzung</string>
+    <string name="settings_alert_low_battery">Niedriger Akku</string>
+    <string name="settings_alert_storage_full">Speicher fast voll</string>
+    <string name="settings_alert_high_ram">Hohe RAM-Nutzung</string>
+    <string name="settings_alert_slow_charging">Langsames Laden</string>
+    <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="alert_cpu_overheating_title">CPU überhitzt</string>
+    <string name="alert_cpu_overheating_body">Die Gerätetemperatur ist hoch. Lassen Sie es abkühlen, um Drosselung und Akkustress zu vermeiden.</string>
+    <string name="alert_low_battery_title">Akku ist niedrig</string>
+    <string name="alert_low_battery_body">Der Akkustand liegt unter 15% und das Gerät lädt nicht.</string>
+    <string name="alert_storage_full_title">Speicher fast voll</string>
+    <string name="alert_storage_full_body">Der interne Speicher ist zu über 90% belegt. Geben Sie Speicher frei, damit das Gerät stabil bleibt.</string>
+    <string name="alert_high_ram_title">RAM-Nutzung ist hoch</string>
+    <string name="alert_high_ram_body">Die RAM-Nutzung liegt über 90%. Schließen Sie schwere Apps, wenn das Gerät langsam wirkt.</string>
+    <string name="alert_slow_charging_title">Laden ist langsam</string>
+    <string name="alert_slow_charging_body">Die Ladeleistung ist niedrig. Prüfen Sie Kabel, Netzteil, Anschluss, Wärme und Hintergrundlast.</string>
+
     <string name="settings_widgets_title">Startbildschirm-Widgets</string>
     <string name="settings_widgets_summary">Widgets für Akku, Speicher und CPU</string>
     <string name="widgets_title">Widgets</string>

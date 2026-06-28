@@ -84,6 +84,14 @@ class SettingsViewModel(
         viewModelScope.launch { settingsStore.setExportFormat(value) }
     }
 
+    fun setSmartAlertsEnabled(value: Boolean) {
+        viewModelScope.launch { settingsStore.setSmartAlertsEnabled(value) }
+    }
+
+    fun setSmartAlertTypeEnabled(typeKey: String, enabled: Boolean) {
+        viewModelScope.launch { settingsStore.setSmartAlertTypeEnabled(typeKey, enabled) }
+    }
+
     fun signOut() {
         viewModelScope.launch { authRepository.signOut() }
     }

@@ -4,9 +4,13 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.devstdvad.devicedna.data.alerts.SmartAlertType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+
+private val ALL_SMART_ALERT_KEYS: Set<String> = SmartAlertType.entries.map { it.key }.toSet()
 
 private val Context.settingsDataStore by preferencesDataStore("device_dna_settings")
 
@@ -26,6 +30,8 @@ data class UserSettings(
     val soundEffects: Boolean = false,
     val exportFormat: ExportFormat = ExportFormat.Json,
     val widgetsPromoShown: Boolean = false,
+    val smartAlertsEnabled: Boolean = true,
+    val smartAlertTypes: Set<String> = ALL_SMART_ALERT_KEYS,
 )
 
 enum class TemperatureUnit { Celsius, Fahrenheit }
@@ -52,6 +58,8 @@ class SettingsStore(private val context: Context) {
             soundEffects = prefs[SOUND_EFFECTS] ?: false,
             exportFormat = prefs[EXPORT_FORMAT]?.toEnumOrDefault(ExportFormat.Json) ?: ExportFormat.Json,
             widgetsPromoShown = prefs[WIDGETS_PROMO_SHOWN] ?: false,
+            smartAlertsEnabled = prefs[SMART_ALERTS_ENABLED] ?: true,
+            smartAlertTypes = prefs[SMART_ALERT_TYPES] ?: ALL_SMART_ALERT_KEYS,
         )
     }
 
@@ -115,6 +123,17 @@ class SettingsStore(private val context: Context) {
         context.settingsDataStore.edit { it[WIDGETS_PROMO_SHOWN] = value }
     }
 
+    suspend fun setSmartAlertsEnabled(value: Boolean) {
+        context.settingsDataStore.edit { it[SMART_ALERTS_ENABLED] = value }
+    }
+
+    suspend fun setSmartAlertTypeEnabled(typeKey: String, enabled: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[SMART_ALERT_TYPES] ?: ALL_SMART_ALERT_KEYS
+            prefs[SMART_ALERT_TYPES] = if (enabled) current + typeKey else current - typeKey
+        }
+    }
+
     private inline fun <reified T : Enum<T>> String.toEnumOrDefault(default: T): T =
         enumValues<T>().firstOrNull { it.name == this } ?: default
 
@@ -134,5 +153,7 @@ class SettingsStore(private val context: Context) {
         val SOUND_EFFECTS = booleanPreferencesKey("sound_effects")
         val EXPORT_FORMAT = stringPreferencesKey("export_format")
         val WIDGETS_PROMO_SHOWN = booleanPreferencesKey("widgets_promo_shown")
+        val SMART_ALERTS_ENABLED = booleanPreferencesKey("smart_alerts_enabled")
+        val SMART_ALERT_TYPES = stringSetPreferencesKey("smart_alert_types")
     }
 }

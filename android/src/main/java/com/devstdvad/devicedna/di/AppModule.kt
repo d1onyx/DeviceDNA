@@ -3,6 +3,9 @@ package com.devstdvad.devicedna.di
 import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.SoundManager
+import com.devstdvad.devicedna.core.notification.SmartAlertNotifier
+import com.devstdvad.devicedna.data.alerts.SmartAlertsManager
+import com.devstdvad.devicedna.data.alerts.SmartAlertsStateStore
 import com.devstdvad.devicedna.data.auth.AuthRepository
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.sync.DeviceSnapshotBuilder
@@ -180,6 +183,11 @@ val appModule = module {
             get(), get(), get(), get(),
         )
     }
+
+    // Smart Alerts
+    single { SmartAlertsStateStore(androidContext()) }
+    single { SmartAlertNotifier(androidContext()) }
+    single { SmartAlertsManager(get(), get(), get(), get()) }
 
     // ViewModels
     viewModelOf(::OverviewViewModel)
