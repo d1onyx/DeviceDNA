@@ -4,11 +4,15 @@ import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.SoundManager
 import com.devstdvad.devicedna.data.auth.AuthRepository
+import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.sync.DeviceSnapshotBuilder
 import com.devstdvad.devicedna.data.sync.DeviceSyncManager
 import com.devstdvad.devicedna.data.sync.SyncApi
 import com.devstdvad.devicedna.data.sync.SyncStateStore
 import com.devstdvad.devicedna.data.sync.createSyncHttpClient
+import com.devstdvad.devicedna.data.widget.WidgetMetricsLoader
+import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
+import com.devstdvad.devicedna.data.widget.WidgetSystemProbe
 import com.devstdvad.devicedna.presentation.auth.AuthViewModel
 import com.devstdvad.devicedna.presentation.sync.SyncViewModel
 import com.devstdvad.devicedna.data.export.ExportManager
@@ -71,6 +75,7 @@ import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
 import com.devstdvad.devicedna.presentation.apps.AppsViewModel
+import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryIntelligenceViewModel
 import com.devstdvad.devicedna.presentation.battery.BatteryViewModel
 import com.devstdvad.devicedna.presentation.camera.CameraViewModel
 import com.devstdvad.devicedna.presentation.cpu.CpuViewModel
@@ -116,6 +121,7 @@ val appModule = module {
     single { AndroidAppsDataSource(androidContext()) }
     single { SettingsStore(androidContext()) }
     single { SubscriptionStore(androidContext()) }
+    single { BatteryIntelligenceHistoryStore(androidContext()) }
 
     // Repositories
     single<DeviceRepository> { DeviceRepositoryImpl(get()) }
@@ -165,12 +171,23 @@ val appModule = module {
     single<SubscriptionBillingGateway> { DevSubscriptionBillingGateway() }
     single { SubscriptionRepository(get<SubscriptionStore>(), get()) }
 
+    // Widgets
+    single { WidgetSnapshotCache(androidContext()) }
+    single { WidgetSystemProbe(androidContext()) }
+    single {
+        WidgetMetricsLoader(
+            get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(),
+        )
+    }
+
     // ViewModels
     viewModelOf(::OverviewViewModel)
     viewModelOf(::DeviceViewModel)
     viewModelOf(::SystemViewModel)
     viewModelOf(::CpuViewModel)
     viewModelOf(::BatteryViewModel)
+    viewModelOf(::BatteryIntelligenceViewModel)
     viewModelOf(::NetworkViewModel)
     viewModelOf(::DisplayViewModel)
     viewModelOf(::CameraViewModel)

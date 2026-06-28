@@ -89,6 +89,9 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.play.services.auth)
     implementation(libs.play.services.ads)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
 

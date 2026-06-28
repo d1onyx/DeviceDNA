@@ -51,6 +51,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.ads.AdMobTopBanner
 import com.devstdvad.devicedna.core.design.AppTheme
@@ -65,12 +67,16 @@ import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.presentation.apps.AppsScreen
 import com.devstdvad.devicedna.presentation.auth.AuthScreen
 import com.devstdvad.devicedna.presentation.auth.AuthUiState
+import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryChargingPeriodsScreen
+import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryChargingSessionScreen
+import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryIntelligenceScreen
 import com.devstdvad.devicedna.presentation.hardware.HardwareScreen
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.onboarding.OnboardingScreen
 import com.devstdvad.devicedna.presentation.overview.OverviewScreen
 import com.devstdvad.devicedna.presentation.settings.SettingsScreen
 import com.devstdvad.devicedna.presentation.subscription.SubscriptionScreen
+import com.devstdvad.devicedna.presentation.widgets.WidgetsScreen
 import com.devstdvad.devicedna.presentation.system.SystemHubScreen
 import com.devstdvad.devicedna.presentation.sync.SyncViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsScreen
@@ -83,6 +89,8 @@ fun AppNavigation(
     authState: AuthUiState,
     onGoogleSignIn: () -> Unit,
     onOnboardingComplete: () -> Unit,
+    deepLinkRoute: String? = null,
+    onDeepLinkHandled: () -> Unit = {},
 ) {
     // Wait for Firebase to restore the session before deciding what to show,
     // otherwise the sign-in screen flashes for already-signed-in users.
@@ -131,6 +139,13 @@ fun AppNavigation(
 
         val rootRoutes = bottomNavItems.map { it.route }.toSet()
         val showBottomBar = currentRoute in rootRoutes
+
+        // Navigate to a route requested by a home-screen widget tap (once).
+        LaunchedEffect(deepLinkRoute) {
+            val route = deepLinkRoute ?: return@LaunchedEffect
+            navController.navigate(route)
+            onDeepLinkHandled()
+        }
 
         Scaffold(
             topBar = {
@@ -208,14 +223,70 @@ fun AppNavigation(
                 composable(NavRoutes.TESTS) {
                     TestsScreen(contentPadding = padding)
                 }
+                composable(NavRoutes.BATTERY_INTELLIGENCE) {
+                    BatteryIntelligenceScreen(
+                        onSubscribeClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
+                        onChargingSessionClick = { session ->
+                            navController.navigate(
+                                NavRoutes.batteryChargingSession(session.startMillis, session.endMillis),
+                            )
+                        },
+                        onShowAllChargingSessionsClick = { dayStartMillis ->
+                            navController.navigate(NavRoutes.batteryChargingPeriods(dayStartMillis))
+                        },
+                        contentPadding = padding,
+                    )
+                }
                 composable(NavRoutes.SETTINGS) {
                     SettingsScreen(
                         onSubscriptionClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
+                        onWidgetsClick = { navController.navigate(NavRoutes.WIDGETS) },
                     )
                 }
                 composable(NavRoutes.SUBSCRIPTION) {
                     SubscriptionScreen(
                         onBackClick = { navController.popBackStack() },
+                        contentPadding = padding,
+                    )
+                }
+                composable(NavRoutes.WIDGETS) {
+                    WidgetsScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onSubscribeClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
+                        contentPadding = padding,
+                    )
+                }
+                composable(
+                    route = "${NavRoutes.BATTERY_CHARGING_SESSION}/{${NavRoutes.SESSION_START_ARG}}/{${NavRoutes.SESSION_END_ARG}}",
+                    arguments = listOf(
+                        navArgument(NavRoutes.SESSION_START_ARG) { type = NavType.LongType },
+                        navArgument(NavRoutes.SESSION_END_ARG) { type = NavType.LongType },
+                    ),
+                ) { entry ->
+                    val startMillis = entry.arguments?.getLong(NavRoutes.SESSION_START_ARG) ?: 0L
+                    val rawEndMillis = entry.arguments?.getLong(NavRoutes.SESSION_END_ARG) ?: -1L
+                    BatteryChargingSessionScreen(
+                        sessionStartMillis = startMillis,
+                        sessionEndMillis = rawEndMillis.takeIf { it >= 0L },
+                        onBackClick = { navController.popBackStack() },
+                        contentPadding = padding,
+                    )
+                }
+                composable(
+                    route = "${NavRoutes.BATTERY_CHARGING_PERIODS}/{${NavRoutes.DAY_START_ARG}}",
+                    arguments = listOf(
+                        navArgument(NavRoutes.DAY_START_ARG) { type = NavType.LongType },
+                    ),
+                ) { entry ->
+                    val dayStartMillis = entry.arguments?.getLong(NavRoutes.DAY_START_ARG) ?: 0L
+                    BatteryChargingPeriodsScreen(
+                        dayStartMillis = dayStartMillis,
+                        onBackClick = { navController.popBackStack() },
+                        onChargingSessionClick = { session ->
+                            navController.navigate(
+                                NavRoutes.batteryChargingSession(session.startMillis, session.endMillis),
+                            )
+                        },
                         contentPadding = padding,
                     )
                 }

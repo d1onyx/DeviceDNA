@@ -93,6 +93,7 @@ fun SettingsScreen(
     exportViewModel: ExportViewModel = koinViewModel(),
     subscriptionRepository: SubscriptionRepository = koinInject(),
     onSubscriptionClick: () -> Unit = {},
+    onWidgetsClick: () -> Unit = {},
 ) {
     val colors = AppTheme.colors
     val settings by viewModel.settings.collectAsState()
@@ -206,6 +207,36 @@ fun SettingsScreen(
                             stringResource(R.string.subscription_status_free)
                         },
                     )
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+                        .clickable {
+                            feedback?.light()
+                            onWidgetsClick()
+                        }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_widgets_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.textPrimary,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.settings_widgets_summary),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textSecondary,
+                        )
+                    }
                     Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = colors.textMuted)
                 }
             }

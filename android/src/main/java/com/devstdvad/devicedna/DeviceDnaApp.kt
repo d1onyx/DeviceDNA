@@ -2,6 +2,7 @@ package com.devstdvad.devicedna
 
 import android.app.Application
 import com.devstdvad.devicedna.di.appModule
+import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,5 +26,6 @@ class DeviceDnaApp : Application() {
             androidContext(this@DeviceDnaApp)
             modules(appModule)
         }
+        WidgetRefreshScheduler.enqueuePeriodic(this)
     }
 }

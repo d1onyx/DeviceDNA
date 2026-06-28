@@ -25,6 +25,7 @@ data class UserSettings(
     val hapticFeedback: Boolean = true,
     val soundEffects: Boolean = false,
     val exportFormat: ExportFormat = ExportFormat.Json,
+    val widgetsPromoShown: Boolean = false,
 )
 
 enum class TemperatureUnit { Celsius, Fahrenheit }
@@ -50,6 +51,7 @@ class SettingsStore(private val context: Context) {
             hapticFeedback = prefs[HAPTIC_FEEDBACK] ?: true,
             soundEffects = prefs[SOUND_EFFECTS] ?: false,
             exportFormat = prefs[EXPORT_FORMAT]?.toEnumOrDefault(ExportFormat.Json) ?: ExportFormat.Json,
+            widgetsPromoShown = prefs[WIDGETS_PROMO_SHOWN] ?: false,
         )
     }
 
@@ -109,6 +111,10 @@ class SettingsStore(private val context: Context) {
         context.settingsDataStore.edit { it[EXPORT_FORMAT] = value.name }
     }
 
+    suspend fun setWidgetsPromoShown(value: Boolean) {
+        context.settingsDataStore.edit { it[WIDGETS_PROMO_SHOWN] = value }
+    }
+
     private inline fun <reified T : Enum<T>> String.toEnumOrDefault(default: T): T =
         enumValues<T>().firstOrNull { it.name == this } ?: default
 
@@ -127,5 +133,6 @@ class SettingsStore(private val context: Context) {
         val HAPTIC_FEEDBACK = booleanPreferencesKey("haptic_feedback")
         val SOUND_EFFECTS = booleanPreferencesKey("sound_effects")
         val EXPORT_FORMAT = stringPreferencesKey("export_format")
+        val WIDGETS_PROMO_SHOWN = booleanPreferencesKey("widgets_promo_shown")
     }
 }

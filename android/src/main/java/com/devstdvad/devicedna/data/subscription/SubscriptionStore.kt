@@ -16,16 +16,22 @@ class SubscriptionStore(
 ) : PremiumEntitlementsStore {
 
     override val entitlements: Flow<PremiumEntitlements> = context.subscriptionDataStore.data.map { prefs ->
-        val features = prefs[FEATURES]
+        val storedFeatures = prefs[FEATURES]
             ?.mapNotNull(PremiumFeature::fromKey)
             ?.toSet()
             .orEmpty()
+        val source = prefs[SOURCE]?.toEnumOrDefault(EntitlementSource.None) ?: EntitlementSource.None
+        val features = if (source == EntitlementSource.Dev && storedFeatures.isNotEmpty()) {
+            PremiumFeature.entries.toSet()
+        } else {
+            storedFeatures
+        }
         PremiumEntitlements(
             userId = prefs[USER_ID],
             features = features,
             issuedAtMillis = prefs[ISSUED_AT_MILLIS] ?: 0L,
             expiresAtMillis = prefs[EXPIRES_AT_MILLIS],
-            source = prefs[SOURCE]?.toEnumOrDefault(EntitlementSource.None) ?: EntitlementSource.None,
+            source = source,
         )
     }
 

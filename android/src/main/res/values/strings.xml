@@ -9,6 +9,7 @@
     <string name="nav_system">OS</string>
     <string name="nav_cpu">CPU</string>
     <string name="nav_battery">Battery</string>
+    <string name="nav_battery_intelligence">Battery AI</string>
     <string name="nav_network">Network</string>
     <string name="nav_connectivity">Radio</string>
     <string name="nav_display">Display</string>
@@ -22,6 +23,9 @@
 
     <string name="common_on">On</string>
     <string name="common_off">Off</string>
+    <string name="common_back">Back</string>
+    <string name="common_not_reported">Not reported</string>
+    <string name="common_not_enough_data">Not enough data</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_language">Language</string>
@@ -52,9 +56,12 @@
     <string name="settings_account">Account</string>
     <string name="settings_account_signed_in">Signed in with Google</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="settings_premium">Premium</string>
+    <string name="settings_premium_manage">Manage subscription</string>
+    <string name="settings_premium_summary">Remove ads now, with more premium features later.</string>
     <string name="settings_privacy_policy_title">Privacy policy</string>
     <string name="settings_privacy_policy_summary">Local-first diagnostics with optional Google sign-in.</string>
-    <string name="settings_privacy_policy_body">DeviceDNA reads hardware and system diagnostics on your device to show CPU, memory, battery, storage, sensor, camera, app and network information. Sensitive identifiers are masked by default. Google sign-in is used only to identify your account through Firebase Authentication; DeviceDNA does not sell data, does not run ad tracking, and does not upload hardware diagnostics to a private server. Optional features that need network access, such as public IP lookup or Firebase authentication, may contact Google or the selected network endpoint and are clearly opt-in. You can sign out, disable public IP lookup, keep IMEI and serial values hidden, reduce background monitoring, and revoke Android permissions at any time in system settings.</string>
+    <string name="settings_privacy_policy_body">DeviceDNA reads hardware and system diagnostics on your device to show CPU, memory, battery, storage, sensor, camera, app and network information. Sensitive identifiers are masked by default. Google sign-in is used only to identify your account through Firebase Authentication; DeviceDNA does not sell hardware diagnostics or upload them to a private server. Ads may be served by Google Mobile Ads and can contact Google services. Optional features that need network access, such as public IP lookup or Firebase authentication, may contact Google or the selected network endpoint and are clearly opt-in. You can sign out, disable public IP lookup, keep IMEI and serial values hidden, reduce background monitoring, and revoke Android permissions at any time in system settings.</string>
 
     <string name="auth_badge_ready">Firebase ready</string>
     <string name="auth_badge_setup">Setup needed</string>
@@ -159,4 +166,101 @@
     <string name="settings_export_format">Format</string>
     <string name="settings_export_button">Export &amp; Share</string>
     <string name="settings_export_exporting">Exporting…</string>
+
+    <!-- Subscription -->
+    <string name="subscription_title">Premium</string>
+    <string name="subscription_subtitle">Subscription</string>
+    <string name="subscription_status_premium">Premium</string>
+    <string name="subscription_status_free">Free</string>
+    <string name="subscription_hero_active">Premium is active</string>
+    <string name="subscription_hero_free">Upgrade your DeviceDNA</string>
+    <string name="subscription_hero_body">Premium starts with an ad-free experience. The entitlement system is ready for future paid features.</string>
+    <string name="subscription_included_title">Included now</string>
+    <string name="subscription_feature_no_ads_title">No ads</string>
+    <string name="subscription_feature_no_ads_detail">Hide the top ad banner across the app while premium is active.</string>
+    <string name="subscription_dev_title">Dev payment mode</string>
+    <string name="subscription_dev_body">This build simulates a purchase locally. Real billing can replace this gateway later without changing the screen flow.</string>
+    <string name="subscription_activate_dev">Activate Premium</string>
+    <string name="subscription_active_button">Premium active</string>
+    <string name="subscription_restore">Restore purchases</string>
+    <string name="subscription_cancel_dev">Cancel dev subscription</string>
+    <string name="subscription_processing">Processing…</string>
+
+    <!-- Battery Intelligence -->
+    <string name="battery_intelligence_title">Battery Intelligence</string>
+    <string name="battery_intelligence_locked_title">Unlock Battery Intelligence</string>
+    <string name="battery_intelligence_locked_body">Premium battery analytics include degradation forecast, health estimate, charging advice and cycle history.</string>
+    <string name="battery_intelligence_unlock_button">Buy Premium</string>
+    <string name="battery_intelligence_unavailable">Battery intelligence is unavailable right now.</string>
+    <string name="battery_intelligence_health_score">Health score</string>
+    <string name="battery_intelligence_health_score_hint">Estimated today</string>
+    <string name="battery_intelligence_degradation">Degradation</string>
+    <string name="battery_intelligence_charging_advice">Charging advice</string>
+    <string name="battery_intelligence_charging_history">Charging history</string>
+    <string name="battery_intelligence_charging_history_empty">Charging history will appear after the app records charging snapshots.</string>
+    <string name="battery_intelligence_selected_hour">%1$s history</string>
+    <string name="battery_intelligence_hour_empty">No battery snapshots were recorded for this hour.</string>
+    <string name="battery_intelligence_charging_periods">Charging periods</string>
+    <string name="battery_intelligence_periods_empty">No charging periods were recorded for this day.</string>
+    <string name="battery_intelligence_show_all_periods">Show all (%1$d)</string>
+    <string name="battery_intelligence_session_good">Good</string>
+    <string name="battery_intelligence_session_needs_advice">Advice</string>
+    <string name="battery_intelligence_legend_good">Good</string>
+    <string name="battery_intelligence_legend_poor">Needs advice</string>
+    <string name="battery_intelligence_legend_discharge">Discharging</string>
+    <string name="battery_intelligence_legend_stable">No change</string>
+    <string name="battery_intelligence_cycle_history">Cycle history</string>
+    <string name="battery_intelligence_charge_speed">Charging speed control</string>
+    <string name="battery_intelligence_current_speed">Current speed</string>
+    <string name="battery_intelligence_average_speed">Average speed</string>
+    <string name="battery_intelligence_peak_speed">Peak speed</string>
+    <string name="battery_intelligence_charge_rate">Charge rate</string>
+    <string name="battery_intelligence_sessions">Charging sessions</string>
+    <string name="battery_intelligence_current_cycles">Current cycles</string>
+    <string name="battery_intelligence_cycle_delta">Cycle growth</string>
+    <string name="battery_intelligence_next_cycle_progress">Next cycle progress</string>
+    <string name="battery_intelligence_tracked_samples">Tracked samples</string>
+    <string name="battery_intelligence_cycles_system_note">This device reports battery cycle count directly. Android provides the cycle value.</string>
+    <string name="battery_intelligence_cycles_local_note">This device does not report cycle count. DeviceDNA counts locally from when tracking starts: each accumulated 100% charge equals 1 cycle.</string>
+    <string name="battery_intelligence_cycles_unavailable">No local cycle history yet. Keep Battery Intelligence enabled so DeviceDNA can start counting from now.</string>
+    <string name="battery_intelligence_cycles_value">%1$d cycles</string>
+    <string name="battery_intelligence_estimated_cycles_value">%1$d estimated cycles</string>
+    <string name="battery_session_title">Charging session</string>
+    <string name="battery_session_summary">Session summary</string>
+    <string name="battery_session_summary_body">Recorded changes between plug-in and disconnect for this charging period.</string>
+    <string name="battery_session_started">Started</string>
+    <string name="battery_session_ended">Ended</string>
+    <string name="battery_session_duration">Duration</string>
+    <string name="battery_session_level">Battery level</string>
+    <string name="battery_session_max_temp">Max temperature</string>
+    <string name="battery_session_changes">Changes during charging</string>
+    <string name="battery_session_empty">No snapshots were recorded for this charging period.</string>
+    <string name="battery_session_finished">Finished</string>
+    <string name="battery_session_ongoing">Ongoing</string>
+    <string name="battery_periods_title">Charging periods</string>
+
+    <string name="settings_widgets_title">Home-screen widgets</string>
+    <string name="settings_widgets_summary">Battery, memory and CPU widgets</string>
+    <string name="widgets_title">Widgets</string>
+    <string name="widgets_locked_title">Premium widgets</string>
+    <string name="widgets_locked_body">Add live home-screen widgets with a Premium subscription.</string>
+    <string name="widgets_unlock_button">Unlock with Premium</string>
+    <string name="widgets_add_button">Add to home screen</string>
+    <string name="widget_battery_title">Battery</string>
+    <string name="widget_battery_desc">Battery level, temperature and status</string>
+    <string name="widget_memory_title">Memory</string>
+    <string name="widget_memory_desc">RAM and storage usage</string>
+    <string name="widget_cpu_thermal_title">CPU &amp; Thermal</string>
+    <string name="widget_cpu_thermal_desc">CPU load and temperature</string>
+    <string name="widget_device_health_title">Device Health</string>
+    <string name="widget_device_health_desc">Overall health score and the top thing to fix</string>
+    <string name="widget_battery_doctor_title">Battery Doctor</string>
+    <string name="widget_battery_doctor_desc">Battery wear, charge cycles and live charging power</string>
+    <string name="widget_thermal_guard_title">Thermal Guard</string>
+    <string name="widget_thermal_guard_desc">Warns about thermal throttling and overheating</string>
+    <string name="widget_guardian_title">Guardian</string>
+    <string name="widget_guardian_desc">Root, integrity and security alerts at a glance</string>
+    <string name="notif_channel_features">Feature updates</string>
+    <string name="notif_widgets_title">Home-screen widgets are here</string>
+    <string name="notif_widgets_body">Add Battery, Memory and CPU widgets to your home screen. Tap to set them up.</string>
 </resources>
