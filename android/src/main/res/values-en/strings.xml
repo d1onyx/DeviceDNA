@@ -218,6 +218,12 @@
     <string name="battery_intelligence_cycles_unavailable">No local cycle history yet. Keep Battery Intelligence enabled so DeviceDNA can start counting from now.</string>
     <string name="battery_intelligence_cycles_value">%1$d cycles</string>
     <string name="battery_intelligence_estimated_cycles_value">%1$d estimated cycles</string>
+    <string name="battery_intelligence_export_title">Download analytics</string>
+    <string name="battery_intelligence_export_body">Export this battery report with health, degradation, charging periods, hourly timeline and cycle history.</string>
+    <string name="battery_intelligence_export_format">Format</string>
+    <string name="battery_intelligence_export_button">Download analytics</string>
+    <string name="battery_intelligence_exporting">Preparing file...</string>
+    <string name="battery_intelligence_export_share_title">Share battery analytics</string>
     <string name="battery_session_title">Charging session</string>
     <string name="battery_session_summary">Session summary</string>
     <string name="battery_session_summary_body">Recorded changes between plug-in and disconnect for this charging period.</string>

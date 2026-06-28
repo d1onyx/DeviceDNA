@@ -218,6 +218,12 @@
     <string name="battery_intelligence_cycles_unavailable">Noch kein lokaler Zyklusverlauf vorhanden. Lassen Sie Battery Intelligence aktiviert, damit DeviceDNA ab jetzt zählen kann.</string>
     <string name="battery_intelligence_cycles_value">%1$d Zyklen</string>
     <string name="battery_intelligence_estimated_cycles_value">%1$d geschätzte Zyklen</string>
+    <string name="battery_intelligence_export_title">Analyse herunterladen</string>
+    <string name="battery_intelligence_export_body">Exportieren Sie diesen Akkubericht mit Zustand, Degradation, Ladezeiträumen, Stundenverlauf und Zyklusverlauf.</string>
+    <string name="battery_intelligence_export_format">Format</string>
+    <string name="battery_intelligence_export_button">Analyse herunterladen</string>
+    <string name="battery_intelligence_exporting">Datei wird vorbereitet...</string>
+    <string name="battery_intelligence_export_share_title">Akkuanalyse teilen</string>
     <string name="battery_session_title">Ladesitzung</string>
     <string name="battery_session_summary">Sitzungsübersicht</string>
     <string name="battery_session_summary_body">Aufgezeichnete Änderungen zwischen Einstecken und Trennen in diesem Ladezeitraum.</string>

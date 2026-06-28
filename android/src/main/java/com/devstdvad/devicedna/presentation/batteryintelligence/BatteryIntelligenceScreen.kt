@@ -1,5 +1,12 @@
 package com.devstdvad.devicedna.presentation.batteryintelligence
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -22,22 +29,29 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,19 +73,33 @@ import com.devstdvad.devicedna.core.design.component.MetricCard
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
+import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BatteryIntelligenceScreen(
     viewModel: BatteryIntelligenceViewModel = koinViewModel(),
+    exportViewModel: BatteryAnalyticsExportViewModel = koinViewModel(),
     onSubscribeClick: () -> Unit = {},
     onChargingSessionClick: (ChargingSessionSummary) -> Unit = {},
     onShowAllChargingSessionsClick: (Long) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
+    val exportState by exportViewModel.state.collectAsState()
     val colors = AppTheme.colors
+    val feedback = LocalAppFeedback.current
+    var selectedExportFormat by remember { mutableStateOf(ExportFormat.Json) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+    val exportShareTitle = stringResource(R.string.battery_intelligence_export_share_title)
+
+    LaunchedEffect(exportState.shareIntent) {
+        exportState.shareIntent?.let { intent ->
+            exportLauncher.launch(android.content.Intent.createChooser(intent, exportShareTitle))
+            exportViewModel.clearShareIntent()
+        }
+    }
 
     if (state.isLoading) {
         LoadingScreen()
@@ -109,6 +137,23 @@ fun BatteryIntelligenceScreen(
 
         item {
             BatteryIntelligenceHero(report = report)
+        }
+
+        item {
+            BatteryAnalyticsExportCard(
+                selectedFormat = selectedExportFormat,
+                isExporting = exportState.isExporting,
+                errorMessage = exportState.errorMessage,
+                onFormatSelected = { format ->
+                    selectedExportFormat = format
+                    exportViewModel.clearError()
+                    feedback?.light()
+                },
+                onExportClick = {
+                    exportViewModel.export(report, selectedExportFormat)
+                    feedback?.confirm()
+                },
+            )
         }
 
         item {
@@ -568,6 +613,116 @@ private fun ChargingHistoryRow(entry: ChargingHistoryEntry) {
             Text("${entry.levelPercent}%", style = MaterialTheme.typography.titleMedium, color = colors.batteryColor)
             Text(entry.watts.formatWatts(), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
         }
+    }
+}
+
+
+@Composable
+private fun BatteryAnalyticsExportCard(
+    selectedFormat: ExportFormat,
+    isExporting: Boolean,
+    errorMessage: String?,
+    onFormatSelected: (ExportFormat) -> Unit,
+    onExportClick: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    SectionCard {
+        SectionTitle(Icons.Outlined.FileDownload, stringResource(R.string.battery_intelligence_export_title))
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.battery_intelligence_export_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.textSecondary,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.battery_intelligence_export_format),
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.textMuted,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ExportFormat.entries.forEach { format ->
+                ExportFormatButton(
+                    label = format.name.uppercase(),
+                    selected = format == selectedFormat,
+                    onClick = { onFormatSelected(format) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        errorMessage?.let { error ->
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.critical,
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = onExportClick,
+            enabled = !isExporting,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.accent,
+                contentColor = colors.background,
+                disabledContainerColor = colors.surfaceHover,
+                disabledContentColor = colors.textMuted,
+            ),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            AnimatedContent(
+                targetState = isExporting,
+                transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(100)) },
+                label = "battery_analytics_export_button",
+            ) { loading ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = colors.textMuted,
+                            strokeWidth = 2.dp,
+                        )
+                        Text(stringResource(R.string.battery_intelligence_exporting))
+                    } else {
+                        Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.battery_intelligence_export_button))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExportFormatButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AppTheme.colors
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(42.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) colors.accent.copy(alpha = 0.18f) else colors.surface,
+            contentColor = if (selected) colors.accent else colors.textSecondary,
+        ),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        )
     }
 }
 

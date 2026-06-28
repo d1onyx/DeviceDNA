@@ -218,6 +218,12 @@
     <string name="battery_intelligence_cycles_unavailable">Локальной истории циклов пока нет. Оставьте Battery Intelligence включённым, чтобы DeviceDNA начал считать с этого момента.</string>
     <string name="battery_intelligence_cycles_value">%1$d циклов</string>
     <string name="battery_intelligence_estimated_cycles_value">%1$d примерных циклов</string>
+    <string name="battery_intelligence_export_title">Скачать аналитику</string>
+    <string name="battery_intelligence_export_body">Экспортируйте отчёт батареи со здоровьем, деградацией, периодами зарядки, графиком по часам и историей циклов.</string>
+    <string name="battery_intelligence_export_format">Формат</string>
+    <string name="battery_intelligence_export_button">Скачать аналитику</string>
+    <string name="battery_intelligence_exporting">Готовим файл...</string>
+    <string name="battery_intelligence_export_share_title">Поделиться аналитикой батареи</string>
     <string name="battery_session_title">Сессия зарядки</string>
     <string name="battery_session_summary">Сводка сессии</string>
     <string name="battery_session_summary_body">Записанные изменения между подключением и отключением для этого периода зарядки.</string>

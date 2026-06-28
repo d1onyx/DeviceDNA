@@ -78,6 +78,8 @@ import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
 import com.devstdvad.devicedna.presentation.apps.AppsViewModel
+import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryAnalyticsExportManager
+import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryAnalyticsExportViewModel
 import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryIntelligenceViewModel
 import com.devstdvad.devicedna.presentation.battery.BatteryViewModel
 import com.devstdvad.devicedna.presentation.camera.CameraViewModel
@@ -109,6 +111,7 @@ val appModule = module {
 
     // Export
     single { ExportManager(androidContext(), get(), get(), get(), get(), get(), get(), get()) }
+    single { BatteryAnalyticsExportManager(androidContext()) }
 
     // Data sources
     single { AndroidDeviceDataSource(androidContext()) }
@@ -195,6 +198,7 @@ val appModule = module {
     viewModelOf(::SystemViewModel)
     viewModelOf(::CpuViewModel)
     viewModelOf(::BatteryViewModel)
+    viewModelOf(::BatteryAnalyticsExportViewModel)
     viewModelOf(::BatteryIntelligenceViewModel)
     viewModelOf(::NetworkViewModel)
     viewModelOf(::DisplayViewModel)
