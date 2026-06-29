@@ -46,6 +46,14 @@ class SubscriptionViewModel(
 
     private val operationState = MutableStateFlow(SubscriptionOperationState())
 
+    init {
+        // Re-check with the backend (source of truth) whenever the screen opens, so a subscription
+        // revoked/expired server-side is reflected locally. No-op in pure local dev mode.
+        viewModelScope.launch {
+            runCatching { subscriptionRepository.refreshEntitlements() }
+        }
+    }
+
     val state: StateFlow<SubscriptionUiState> = combine(
         subscriptionRepository.entitlements,
         operationState,

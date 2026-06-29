@@ -7,6 +7,7 @@ import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionOperationResult
 import com.devstdvad.devicedna.data.subscription.SubscriptionPurchaseResult
+import com.devstdvad.devicedna.data.subscription.SubscriptionRefreshResult
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.data.subscription.SubscriptionVerificationResult
 import com.devstdvad.devicedna.data.subscription.SubscriptionVerifier
@@ -183,6 +184,72 @@ class SubscriptionRepositoryTest {
         assertFalse(entitlements.hasFeature(PremiumFeature.RemoveAds, nowMillis = 2_001L))
     }
 
+    @Test
+    fun `refresh clears local premium when backend reports inactive`() = runTest {
+        val store = FakePremiumEntitlementsStore(
+            PremiumEntitlements(
+                features = PremiumFeature.entries.toSet(),
+                issuedAtMillis = 1_000L,
+                expiresAtMillis = 10_000_000L,
+                source = EntitlementSource.Backend,
+            ),
+        )
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(PremiumEntitlements.Empty),
+            verifier = FakeVerifier(refreshResult = SubscriptionRefreshResult.Inactive),
+            serverAuthoritative = true,
+        )
+
+        repository.refreshEntitlements()
+
+        assertFalse(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
+    }
+
+    @Test
+    fun `refresh keeps local premium when backend unavailable`() = runTest {
+        val store = FakePremiumEntitlementsStore(
+            PremiumEntitlements(
+                features = PremiumFeature.entries.toSet(),
+                issuedAtMillis = 1_000L,
+                expiresAtMillis = 10_000_000L,
+                source = EntitlementSource.Backend,
+            ),
+        )
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(PremiumEntitlements.Empty),
+            verifier = FakeVerifier(refreshResult = SubscriptionRefreshResult.Unavailable("offline")),
+            serverAuthoritative = true,
+        )
+
+        repository.refreshEntitlements()
+
+        assertTrue(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
+    }
+
+    @Test
+    fun `refresh is a no-op when backend is not authoritative`() = runTest {
+        val store = FakePremiumEntitlementsStore(
+            PremiumEntitlements(
+                features = PremiumFeature.entries.toSet(),
+                issuedAtMillis = 1_000L,
+                expiresAtMillis = 10_000_000L,
+                source = EntitlementSource.Dev,
+            ),
+        )
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(PremiumEntitlements.Empty),
+            verifier = FakeVerifier(refreshResult = SubscriptionRefreshResult.Inactive),
+            serverAuthoritative = false,
+        )
+
+        repository.refreshEntitlements()
+
+        assertTrue(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
+    }
+
     private class FakePremiumEntitlementsStore(
         initial: PremiumEntitlements = PremiumEntitlements.Empty,
     ) : PremiumEntitlementsStore {
@@ -214,6 +281,8 @@ class SubscriptionRepositoryTest {
             SubscriptionVerificationResult.Failure("no play result"),
         private val devResult: SubscriptionVerificationResult =
             SubscriptionVerificationResult.Failure("no dev result"),
+        private val refreshResult: SubscriptionRefreshResult =
+            SubscriptionRefreshResult.Unavailable("no refresh result"),
     ) : SubscriptionVerifier {
         override suspend fun verifyGooglePlayPurchase(
             productId: String,
@@ -221,5 +290,7 @@ class SubscriptionRepositoryTest {
         ): SubscriptionVerificationResult = playResult
 
         override suspend fun activateDevSubscription(): SubscriptionVerificationResult = devResult
+
+        override suspend fun fetchCurrentEntitlements(): SubscriptionRefreshResult = refreshResult
     }
 }

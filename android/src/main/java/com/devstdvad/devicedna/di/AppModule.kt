@@ -193,6 +193,9 @@ val appModule = module {
             billingGateway = get(),
             verifier = get(),
             devUsesBackend = BuildConfig.DEV_SUBSCRIPTION_USE_BACKEND,
+            // Backend is authoritative whenever subscriptions live there: real Play billing or
+            // the dev-via-backend mode. Pure local dev unlock keeps entitlements on-device only.
+            serverAuthoritative = BuildConfig.USE_REAL_BILLING || BuildConfig.DEV_SUBSCRIPTION_USE_BACKEND,
         )
     }
 

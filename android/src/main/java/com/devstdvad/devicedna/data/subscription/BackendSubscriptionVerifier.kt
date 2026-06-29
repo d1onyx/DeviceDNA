@@ -54,6 +54,31 @@ class BackendSubscriptionVerifier(
         )
     }
 
+    override suspend fun fetchCurrentEntitlements(): SubscriptionRefreshResult {
+        val idToken = authRepository.getIdToken()
+            ?: return SubscriptionRefreshResult.Unavailable("Not signed in.")
+
+        return runCatching {
+            syncApi.getSubscription(idToken)
+        }.fold(
+            onSuccess = { response ->
+                val subscription = response.subscription
+                if (response.premium && subscription != null) {
+                    SubscriptionRefreshResult.Active(
+                        subscription.toEntitlements(authRepository.uid, EntitlementSource.Backend),
+                    )
+                } else {
+                    SubscriptionRefreshResult.Inactive
+                }
+            },
+            onFailure = { error ->
+                SubscriptionRefreshResult.Unavailable(
+                    error.message ?: "Unable to reach the subscription backend.",
+                )
+            },
+        )
+    }
+
     private fun toVerificationResult(
         response: SubscriptionViewResponse,
         source: EntitlementSource,

@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.sync
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.data.sync.AccountCheckOutcome
 import com.devstdvad.devicedna.data.sync.DeviceSyncManager
 import com.devstdvad.devicedna.data.sync.SyncOutcome
@@ -24,6 +25,7 @@ data class SyncUiState(
 class SyncViewModel(
     private val manager: DeviceSyncManager,
     private val stateStore: SyncStateStore,
+    private val subscriptionRepository: SubscriptionRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyncUiState())
@@ -60,6 +62,11 @@ class SyncViewModel(
         if (autoTriggered) return
         autoTriggered = true
         sync(force = false)
+        // Re-check entitlements against the backend on startup so a server-side change
+        // (revoked/expired subscription) is reflected even before the user opens the premium screen.
+        viewModelScope.launch {
+            runCatching { subscriptionRepository.refreshEntitlements() }
+        }
     }
 
     fun sync(force: Boolean = false) {

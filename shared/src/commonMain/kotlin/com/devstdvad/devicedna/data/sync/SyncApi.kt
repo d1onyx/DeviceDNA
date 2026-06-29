@@ -80,6 +80,11 @@ class SyncApi(
         client.post("$baseUrl/v1/subscription/dev/activate") {
             bearerAuth(idToken)
         }.body()
+
+    suspend fun getSubscription(idToken: String): SubscriptionViewResponse =
+        client.get("$baseUrl/v1/subscription") {
+            bearerAuth(idToken)
+        }.body()
 }
 
 private suspend fun HttpResponse.errorCode(): String =
