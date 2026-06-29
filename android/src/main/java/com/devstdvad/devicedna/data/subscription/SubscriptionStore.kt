@@ -37,17 +37,19 @@ class SubscriptionStore(
 
     override suspend fun save(entitlements: PremiumEntitlements) {
         context.subscriptionDataStore.edit { prefs ->
-            if (entitlements.userId == null) {
+            val userId = entitlements.userId
+            val expiresAtMillis = entitlements.expiresAtMillis
+            if (userId == null) {
                 prefs.remove(USER_ID)
             } else {
-                prefs[USER_ID] = entitlements.userId
+                prefs[USER_ID] = userId
             }
             prefs[FEATURES] = entitlements.features.map { it.key }.toSet()
             prefs[ISSUED_AT_MILLIS] = entitlements.issuedAtMillis
-            if (entitlements.expiresAtMillis == null) {
+            if (expiresAtMillis == null) {
                 prefs.remove(EXPIRES_AT_MILLIS)
             } else {
-                prefs[EXPIRES_AT_MILLIS] = entitlements.expiresAtMillis
+                prefs[EXPIRES_AT_MILLIS] = expiresAtMillis
             }
             prefs[SOURCE] = entitlements.source.name
         }

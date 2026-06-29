@@ -5,6 +5,12 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.devstdvad.devicedna.data.settings.ExportFormat
+import com.devstdvad.devicedna.domain.batteryintelligence.BatteryCyclePoint
+import com.devstdvad.devicedna.domain.batteryintelligence.BatteryIntelligenceReport
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHistoryEntry
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHourSlot
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingMinuteSegment
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -83,7 +89,7 @@ class BatteryAnalyticsExportManager(
                     .put("partial_cycle_percent", report.cycleStats.partialCyclePercent)
                     .put("tracked_samples", report.cycleStats.trackedSamples),
             )
-            .put("charging_advice", JSONArray(report.chargingAdvice.map { context.getString(it) }))
+            .put("charging_advice", JSONArray(report.chargingAdvice.map { context.getString(it.stringRes) }))
             .put("hourly_timeline", JSONArray(report.hourlyTimeline.map { it.toJson() }))
             .put("charging_periods", JSONArray(report.dailyChargingSessions.map { it.toJson() }))
             .put("selected_hour", report.selectedHour)
@@ -112,8 +118,8 @@ class BatteryAnalyticsExportManager(
         rows += CsvRow("cycle_stats", "source", report.cycleStats.source.name)
         rows += CsvRow("cycle_stats", "partial_cycle_percent", report.cycleStats.partialCyclePercent.toString())
         rows += CsvRow("cycle_stats", "tracked_samples", report.cycleStats.trackedSamples.toString())
-        report.chargingAdvice.forEachIndexed { index, adviceRes ->
-            rows += CsvRow("charging_advice", "advice_${index + 1}", context.getString(adviceRes))
+        report.chargingAdvice.forEachIndexed { index, advice ->
+            rows += CsvRow("charging_advice", "advice_${index + 1}", context.getString(advice.stringRes))
         }
         report.hourlyTimeline.forEach { slot ->
             val prefix = "hour_${slot.hour.toString().padStart(2, '0')}"
@@ -191,7 +197,7 @@ class BatteryAnalyticsExportManager(
         appendLine()
         appendLine("[CHARGING ADVICE]")
         report.chargingAdvice.forEachIndexed { index, advice ->
-            appendLine("${index + 1}. $advice")
+            appendLine("${index + 1}. ${context.getString(advice.stringRes)}")
         }
         appendLine()
         appendLine("[HOURLY TIMELINE]")

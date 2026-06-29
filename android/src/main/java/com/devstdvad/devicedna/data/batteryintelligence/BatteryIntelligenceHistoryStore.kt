@@ -6,11 +6,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.devstdvad.devicedna.domain.model.BatteryInfo
-import com.devstdvad.devicedna.domain.model.BatteryStatus
-import com.devstdvad.devicedna.domain.model.ChargeSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
@@ -92,27 +89,4 @@ class BatteryIntelligenceHistoryStore(
         const val MAX_SNAPSHOTS = 240
         const val MIN_SNAPSHOT_INTERVAL_MS = 15L * 60L * 1000L
     }
-}
-
-@Serializable
-data class BatteryHistoryPayload(
-    val snapshots: List<BatteryHistorySnapshot> = emptyList(),
-)
-
-@Serializable
-data class BatteryHistorySnapshot(
-    val timestampMillis: Long,
-    val levelPercent: Int,
-    val status: String,
-    val source: String,
-    val temperatureCelsius: Float,
-    val currentMa: Int?,
-    val estimatedWatts: Float?,
-    val chargeCycles: Int?,
-) {
-    val isCharging: Boolean
-        get() = status == BatteryStatus.Charging.name || status == BatteryStatus.Full.name
-
-    val isPlugged: Boolean
-        get() = source != ChargeSource.Unknown.name
 }

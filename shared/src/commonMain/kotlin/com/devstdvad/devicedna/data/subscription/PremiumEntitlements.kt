@@ -1,5 +1,7 @@
 package com.devstdvad.devicedna.data.subscription
 
+import kotlinx.datetime.Clock
+
 data class PremiumEntitlements(
     val userId: String? = null,
     val features: Set<PremiumFeature> = emptySet(),
@@ -10,10 +12,12 @@ data class PremiumEntitlements(
     val isActive: Boolean
         get() = features.isNotEmpty() && !isExpired()
 
-    fun hasFeature(feature: PremiumFeature, nowMillis: Long = System.currentTimeMillis()): Boolean =
-        feature in features && !isExpired(nowMillis)
+    fun hasFeature(
+        feature: PremiumFeature,
+        nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    ): Boolean = feature in features && !isExpired(nowMillis)
 
-    fun isExpired(nowMillis: Long = System.currentTimeMillis()): Boolean =
+    fun isExpired(nowMillis: Long = Clock.System.now().toEpochMilliseconds()): Boolean =
         expiresAtMillis?.let { it <= nowMillis } ?: false
 
     companion object {

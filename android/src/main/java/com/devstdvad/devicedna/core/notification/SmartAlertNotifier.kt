@@ -11,6 +11,8 @@ import androidx.core.app.NotificationManagerCompat
 import com.devstdvad.devicedna.MainActivity
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.data.alerts.SmartAlertType
+import com.devstdvad.devicedna.data.alerts.bodyRes
+import com.devstdvad.devicedna.data.alerts.titleRes
 
 /** Posts (and clears) Smart Alerts system notifications. One stable id per alert type. */
 class SmartAlertNotifier(private val context: Context) {

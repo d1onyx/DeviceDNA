@@ -3,8 +3,8 @@ package com.devstdvad.devicedna.data.alerts
 import com.devstdvad.devicedna.data.widget.WidgetSnapshot
 
 /**
- * Pure (testable) Smart Alerts logic: given a metrics snapshot and the set of enabled alert
- * types, returns the alerts whose condition is currently active. No Android dependencies.
+ * Pure Smart Alerts logic: given a metrics snapshot and enabled alert types, returns active
+ * alert conditions. Platform code handles persistence and notifications.
  */
 object SmartAlertEvaluator {
 

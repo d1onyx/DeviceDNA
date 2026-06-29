@@ -1,9 +1,9 @@
 package com.devstdvad.devicedna.data.sync
 
-/** Pure (testable) decision logic: whether the snapshot must be pushed to the server. */
+/** Pure decision logic: whether the snapshot must be pushed to the server. */
 object SyncDecision {
 
-    const val STALE_AFTER_MS: Long = 24L * 60L * 60L * 1000L // 24 hours
+    const val STALE_AFTER_MS: Long = 24L * 60L * 60L * 1000L
 
     fun shouldPush(
         force: Boolean,

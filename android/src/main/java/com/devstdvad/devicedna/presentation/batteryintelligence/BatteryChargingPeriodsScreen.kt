@@ -37,15 +37,16 @@ import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
-import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
+import com.devstdvad.devicedna.domain.batteryintelligence.buildChargingSessions
+import com.devstdvad.devicedna.domain.batteryintelligence.filterBatteryHistoryForDay
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,11 +59,11 @@ fun BatteryChargingPeriodsScreen(
     historyStore: BatteryIntelligenceHistoryStore = koinInject(),
 ) {
     val colors = AppTheme.colors
-    val zoneId = ZoneId.systemDefault()
+    val timeZone = TimeZone.currentSystemDefault()
     val snapshots by historyStore.snapshots.collectAsState(initial = emptyList())
     val sessions = buildChargingSessions(
-        daySnapshots = snapshots.filterForDay(dayStartMillis, zoneId),
-        zoneId = zoneId,
+        daySnapshots = filterBatteryHistoryForDay(snapshots, dayStartMillis, timeZone),
+        timeZone = timeZone,
     )
 
     Column(
@@ -80,7 +81,7 @@ fun BatteryChargingPeriodsScreen(
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = dayStartMillis.formatDayRange(zoneId),
+                        text = dayStartMillis.formatDayRange(timeZone),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textMuted,
                     )
@@ -191,18 +192,14 @@ private fun FullChargingSessionCard(
     }
 }
 
-private fun List<BatteryHistorySnapshot>.filterForDay(dayStartMillis: Long, zoneId: ZoneId): List<BatteryHistorySnapshot> {
-    val date = Instant.ofEpochMilli(dayStartMillis).atZone(zoneId).toLocalDate()
-    val start = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
-    val end = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
-    return filter { it.timestampMillis in start until end }
+private fun Long.formatDayRange(timeZone: TimeZone): String {
+    val date = Instant.fromEpochMilliseconds(this).toLocalDateTime(timeZone).date
+    return "${date.monthShortName()} ${date.dayOfMonth} 00:00 - 24:00"
 }
 
-private fun Long.formatDayRange(zoneId: ZoneId): String {
-    val date = Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
-    val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
-    return "${formatter.format(date)} 00:00 - 24:00"
-}
+private fun kotlinx.datetime.LocalDate.monthShortName(): String = MONTHS[monthNumber - 1]
+
+private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 private fun formatDelta(value: Int): String =
     if (value >= 0) "+$value%" else "$value%"

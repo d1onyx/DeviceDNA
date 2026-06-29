@@ -77,6 +77,13 @@ import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
 import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.domain.batteryintelligence.BatteryCycleSource
+import com.devstdvad.devicedna.domain.batteryintelligence.BatteryIntelligenceReport
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHistoryEntry
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHourSlot
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHourStatus
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
+import com.devstdvad.devicedna.domain.batteryintelligence.estimateCapacityRetentionPercent
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.androidx.compose.koinViewModel
@@ -254,8 +261,8 @@ fun BatteryIntelligenceScreen(
             SectionCard {
                 SectionTitle(Icons.Outlined.Lightbulb, stringResource(R.string.battery_intelligence_charging_advice))
                 Spacer(Modifier.height(10.dp))
-                report.chargingAdvice.forEachIndexed { index, adviceRes ->
-                    AdviceRow(number = index + 1, text = stringResource(adviceRes))
+                report.chargingAdvice.forEachIndexed { index, advice ->
+                    AdviceRow(number = index + 1, text = stringResource(advice.stringRes))
                     if (index != report.chargingAdvice.lastIndex) Spacer(Modifier.height(8.dp))
                 }
             }

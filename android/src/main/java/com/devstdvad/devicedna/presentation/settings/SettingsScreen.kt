@@ -78,6 +78,7 @@ import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
 import com.devstdvad.devicedna.data.alerts.SmartAlertType
+import com.devstdvad.devicedna.data.alerts.settingRes
 import com.devstdvad.devicedna.data.settings.AppThemeMode
 import com.devstdvad.devicedna.data.settings.DataUnit
 import com.devstdvad.devicedna.data.settings.ExportFormat
