@@ -26,14 +26,17 @@ import com.devstdvad.devicedna.core.design.component.BatteryWidget
 import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryStatus
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BatteryScreen(
     viewModel: BatteryViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -84,7 +87,7 @@ fun BatteryScreen(
                         StatusPill(batteryStatus, info.status.name)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            StatChip("Temp", "${info.temperatureCelsius}°C")
+                            StatChip("Temp", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit))
                             StatChip("Voltage", "${info.voltageMv} mV")
                             info.currentMa?.let { StatChip("Current", "$it mA") }
                         }
@@ -121,7 +124,7 @@ fun BatteryScreen(
         item {
             AccentCard(accentColor = batteryAccent) {
                 Text("Measurements", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Temperature", "${info.temperatureCelsius}°C", copyable = false)
+                InfoRow("Temperature", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit), copyable = false)
                 InfoRow("Voltage", "${info.voltageMv} mV", copyable = false)
                 info.currentMa?.let { InfoRow("Current", "$it mA", copyable = false) }
                 info.estimatedWatts?.let { InfoRow("Power", "%.2f W".format(it), copyable = false) }

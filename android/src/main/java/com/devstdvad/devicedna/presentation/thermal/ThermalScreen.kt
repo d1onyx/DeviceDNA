@@ -18,13 +18,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.ThermalTile
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ThermalScreen(
     viewModel: ThermalViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -77,7 +80,7 @@ fun ThermalScreen(
                 maxTemp?.let {
                     androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
                         Text(
-                            text = "%.0f°C".format(it),
+                            text = SettingsFormatters.formatTemperatureWhole(it, settings.temperatureUnit),
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = if (it >= 60f) colors.critical else if (it >= 42f) colors.thermalColor else colors.sensorsColor,
                         )
@@ -88,7 +91,13 @@ fun ThermalScreen(
         }
 
         items(sorted) { zone ->
-            ThermalTile(label = zone.name, tempCelsius = zone.temperatureCelsius)
+            ThermalTile(
+                label = zone.name,
+                tempCelsius = zone.temperatureCelsius,
+                temperatureText = zone.temperatureCelsius?.let {
+                    SettingsFormatters.formatTemperature(it, settings.temperatureUnit)
+                },
+            )
         }
     }
 }

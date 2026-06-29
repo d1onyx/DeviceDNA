@@ -30,6 +30,7 @@ data class AppFeedback(
 
     fun light() {
         if (hapticEnabled) haptic.light()
+        if (soundEnabled) sound.navClick()
     }
 }
 

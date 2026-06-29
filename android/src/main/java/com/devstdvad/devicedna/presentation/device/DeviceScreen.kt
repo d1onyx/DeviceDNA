@@ -24,12 +24,14 @@ import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.common.MetricStatus
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun DeviceScreen(
     viewModel: DeviceViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -100,17 +102,23 @@ fun DeviceScreen(
                 InfoRow(
                     label = "Android ID",
                     value = info.androidId,
-                    maskedValue = PrivacyMask.maskDeviceId(info.androidId),
+                    maskedValue = if (settings.maskSensitive) PrivacyMask.maskDeviceId(info.androidId) else null,
                 )
                 InfoRow(
                     label = "Build Fingerprint",
                     value = info.buildFingerprint,
-                    maskedValue = PrivacyMask.maskFingerprint(info.buildFingerprint),
+                    maskedValue = if (settings.maskSensitive) PrivacyMask.maskFingerprint(info.buildFingerprint) else null,
                 )
+                val serialVisible = settings.showImei && info.serialNumber.isNotBlank()
                 InfoRow(
                     label = "Serial Number",
-                    value = info.serialNumber.ifBlank { "Permission required" },
-                    copyable = info.serialNumber.isNotBlank(),
+                    value = when {
+                        !settings.showImei -> "Hidden in privacy settings"
+                        info.serialNumber.isBlank() -> "Permission required"
+                        else -> info.serialNumber
+                    },
+                    maskedValue = if (serialVisible && settings.maskSensitive) PrivacyMask.maskDeviceId(info.serialNumber) else null,
+                    copyable = serialVisible,
                     showDivider = false,
                 )
             }

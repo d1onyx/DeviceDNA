@@ -27,6 +27,7 @@ fun ThermalTile(
     label: String,
     tempCelsius: Float?,
     modifier: Modifier = Modifier,
+    temperatureText: String? = null,
 ) {
     val colors = AppTheme.colors
     val (statusColor, statusText, fraction) = when {
@@ -49,7 +50,7 @@ fun ThermalTile(
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.textMuted, maxLines = 1)
         Spacer(Modifier.height(5.dp))
         Text(
-            text = if (tempCelsius != null) "%.1f°".format(tempCelsius) else "—",
+            text = if (tempCelsius != null) temperatureText ?: "%.1f°".format(tempCelsius) else "—",
             style = MaterialTheme.typography.headlineSmall,
             color = statusColor,
         )

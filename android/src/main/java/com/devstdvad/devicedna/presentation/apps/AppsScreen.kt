@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.common.PrivacyMask
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.AppDetails
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import org.koin.androidx.compose.koinViewModel
@@ -39,6 +40,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun AppsScreen(
     viewModel: AppsViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -93,13 +95,16 @@ fun AppsScreen(
             }
         }
         items(state.filtered, key = { it.packageName }) { app ->
-            AppItem(app)
+            AppItem(app = app, maskSensitive = settings.maskSensitive)
         }
     }
 }
 
 @Composable
-private fun AppItem(app: AppDetails) {
+private fun AppItem(
+    app: AppDetails,
+    maskSensitive: Boolean,
+) {
     val colors = AppTheme.colors
     Surface(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, colors.border, RoundedCornerShape(10.dp)),
@@ -111,7 +116,11 @@ private fun AppItem(app: AppDetails) {
                 Text(app.versionName, style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
             }
             Spacer(Modifier.height(2.dp))
-            Text(PrivacyMask.maskPackage(app.packageName), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+            Text(
+                text = if (maskSensitive) PrivacyMask.maskPackage(app.packageName) else app.packageName,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textMuted,
+            )
         }
     }
 }

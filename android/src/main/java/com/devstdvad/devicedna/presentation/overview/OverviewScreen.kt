@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.ErrorBanner
 import com.devstdvad.devicedna.core.design.component.GaugeRing
@@ -48,22 +48,35 @@ import com.devstdvad.devicedna.core.design.component.HealthScoreRing
 import com.devstdvad.devicedna.core.design.component.InsightCard
 import com.devstdvad.devicedna.core.design.component.LiveBar
 import com.devstdvad.devicedna.core.design.component.SectionCard
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.ConnectionType
 import com.devstdvad.devicedna.domain.model.InsightSeverity
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverviewScreen(
     viewModel: OverviewViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     onSettingsClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
     var errorDismissed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(settings.fastRefresh) {
+        if (!settings.fastRefresh) return@LaunchedEffect
+        while (isActive) {
+            delay(5_000)
+            viewModel.refresh()
+        }
+    }
 
     if (state.isLoading && state.storage == null && state.healthScore == null) {
         LoadingScreen()
@@ -140,7 +153,7 @@ fun OverviewScreen(
                         value = ramPct.toFloat(),
                         label = "RAM",
                         valueText = "$ramPct%",
-                        subLabel = ram?.let { Formatters.formatBytesShort(it.usedBytes) },
+                        subLabel = ram?.let { SettingsFormatters.formatBytesShort(it.usedBytes, settings.dataUnit) },
                         accentColor = colors.ramColor,
                         size = 100.dp,
                         strokeWidth = 9.dp,
@@ -330,7 +343,7 @@ fun OverviewScreen(
                                 Column {
                                     Text("Storage", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                                     Text(
-                                        "${Formatters.formatBytes(storage.usedBytes)} used of ${Formatters.formatBytes(storage.totalBytes)}",
+                                        "${SettingsFormatters.formatBytes(storage.usedBytes, settings.dataUnit)} used of ${SettingsFormatters.formatBytes(storage.totalBytes, settings.dataUnit)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = colors.textMuted,
                                     )
@@ -356,7 +369,7 @@ fun OverviewScreen(
                         LiveBar(fraction = storage.usedPercent, accentColor = storageAccent, height = 6.dp)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "${Formatters.formatBytes(storage.freeBytes)} free",
+                            "${SettingsFormatters.formatBytes(storage.freeBytes, settings.dataUnit)} free",
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.textMuted,
                         )
@@ -404,7 +417,7 @@ fun OverviewScreen(
                                     }
                                 }
                                 Text(
-                                    "%.1f°C".format(temp),
+                                    SettingsFormatters.formatTemperature(temp, settings.temperatureUnit),
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = thermalAccent,
                                 )
