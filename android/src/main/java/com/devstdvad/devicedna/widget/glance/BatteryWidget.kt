@@ -13,6 +13,7 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.unit.ColorProvider
+import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
@@ -23,10 +24,11 @@ class BatteryWidget : GlanceAppWidget() {
         // Re-check on first render and whenever still locked, so a freshly activated
         // subscription unlocks the widget without waiting for the periodic worker.
         if (snapshot.lastUpdatedMillis == 0L || !snapshot.isPremium) WidgetRefreshScheduler.refreshNow(context)
+        val ctx = localizedWidgetContext(context)
 
         provideContent {
             if (!snapshot.isPremium) {
-                LockedContent(context, "Battery")
+                LockedContent(ctx, ctx.getString(R.string.widget_battery_title))
                 return@provideContent
             }
             val level = snapshot.batteryLevel.coerceAtLeast(0)
@@ -35,10 +37,10 @@ class BatteryWidget : GlanceAppWidget() {
                 snapshot.batteryTempC >= 45f -> WidgetColors.warning
                 else -> WidgetColors.battery
             }
-            WidgetFrame(context, openRoute = "hardware") {
+            WidgetFrame(ctx, openRoute = "hardware/battery") {
                 Column(modifier = GlanceModifier.fillMaxWidth()) {
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
-                        WidgetHeader("Battery", WidgetColors.battery)
+                        WidgetHeader(ctx.getString(R.string.widget_battery_title), WidgetColors.battery)
                         Spacer(GlanceModifier.height(6.dp))
                         BigValue("$level%", color)
                         Spacer(GlanceModifier.height(6.dp))
@@ -51,11 +53,15 @@ class BatteryWidget : GlanceAppWidget() {
                     }
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
                         Spacer(GlanceModifier.height(10.dp))
-                        MetricLine("Temp", Formatters.formatCelsius(snapshot.batteryTempC), WidgetColors.textPrimary)
+                        MetricLine(ctx.getString(R.string.widget_metric_temp), Formatters.formatCelsius(snapshot.batteryTempC), WidgetColors.textPrimary)
                         Spacer(GlanceModifier.height(4.dp))
-                        MetricLine("Status", snapshot.batteryStatus.ifBlank { "—" }, WidgetColors.textPrimary)
+                        MetricLine(
+                            ctx.getString(R.string.widget_metric_status),
+                            if (snapshot.batteryStatus.isBlank()) "—" else ctx.batteryStatusText(snapshot.batteryStatus),
+                            WidgetColors.textPrimary,
+                        )
                         Spacer(GlanceModifier.height(4.dp))
-                        Caption(updatedAgo(snapshot.lastUpdatedMillis))
+                        Caption(updatedAgo(ctx, snapshot.lastUpdatedMillis))
                     }
                 }
             }

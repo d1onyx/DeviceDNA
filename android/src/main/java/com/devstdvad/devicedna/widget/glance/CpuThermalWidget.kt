@@ -13,6 +13,7 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.unit.ColorProvider
+import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
@@ -21,10 +22,11 @@ class CpuThermalWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotCache(context).current()
         if (snapshot.lastUpdatedMillis == 0L || !snapshot.isPremium) WidgetRefreshScheduler.refreshNow(context)
+        val ctx = localizedWidgetContext(context)
 
         provideContent {
             if (!snapshot.isPremium) {
-                LockedContent(context, "CPU · Thermal")
+                LockedContent(ctx, ctx.getString(R.string.widget_cpu_thermal_title))
                 return@provideContent
             }
             val usage = snapshot.cpuUsagePercent
@@ -34,13 +36,13 @@ class CpuThermalWidget : GlanceAppWidget() {
                 usage >= 60f -> WidgetColors.warning
                 else -> WidgetColors.cpu
             }
-            WidgetFrame(context, openRoute = "hardware") {
+            WidgetFrame(ctx, openRoute = "hardware/cpu") {
                 Column(modifier = GlanceModifier.fillMaxWidth()) {
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
-                        WidgetHeader("CPU · Thermal", WidgetColors.cpu)
+                        WidgetHeader(ctx.getString(R.string.widget_cpu_thermal_title), WidgetColors.cpu)
                         Spacer(GlanceModifier.height(6.dp))
                         BigValue(usageText, usageColor)
-                        Caption("CPU load")
+                        Caption(ctx.getString(R.string.widget_caption_cpu_load))
                         Spacer(GlanceModifier.height(6.dp))
                         LinearProgressIndicator(
                             progress = (if (usage < 0f) 0f else usage / 100f).coerceIn(0f, 1f),
@@ -52,13 +54,13 @@ class CpuThermalWidget : GlanceAppWidget() {
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
                         Spacer(GlanceModifier.height(6.dp))
                         val cpuTemp = if (snapshot.cpuTempC > 0f) Formatters.formatCelsius(snapshot.cpuTempC) else "—"
-                        MetricLine("CPU temp", cpuTemp, WidgetColors.textPrimary)
+                        MetricLine(ctx.getString(R.string.widget_metric_cpu_temp), cpuTemp, WidgetColors.textPrimary)
                         Spacer(GlanceModifier.height(2.dp))
                         val maxColor = if (snapshot.thermalMaxC >= 45f) WidgetColors.thermal else WidgetColors.textPrimary
                         val maxText = if (snapshot.thermalMaxC > 0f) Formatters.formatCelsius(snapshot.thermalMaxC) else "—"
-                        MetricLine("Hottest zone", maxText, maxColor)
+                        MetricLine(ctx.getString(R.string.widget_metric_hottest_zone), maxText, maxColor)
                         Spacer(GlanceModifier.height(2.dp))
-                        Caption(updatedAgo(snapshot.lastUpdatedMillis))
+                        Caption(updatedAgo(ctx, snapshot.lastUpdatedMillis))
                     }
                 }
             }

@@ -55,8 +55,16 @@ object WidgetColors {
 fun openAppIntent(context: Context, route: String): Intent =
     Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // A unique data Uri per route is essential: PendingIntent equality (filterEquals)
+        // ignores extras, so without it every widget would reuse the first-created
+        // PendingIntent and open the same (wrong) screen. The route is also kept in an
+        // extra for backwards compatibility; MainActivity reads the data Uri first.
+        data = android.net.Uri.parse("$WIDGET_ROUTE_SCHEME://open/$route")
         putExtra(MainActivity.EXTRA_ROUTE, route)
     }
+
+/** Scheme used to encode a widget deep-link route in the launch Intent's data Uri. */
+const val WIDGET_ROUTE_SCHEME = "devicedna"
 
 /** Common rounded card frame that opens [openRoute] on tap. */
 @Composable
@@ -120,12 +128,13 @@ fun Caption(text: String) {
 /**
  * "Updated HH:mm" caption from a wall-clock millis timestamp. Absolute time (not relative)
  * so each refresh visibly changes the value — widgets don't re-render to age relative text.
+ * Localized via [context] so both the label and the time format follow the in-app language.
  */
-fun updatedAgo(lastUpdatedMillis: Long): String {
-    if (lastUpdatedMillis <= 0L) return "Updating…"
-    val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+fun updatedAgo(context: Context, lastUpdatedMillis: Long): String {
+    if (lastUpdatedMillis <= 0L) return context.getString(R.string.widget_updating)
+    val time = java.text.SimpleDateFormat("HH:mm", context.currentLocale())
         .format(java.util.Date(lastUpdatedMillis))
-    return "Updated $time"
+    return context.getString(R.string.widget_updated, time)
 }
 
 /** Color for a health score / insight severity. */
@@ -151,17 +160,7 @@ fun healthColor(health: String): Color = when (health) {
     else -> WidgetColors.textPrimary
 }
 
-/** PowerManager.THERMAL_STATUS_* → (label, color). */
-fun thermalStatusLabel(status: Int): String = when (status) {
-    0 -> "Normal"
-    1 -> "Light"
-    2 -> "Moderate"
-    3 -> "Throttling"
-    4 -> "Severe"
-    5, 6 -> "Critical"
-    else -> "Unknown"
-}
-
+/** PowerManager.THERMAL_STATUS_* → color (label lives in `Context.thermalStatusText`). */
 fun thermalStatusColor(status: Int): Color = when {
     status < 0 -> WidgetColors.textMuted
     status == 0 -> WidgetColors.battery
@@ -203,7 +202,7 @@ fun LockedContent(context: Context, title: String) {
             )
             Spacer(GlanceModifier.height(6.dp))
             Text(
-                text = "Unlock with Premium",
+                text = context.getString(R.string.widget_unlock_premium),
                 style = TextStyle(color = ColorProvider(WidgetColors.accent), fontSize = 12.sp),
             )
         }

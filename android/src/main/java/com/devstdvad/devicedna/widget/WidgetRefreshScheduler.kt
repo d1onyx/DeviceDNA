@@ -22,6 +22,10 @@ object WidgetRefreshScheduler {
             .enqueueUniquePeriodicWork(PERIODIC_WORK, ExistingPeriodicWorkPolicy.KEEP, request)
     }
 
+    fun cancelPeriodic(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK)
+    }
+
     /** Immediate one-off refresh (manual button / first widget add). */
     fun refreshNow(context: Context) {
         val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>()

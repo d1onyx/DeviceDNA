@@ -151,17 +151,22 @@ class WidgetMetricsLoader(
             return ((fullCharge / design) * 100f).toInt().coerceIn(0, 100)
         }
 
-        /** Comma-joined integrity issues; empty string means the device looks clean. */
+        /**
+         * Comma-joined integrity-issue KEYS (not display text); empty string means the device
+         * looks clean. Keys are localized at render time by the widget so they follow the in-app
+         * language. The fraud key carries the level, e.g. "fraud:High". Keep these keys in sync
+         * with `Context.integrityIssueText` in the widget layer.
+         */
         fun integrityIssues(device: DeviceInfo?, health: HealthScore?): String {
             if (device == null) return ""
             val issues = buildList {
-                if (device.isRooted) add("Root access")
-                if (device.suspiciousRootPaths.isNotEmpty()) add("Suspicious files")
-                if (device.isAdbEnabled) add("ADB enabled")
-                if (device.isDeveloperOptionsEnabled) add("Developer options")
-                if (device.isEmulator) add("Emulator")
+                if (device.isRooted) add("root")
+                if (device.suspiciousRootPaths.isNotEmpty()) add("suspicious_files")
+                if (device.isAdbEnabled) add("adb")
+                if (device.isDeveloperOptionsEnabled) add("dev_options")
+                if (device.isEmulator) add("emulator")
                 val fraud = health?.fraudRisk?.level?.name
-                if (fraud != null && fraud != "Low") add("Fraud risk: $fraud")
+                if (fraud != null && fraud != "Low") add("fraud:$fraud")
             }
             return issues.joinToString(", ")
         }

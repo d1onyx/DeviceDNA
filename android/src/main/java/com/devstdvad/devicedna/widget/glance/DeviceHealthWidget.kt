@@ -14,6 +14,7 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.unit.ColorProvider
+import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 
@@ -21,21 +22,22 @@ class DeviceHealthWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotCache(context).current()
         if (snapshot.lastUpdatedMillis == 0L || !snapshot.isPremium) WidgetRefreshScheduler.refreshNow(context)
+        val ctx = localizedWidgetContext(context)
 
         provideContent {
             if (!snapshot.isPremium) {
-                LockedContent(context, "Device Health")
+                LockedContent(ctx, ctx.getString(R.string.widget_device_health_title))
                 return@provideContent
             }
             val score = snapshot.healthOverall
             val color = scoreColor(score)
-            WidgetFrame(context, openRoute = "dashboard") {
+            WidgetFrame(ctx, openRoute = "dashboard") {
                 Column(modifier = GlanceModifier.fillMaxWidth()) {
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
-                        WidgetHeader("Device Health", WidgetColors.accent)
+                        WidgetHeader(ctx.getString(R.string.widget_device_health_title), WidgetColors.accent)
                         Spacer(GlanceModifier.height(6.dp))
                         BigValue(if (score < 0) "—" else "$score", color)
-                        Caption(healthVerdict(score))
+                        Caption(ctx.healthVerdict(score))
                         Spacer(GlanceModifier.height(6.dp))
                         LinearProgressIndicator(
                             progress = (if (score < 0) 0 else score) / 100f,
@@ -46,10 +48,10 @@ class DeviceHealthWidget : GlanceAppWidget() {
                     }
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
                         Spacer(GlanceModifier.height(10.dp))
-                        Caption("Top insight")
+                        Caption(ctx.getString(R.string.widget_caption_top_insight))
                         Spacer(GlanceModifier.height(2.dp))
                         androidx.glance.text.Text(
-                            text = snapshot.healthInsight.ifBlank { "All systems healthy" },
+                            text = snapshot.healthInsight.ifBlank { ctx.getString(R.string.widget_all_systems_healthy) },
                             style = androidx.glance.text.TextStyle(
                                 color = ColorProvider(severityColor(snapshot.healthSeverity)),
                                 fontSize = 13.sp,
@@ -57,7 +59,7 @@ class DeviceHealthWidget : GlanceAppWidget() {
                             maxLines = 2,
                         )
                         Spacer(GlanceModifier.height(4.dp))
-                        Caption(updatedAgo(snapshot.lastUpdatedMillis))
+                        Caption(updatedAgo(ctx, snapshot.lastUpdatedMillis))
                     }
                 }
             }
@@ -65,12 +67,14 @@ class DeviceHealthWidget : GlanceAppWidget() {
     }
 }
 
-private fun healthVerdict(score: Int): String = when {
-    score < 0 -> "Tap to scan"
-    score >= 80 -> "Healthy"
-    score >= 55 -> "Needs attention"
-    else -> "At risk"
-}
+private fun Context.healthVerdict(score: Int): String = getString(
+    when {
+        score < 0 -> R.string.widget_tap_to_scan
+        score >= 80 -> R.string.widget_verdict_healthy
+        score >= 55 -> R.string.widget_verdict_needs_attention
+        else -> R.string.widget_verdict_at_risk
+    },
+)
 
 class DeviceHealthWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DeviceHealthWidget()
