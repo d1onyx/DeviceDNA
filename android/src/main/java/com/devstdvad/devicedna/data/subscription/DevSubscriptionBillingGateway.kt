@@ -17,19 +17,16 @@ class DevSubscriptionBillingGateway : SubscriptionBillingGateway {
 
     override suspend fun restorePurchases(): SubscriptionPurchaseResult = devSuccess()
 
-    private fun devSuccess(): SubscriptionPurchaseResult.Success {
-        val now = System.currentTimeMillis()
-        return SubscriptionPurchaseResult.Success(
+    // Marks the purchase as a dev entitlement; the actual validity window (10 min) is granted and
+    // persisted by the backend in SubscriptionRepository.activateDevSubscription(), mirroring the
+    // real Play verify flow. The local issuedAt is informational only.
+    private fun devSuccess(): SubscriptionPurchaseResult.Success =
+        SubscriptionPurchaseResult.Success(
             PremiumEntitlements(
                 features = PremiumFeature.entries.toSet(),
-                issuedAtMillis = now,
-                expiresAtMillis = now + DEV_SUBSCRIPTION_DURATION_MS,
+                issuedAtMillis = System.currentTimeMillis(),
+                expiresAtMillis = null,
                 source = EntitlementSource.Dev,
             ),
         )
-    }
-
-    private companion object {
-        const val DEV_SUBSCRIPTION_DURATION_MS = 60_000L
-    }
 }

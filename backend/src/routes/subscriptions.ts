@@ -4,6 +4,8 @@ import { getDb } from "../db/client";
 import { userSubscriptions, users, type UserSubscriptionRow } from "../db/schema";
 import type { AppBindings } from "../types";
 
+const DEV_SUBSCRIPTION_DURATION_MS = 10 * 60 * 1000;
+
 const activeSubscriptionStatuses = new Set(["active", "trialing", "grace_period", "canceled"]);
 const allowedSubscriptionStatuses = new Set([
   "inactive",
@@ -45,6 +47,52 @@ export const internalSubscriptionRoutes = new Hono<AppBindings>();
 subscriptionRoutes.get("/subscription", async (c) => {
   const claims = c.get("claims");
   const db = getDb(c.env.DATABASE_URL);
+
+  return c.json(await getSubscriptionView(db, claims.uid));
+});
+
+// Dev-only: grant a short-lived Premium subscription persisted to Neon, mirroring the
+// real verify flow (writes to user_subscriptions, returns the same SubscriptionView).
+// Gated behind DEV_SUBSCRIPTIONS_ENABLED so it can never be reached in production.
+subscriptionRoutes.post("/subscription/dev/activate", async (c) => {
+  if (c.env.DEV_SUBSCRIPTIONS_ENABLED !== "true") {
+    return c.json({ error: "dev_subscriptions_disabled" }, 403);
+  }
+
+  const claims = c.get("claims");
+  const productId = c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID ?? "devicedna_premium";
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + DEV_SUBSCRIPTION_DURATION_MS);
+  const db = getDb(c.env.DATABASE_URL);
+
+  const values = {
+    userUid: claims.uid,
+    status: "active",
+    provider: "dev",
+    productId,
+    originalTransactionId: null,
+    latestTransactionId: null,
+    latestPurchaseToken: null,
+    expiresAt,
+    updatedAt: now,
+  };
+
+  await db
+    .insert(userSubscriptions)
+    .values(values)
+    .onConflictDoUpdate({
+      target: userSubscriptions.userUid,
+      set: {
+        status: values.status,
+        provider: values.provider,
+        productId: values.productId,
+        originalTransactionId: values.originalTransactionId,
+        latestTransactionId: values.latestTransactionId,
+        latestPurchaseToken: values.latestPurchaseToken,
+        expiresAt: values.expiresAt,
+        updatedAt: values.updatedAt,
+      },
+    });
 
   return c.json(await getSubscriptionView(db, claims.uid));
 });

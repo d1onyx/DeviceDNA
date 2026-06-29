@@ -75,6 +75,11 @@ class SyncApi(
             contentType(ContentType.Application.Json)
             setBody(payload)
         }.body()
+
+    suspend fun activateDevSubscription(idToken: String): SubscriptionViewResponse =
+        client.post("$baseUrl/v1/subscription/dev/activate") {
+            bearerAuth(idToken)
+        }.body()
 }
 
 private suspend fun HttpResponse.errorCode(): String =

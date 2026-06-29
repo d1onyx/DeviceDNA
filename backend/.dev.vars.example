@@ -4,3 +4,7 @@ DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx.eu-central-1.aws.neon.tech/devi
 
 # Optional: required only for internal subscription upserts.
 INTERNAL_API_KEY="change-me"
+
+# Local/dev only: enables POST /v1/subscription/dev/activate, which grants a
+# 10-minute Premium subscription persisted to Neon. Never set this in production.
+DEV_SUBSCRIPTIONS_ENABLED="true"

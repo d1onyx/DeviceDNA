@@ -21,13 +21,46 @@ import org.junit.Test
 class SubscriptionRepositoryTest {
 
     @Test
-    fun `dev purchase grants remove ads entitlement`() = runTest {
+    fun `dev purchase saves backend verified dev entitlement`() = runTest {
         val store = FakePremiumEntitlementsStore()
         val repository = SubscriptionRepository(
             store = store,
             billingGateway = FakeBillingGateway(
                 PremiumEntitlements(
-                    features = setOf(PremiumFeature.RemoveAds),
+                    features = PremiumFeature.entries.toSet(),
+                    issuedAtMillis = 1_000L,
+                    source = EntitlementSource.Dev,
+                ),
+            ),
+            verifier = FakeVerifier(
+                devResult = SubscriptionVerificationResult.Success(
+                    PremiumEntitlements(
+                        features = PremiumFeature.entries.toSet(),
+                        issuedAtMillis = 2_000L,
+                        expiresAtMillis = 600_000L,
+                        source = EntitlementSource.Dev,
+                        productId = "devicedna_premium",
+                    ),
+                ),
+            ),
+        )
+
+        val result = repository.purchasePremium()
+
+        assertTrue(result is SubscriptionOperationResult.Success)
+        val entitlements = repository.entitlements.first()
+        assertTrue(entitlements.hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
+        assertTrue(entitlements.source == EntitlementSource.Dev)
+    }
+
+    @Test
+    fun `dev purchase without verifier does not save local premium`() = runTest {
+        val store = FakePremiumEntitlementsStore()
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(
+                PremiumEntitlements(
+                    features = PremiumFeature.entries.toSet(),
                     issuedAtMillis = 1_000L,
                     source = EntitlementSource.Dev,
                 ),
@@ -36,8 +69,8 @@ class SubscriptionRepositoryTest {
 
         val result = repository.purchasePremium()
 
-        assertTrue(result is SubscriptionOperationResult.Success)
-        assertTrue(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds))
+        assertTrue(result is SubscriptionOperationResult.Failure)
+        assertFalse(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
     }
 
     @Test
@@ -151,11 +184,16 @@ class SubscriptionRepositoryTest {
     }
 
     private class FakeVerifier(
-        private val result: SubscriptionVerificationResult,
+        private val playResult: SubscriptionVerificationResult =
+            SubscriptionVerificationResult.Failure("no play result"),
+        private val devResult: SubscriptionVerificationResult =
+            SubscriptionVerificationResult.Failure("no dev result"),
     ) : SubscriptionVerifier {
         override suspend fun verifyGooglePlayPurchase(
             productId: String,
             purchaseToken: String,
-        ): SubscriptionVerificationResult = result
+        ): SubscriptionVerificationResult = playResult
+
+        override suspend fun activateDevSubscription(): SubscriptionVerificationResult = devResult
     }
 }

@@ -25,12 +25,17 @@ class SubscriptionRepository(
         store.clear()
     }
 
-    private suspend fun saveVerified(entitlements: PremiumEntitlements): SubscriptionOperationResult {
-        if (entitlements.source != EntitlementSource.Play) {
-            store.save(entitlements)
-            return SubscriptionOperationResult.Success
+    private suspend fun saveVerified(entitlements: PremiumEntitlements): SubscriptionOperationResult =
+        when (entitlements.source) {
+            EntitlementSource.Play -> verifyPlayPurchase(entitlements)
+            EntitlementSource.Dev -> activateDevSubscription()
+            else -> {
+                store.save(entitlements)
+                SubscriptionOperationResult.Success
+            }
         }
 
+    private suspend fun verifyPlayPurchase(entitlements: PremiumEntitlements): SubscriptionOperationResult {
         val productId = entitlements.productId
         val purchaseToken = entitlements.purchaseToken
         if (productId.isNullOrBlank() || purchaseToken.isNullOrBlank()) {
@@ -40,14 +45,26 @@ class SubscriptionRepository(
         val verification = verifier
             ?: return SubscriptionOperationResult.Failure("Backend subscription verification is not configured.")
 
-        return when (val result = verification.verifyGooglePlayPurchase(productId, purchaseToken)) {
+        return verification.verifyGooglePlayPurchase(productId, purchaseToken).persist()
+    }
+
+    // Dev subscriptions are also persisted server-side (Neon) so the dev flow mirrors production;
+    // the backend grants a short-lived entitlement and we store whatever it returns.
+    private suspend fun activateDevSubscription(): SubscriptionOperationResult {
+        val verification = verifier
+            ?: return SubscriptionOperationResult.Failure("Backend subscription verification is not configured.")
+
+        return verification.activateDevSubscription().persist()
+    }
+
+    private suspend fun SubscriptionVerificationResult.persist(): SubscriptionOperationResult =
+        when (this) {
             is SubscriptionVerificationResult.Success -> {
-                store.save(result.entitlements)
+                store.save(entitlements)
                 SubscriptionOperationResult.Success
             }
-            is SubscriptionVerificationResult.Failure -> SubscriptionOperationResult.Failure(result.message)
+            is SubscriptionVerificationResult.Failure -> SubscriptionOperationResult.Failure(message)
         }
-    }
 }
 
 sealed interface SubscriptionOperationResult {

@@ -5,6 +5,9 @@ interface SubscriptionVerifier {
         productId: String,
         purchaseToken: String,
     ): SubscriptionVerificationResult
+
+    /** Dev-only: activates a short-lived Premium subscription via the backend (persisted to Neon). */
+    suspend fun activateDevSubscription(): SubscriptionVerificationResult
 }
 
 sealed interface SubscriptionVerificationResult {

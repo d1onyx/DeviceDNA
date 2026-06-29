@@ -34,3 +34,7 @@ id = "6a1cf461e6554ee99ee8b87ae4425d41"
 # Required for real Google Play subscription verification:
 #   wrangler secret put GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
 #   wrangler secret put GOOGLE_PLAY_PRIVATE_KEY
+
+# Local/dev only: set DEV_SUBSCRIPTIONS_ENABLED="true" (in .dev.vars) to allow
+# POST /v1/subscription/dev/activate to grant a 10-minute Premium subscription.
+# Leave unset in production.
