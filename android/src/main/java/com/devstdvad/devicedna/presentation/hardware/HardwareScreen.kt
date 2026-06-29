@@ -29,7 +29,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.presentation.battery.BatteryScreen
 import com.devstdvad.devicedna.presentation.camera.CameraScreen
 import com.devstdvad.devicedna.presentation.cpu.CpuScreen
@@ -53,7 +59,13 @@ private data class HardwareTab(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HardwareScreen(contentPadding: PaddingValues = PaddingValues()) {
+fun HardwareScreen(
+    settings: UserSettings = UserSettings(),
+    contentPadding: PaddingValues = PaddingValues(),
+    initialTab: String? = null,
+    onTabConsumed: () -> Unit = {},
+    onTabSelected: () -> Unit = {},
+) {
     val colors = AppTheme.colors
 
     val tabs = listOf(
@@ -67,6 +79,26 @@ fun HardwareScreen(contentPadding: PaddingValues = PaddingValues()) {
 
     val pagerState = rememberPagerState { tabs.size }
     val scope = rememberCoroutineScope()
+
+    val currentOnTabSelected by rememberUpdatedState(onTabSelected)
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .drop(1)
+            .collect { currentOnTabSelected() }
+    }
+
+    // Jump to the tab requested by a home-screen widget deep-link (once).
+    LaunchedEffect(initialTab) {
+        val index = when (initialTab) {
+            "device" -> 0; "cpu" -> 1; "battery" -> 2
+            "display" -> 3; "camera" -> 4; "thermal" -> 5
+            else -> -1
+        }
+        if (index >= 0) {
+            pagerState.scrollToPage(index)
+            onTabConsumed()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -126,12 +158,12 @@ fun HardwareScreen(contentPadding: PaddingValues = PaddingValues()) {
             beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
-                0 -> DeviceScreen(contentPadding = bottomInset)
+                0 -> DeviceScreen(settings = settings, contentPadding = bottomInset)
                 1 -> CpuScreen(contentPadding = bottomInset)
-                2 -> BatteryScreen(contentPadding = bottomInset)
+                2 -> BatteryScreen(settings = settings, contentPadding = bottomInset)
                 3 -> DisplayScreen(contentPadding = bottomInset)
                 4 -> CameraScreen(contentPadding = bottomInset)
-                5 -> ThermalScreen(contentPadding = bottomInset)
+                5 -> ThermalScreen(settings = settings, contentPadding = bottomInset)
             }
         }
     }

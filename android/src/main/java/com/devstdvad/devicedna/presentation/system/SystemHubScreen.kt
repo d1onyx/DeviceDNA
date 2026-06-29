@@ -25,7 +25,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.presentation.connectivity.ConnectivityScreen
 import com.devstdvad.devicedna.presentation.network.NetworkScreen
 import com.devstdvad.devicedna.presentation.sensors.SensorsScreen
@@ -46,7 +52,13 @@ private data class SystemTab(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SystemHubScreen(contentPadding: PaddingValues = PaddingValues()) {
+fun SystemHubScreen(
+    settings: UserSettings = UserSettings(),
+    contentPadding: PaddingValues = PaddingValues(),
+    initialTab: String? = null,
+    onTabConsumed: () -> Unit = {},
+    onTabSelected: () -> Unit = {},
+) {
     val colors = AppTheme.colors
 
     val tabs = listOf(
@@ -58,6 +70,25 @@ fun SystemHubScreen(contentPadding: PaddingValues = PaddingValues()) {
 
     val pagerState = rememberPagerState { tabs.size }
     val scope = rememberCoroutineScope()
+
+    val currentOnTabSelected by rememberUpdatedState(onTabSelected)
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .drop(1)
+            .collect { currentOnTabSelected() }
+    }
+
+    // Jump to the tab requested by a home-screen widget deep-link (once).
+    LaunchedEffect(initialTab) {
+        val index = when (initialTab) {
+            "os" -> 0; "network" -> 1; "radio", "connectivity" -> 2; "sensors" -> 3
+            else -> -1
+        }
+        if (index >= 0) {
+            pagerState.scrollToPage(index)
+            onTabConsumed()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -98,7 +129,7 @@ fun SystemHubScreen(contentPadding: PaddingValues = PaddingValues()) {
         HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), beyondViewportPageCount = 1) { page ->
             when (page) {
                 0 -> SystemScreen(contentPadding = bottomInset)
-                1 -> NetworkScreen(contentPadding = bottomInset)
+                1 -> NetworkScreen(settings = settings, contentPadding = bottomInset)
                 2 -> ConnectivityScreen(contentPadding = bottomInset)
                 3 -> SensorsScreen(contentPadding = bottomInset)
             }
