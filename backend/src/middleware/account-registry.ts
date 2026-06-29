@@ -38,7 +38,7 @@ export const accountRegistry = createMiddleware<AppBindings>(async (c, next) => 
     displayName: (claims.name as string | undefined) ?? null,
     photoUrl: (claims.picture as string | undefined) ?? null,
     updatedAt: now,
-  });
+  }).onConflictDoNothing();
 
   await next();
 });
