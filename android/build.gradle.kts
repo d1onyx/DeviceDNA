@@ -49,6 +49,14 @@ android {
             ?: (project.findProperty("premiumSubProductId") as String?)
             ?: "devicedna_premium"
         buildConfigField("String", "PREMIUM_SUB_PRODUCT_ID", "\"$premiumSubProductId\"")
+
+        // Dev subscription mode: false (default) unlocks Premium locally with no network; true
+        // activates the dev purchase through the backend so it is persisted to Neon end-to-end
+        // (for testing the real flow). Has no effect on release (dev billing is debug-only).
+        // Override via local.properties -> devSubscriptionUseBackend, or -PdevSubscriptionUseBackend.
+        val devSubscriptionUseBackend = (localProperties.getProperty("devSubscriptionUseBackend")
+            ?: (project.findProperty("devSubscriptionUseBackend") as String?))?.toBooleanStrictOrNull() ?: false
+        buildConfigField("boolean", "DEV_SUBSCRIPTION_USE_BACKEND", "$devSubscriptionUseBackend")
     }
 
     // Selects the premium billing implementation (see AppModule). Defaults: debug = dev billing

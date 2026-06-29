@@ -21,7 +21,31 @@ import org.junit.Test
 class SubscriptionRepositoryTest {
 
     @Test
-    fun `dev purchase saves backend verified dev entitlement`() = runTest {
+    fun `dev purchase in local mode stores entitlement directly`() = runTest {
+        val store = FakePremiumEntitlementsStore()
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(
+                PremiumEntitlements(
+                    features = PremiumFeature.entries.toSet(),
+                    issuedAtMillis = 1_000L,
+                    expiresAtMillis = 600_000L,
+                    source = EntitlementSource.Dev,
+                ),
+            ),
+            // devUsesBackend defaults to false → local unlock, no verifier needed.
+        )
+
+        val result = repository.purchasePremium()
+
+        assertTrue(result is SubscriptionOperationResult.Success)
+        val entitlements = repository.entitlements.first()
+        assertTrue(entitlements.hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
+        assertTrue(entitlements.source == EntitlementSource.Dev)
+    }
+
+    @Test
+    fun `dev purchase in backend mode saves backend entitlement`() = runTest {
         val store = FakePremiumEntitlementsStore()
         val repository = SubscriptionRepository(
             store = store,
@@ -43,6 +67,7 @@ class SubscriptionRepositoryTest {
                     ),
                 ),
             ),
+            devUsesBackend = true,
         )
 
         val result = repository.purchasePremium()
@@ -54,7 +79,7 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
-    fun `dev purchase without verifier does not save local premium`() = runTest {
+    fun `dev purchase in backend mode without verifier fails`() = runTest {
         val store = FakePremiumEntitlementsStore()
         val repository = SubscriptionRepository(
             store = store,
@@ -65,6 +90,7 @@ class SubscriptionRepositoryTest {
                     source = EntitlementSource.Dev,
                 ),
             ),
+            devUsesBackend = true,
         )
 
         val result = repository.purchasePremium()

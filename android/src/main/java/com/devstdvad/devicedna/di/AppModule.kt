@@ -187,7 +187,14 @@ val appModule = module {
         }
     }
     single<SubscriptionVerifier> { BackendSubscriptionVerifier(get(), get()) }
-    single { SubscriptionRepository(get<SubscriptionStore>(), get(), get()) }
+    single {
+        SubscriptionRepository(
+            store = get<SubscriptionStore>(),
+            billingGateway = get(),
+            verifier = get(),
+            devUsesBackend = BuildConfig.DEV_SUBSCRIPTION_USE_BACKEND,
+        )
+    }
 
     // Widgets
     single { WidgetSnapshotCache(androidContext()) }

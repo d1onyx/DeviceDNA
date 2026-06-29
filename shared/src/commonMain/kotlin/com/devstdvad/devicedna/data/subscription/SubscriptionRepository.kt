@@ -6,6 +6,9 @@ class SubscriptionRepository(
     private val store: PremiumEntitlementsStore,
     private val billingGateway: SubscriptionBillingGateway,
     private val verifier: SubscriptionVerifier? = null,
+    // When true, dev purchases are activated through the backend (persisted to Neon) instead of
+    // being unlocked locally. Lets the dev build exercise the real client→backend→Neon flow.
+    private val devUsesBackend: Boolean = false,
 ) {
     val entitlements: Flow<PremiumEntitlements> = store.entitlements
 
@@ -28,7 +31,12 @@ class SubscriptionRepository(
     private suspend fun saveVerified(entitlements: PremiumEntitlements): SubscriptionOperationResult =
         when (entitlements.source) {
             EntitlementSource.Play -> verifyPlayPurchase(entitlements)
-            EntitlementSource.Dev -> activateDevSubscription()
+            EntitlementSource.Dev -> if (devUsesBackend) {
+                activateDevSubscription()
+            } else {
+                store.save(entitlements)
+                SubscriptionOperationResult.Success
+            }
             else -> {
                 store.save(entitlements)
                 SubscriptionOperationResult.Success
