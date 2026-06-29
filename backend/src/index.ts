@@ -1,12 +1,27 @@
 import { Hono } from "hono";
+import { accountRegistry } from "./middleware/account-registry";
+import { firebaseAuth } from "./middleware/auth";
+import { firebaseAccountExists } from "./middleware/firebase-account";
+import { authRoutes } from "./routes/auth";
+import { internalSubscriptionRoutes, subscriptionRoutes } from "./routes/subscriptions";
 import { syncRoutes } from "./routes/sync";
 import type { AppBindings } from "./types";
 
 const app = new Hono<AppBindings>();
+const v1Routes = new Hono<AppBindings>();
 
 // Health-check (no auth)
 app.get("/", (c) => c.json({ ok: true, service: "devicedna-sync" }));
 
-app.route("/v1", syncRoutes);
+// All /v1 routes require a valid Firebase ID token and a live Firebase account.
+v1Routes.use("*", firebaseAuth);
+v1Routes.use("*", firebaseAccountExists);
+v1Routes.use("*", accountRegistry);
+v1Routes.route("/", syncRoutes);
+v1Routes.route("/", subscriptionRoutes);
+
+app.route("/auth", authRoutes);
+app.route("/v1", v1Routes);
+app.route("/internal", internalSubscriptionRoutes);
 
 export default app;

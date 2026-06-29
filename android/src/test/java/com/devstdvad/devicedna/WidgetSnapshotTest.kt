@@ -1,6 +1,6 @@
 package com.devstdvad.devicedna
 
-import com.devstdvad.devicedna.data.widget.WidgetMetricsLoader
+import com.devstdvad.devicedna.data.widget.WidgetSnapshotBuilder
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import com.devstdvad.devicedna.domain.model.BatteryStatus
@@ -62,7 +62,7 @@ class WidgetSnapshotTest {
         health: HealthScore? = null,
         thermalStatus: Int = -1,
         designCapacityMah: Int? = null,
-    ) = WidgetMetricsLoader.buildSnapshot(
+    ) = WidgetSnapshotBuilder.buildSnapshot(
         isPremium = true, battery = battery, ram = null, storage = null, cpu = cpu,
         thermal = thermal, device = device, health = health,
         thermalStatus = thermalStatus, designCapacityMah = designCapacityMah, nowMillis = 1L,
@@ -71,17 +71,17 @@ class WidgetSnapshotTest {
     @Test
     fun `battery wear estimated from charge counter and design capacity`() {
         // 80% level, 4000 mAh remaining -> full ~5000 mAh; design 5000 -> ~100% health
-        val wear = WidgetMetricsLoader.batteryWear(battery(level = 80, capacityMah = 4000), 5000)
+        val wear = WidgetSnapshotBuilder.batteryWear(battery(level = 80, capacityMah = 4000), 5000)
         assertEquals(100, wear)
         // worn battery: full ~3000 vs design 5000 -> 60%
-        val worn = WidgetMetricsLoader.batteryWear(battery(level = 60, capacityMah = 1800), 5000)
+        val worn = WidgetSnapshotBuilder.batteryWear(battery(level = 60, capacityMah = 1800), 5000)
         assertEquals(60, worn)
     }
 
     @Test
     fun `battery wear is minus one without capacity or design`() {
-        assertEquals(-1, WidgetMetricsLoader.batteryWear(battery(capacityMah = null), 5000))
-        assertEquals(-1, WidgetMetricsLoader.batteryWear(battery(capacityMah = 4000), null))
+        assertEquals(-1, WidgetSnapshotBuilder.batteryWear(battery(capacityMah = null), 5000))
+        assertEquals(-1, WidgetSnapshotBuilder.batteryWear(battery(capacityMah = 4000), null))
     }
 
     @Test
@@ -102,11 +102,11 @@ class WidgetSnapshotTest {
 
     @Test
     fun `guardian aggregates integrity issues`() {
-        val clean = WidgetMetricsLoader.integrityIssues(device(rooted = false, adb = false), null)
+        val clean = WidgetSnapshotBuilder.integrityIssues(device(rooted = false, adb = false), null)
         assertEquals("", clean)
-        val flagged = WidgetMetricsLoader.integrityIssues(device(rooted = true, adb = true), null)
-        assertTrue(flagged.contains("Root access"))
-        assertTrue(flagged.contains("ADB enabled"))
+        val flagged = WidgetSnapshotBuilder.integrityIssues(device(rooted = true, adb = true), null)
+        assertTrue(flagged.contains("root"))
+        assertTrue(flagged.contains("adb"))
     }
 
     @Test

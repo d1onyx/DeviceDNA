@@ -132,6 +132,8 @@ class PlayBillingGateway(
             issuedAtMillis = purchase.purchaseTime,
             expiresAtMillis = null,
             source = EntitlementSource.Play,
+            productId = productId,
+            purchaseToken = purchase.purchaseToken,
         )
     }
 

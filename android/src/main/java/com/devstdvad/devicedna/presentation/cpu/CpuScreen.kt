@@ -40,7 +40,7 @@ fun CpuScreen(
     val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not load CPU info"); return }
 
     val maxFreqKhz = info.cores.maxOfOrNull { it.maxFrequencyKhz }?.toInt() ?: 1
-    val usagePercent = info.usagePercent ?: 0f
+    val usagePercent = info.usagePercent
     val avgFreqMhz = info.cores
         .mapNotNull { if (it.isOnline) it.currentFrequencyKhz else null }
         .average().takeIf { it.isFinite() }?.toInt()?.div(1000)
@@ -83,9 +83,9 @@ fun CpuScreen(
                         }
                     }
                     GaugeRing(
-                        value = usagePercent,
+                        value = usagePercent ?: 0f,
                         label = "CPU Load",
-                        valueText = "${usagePercent.toInt()}%",
+                        valueText = usagePercent?.let { "${it.toInt()}%" } ?: "—",
                         accentColor = colors.cpuColor,
                         size = 90.dp,
                         strokeWidth = 9.dp,

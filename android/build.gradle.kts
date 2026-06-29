@@ -58,8 +58,22 @@ android {
     val realBillingOverride = (localProperties.getProperty("realBilling")
         ?: (project.findProperty("realBilling") as String?))?.toBooleanStrictOrNull()
 
+    val localKeystorePath = localProperties.getProperty("signingKeystore")
+    if (localKeystorePath != null) {
+        signingConfigs {
+            create("localDebug") {
+                storeFile = file(localKeystorePath)
+                storePassword = localProperties.getProperty("signingKeystorePassword") ?: "android"
+                keyAlias = localProperties.getProperty("signingKeyAlias") ?: "androiddebugkey"
+                keyPassword = localProperties.getProperty("signingKeyPassword") ?: "android"
+            }
+        }
+    }
+
     buildTypes {
         debug {
+            val localDebug = signingConfigs.findByName("localDebug")
+            if (localDebug != null) signingConfig = localDebug
             buildConfigField("boolean", "USE_REAL_BILLING", "${realBillingOverride ?: false}")
         }
         release {

@@ -47,10 +47,23 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
         initialValue = AuthUiState(isConfigured = authRepository.isConfigured, isInitializing = true),
     )
 
-    fun createGoogleSignInIntent(): Intent? {
-        errorMessage.value = null
-        return authRepository.createGoogleSignInIntent().also { intent ->
-            if (intent == null) showConfigurationError()
+    fun launchGoogleSignIn(forceAccountPicker: Boolean = false, launch: (Intent) -> Unit) {
+        viewModelScope.launch {
+            isLoading.value = true
+            errorMessage.value = null
+            val intent = runCatching {
+                authRepository.createGoogleSignInIntent(forceAccountPicker)
+            }.getOrElse {
+                errorMessage.value = it.message ?: "Google sign-in failed."
+                null
+            }
+            isLoading.value = false
+
+            if (intent == null) {
+                if (errorMessage.value == null) showConfigurationError()
+            } else {
+                launch(intent)
+            }
         }
     }
 

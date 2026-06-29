@@ -38,5 +38,30 @@ export const devices = pgTable(
   }),
 );
 
+// One row per user subscription entitlement. The app reads this from Neon, while
+// writes should come from a trusted internal flow such as purchase verification.
+export const userSubscriptions = pgTable(
+  "user_subscriptions",
+  {
+    userUid: text("user_uid")
+      .primaryKey()
+      .references(() => users.firebaseUid, { onDelete: "cascade" }),
+    status: text("status").notNull().default("inactive"),
+    provider: text("provider").notNull().default("manual"),
+    productId: text("product_id"),
+    originalTransactionId: text("original_transaction_id"),
+    latestTransactionId: text("latest_transaction_id"),
+    latestPurchaseToken: text("latest_purchase_token"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    providerIdx: index("idx_user_subscriptions_provider").on(t.provider),
+    expiresIdx: index("idx_user_subscriptions_expires_at").on(t.expiresAt),
+  }),
+);
+
 export type UserRow = typeof users.$inferSelect;
 export type DeviceRow = typeof devices.$inferSelect;
+export type UserSubscriptionRow = typeof userSubscriptions.$inferSelect;

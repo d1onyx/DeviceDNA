@@ -2,13 +2,29 @@ import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { devices, users } from "../db/schema";
-import { firebaseAuth } from "../middleware/auth";
+import { getSubscriptionView } from "./subscriptions";
 import type { AppBindings } from "../types";
 
 export const syncRoutes = new Hono<AppBindings>();
 
-// All /v1 routes require a valid Firebase ID token
-syncRoutes.use("*", firebaseAuth);
+// Current authenticated account. Used by the app on startup to reject deleted
+// Firebase Auth users before opening the signed-in UI.
+syncRoutes.get("/me", async (c) => {
+  const user = c.get("firebaseUser");
+  const claims = c.get("claims");
+  const db = getDb(c.env.DATABASE_URL);
+  const subscription = await getSubscriptionView(db, claims.uid);
+
+  return c.json({
+    exists: true,
+    uid: user.localId,
+    email: user.email ?? null,
+    displayName: user.displayName ?? null,
+    photoUrl: user.photoUrl ?? null,
+    premium: subscription.premium,
+    subscription: subscription.subscription,
+  });
+});
 
 // Cheap sync-status check for a specific device
 syncRoutes.get("/devices/:androidId/status", async (c) => {

@@ -63,9 +63,10 @@ fun AuthScreen(
     state: AuthUiState,
     onGoogleSignIn: () -> Unit,
     modifier: Modifier = Modifier,
+    requirePrivacyConsent: Boolean = true,
 ) {
     val colors = AppTheme.colors
-    var privacyAccepted by rememberSaveable { mutableStateOf(false) }
+    var privacyAccepted by rememberSaveable(requirePrivacyConsent) { mutableStateOf(!requirePrivacyConsent) }
     var showPolicy by rememberSaveable { mutableStateOf(false) }
 
     Column(
@@ -117,11 +118,13 @@ fun AuthScreen(
         }
 
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            PrivacyConsentRow(
-                accepted = privacyAccepted,
-                onAcceptedChange = { privacyAccepted = it },
-                onPolicyClick = { showPolicy = true },
-            )
+            if (requirePrivacyConsent) {
+                PrivacyConsentRow(
+                    accepted = privacyAccepted,
+                    onAcceptedChange = { privacyAccepted = it },
+                    onPolicyClick = { showPolicy = true },
+                )
+            }
 
             // Reserved slot below the card: keeps the card fixed in place while the
             // error / consent message appears or disappears.
@@ -133,7 +136,8 @@ fun AuthScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 val message = state.errorMessage
-                    ?: stringResource(R.string.auth_privacy_required).takeIf { !privacyAccepted }
+                    ?: stringResource(R.string.auth_privacy_required)
+                        .takeIf { requirePrivacyConsent && !privacyAccepted }
                 if (message != null) {
                     Text(
                         text = message,

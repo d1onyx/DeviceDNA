@@ -18,6 +18,7 @@ export const firebaseAuth = createMiddleware<AppBindings>(async (c, next) => {
     );
     const claims = await auth.verifyIdToken(match[1]);
     c.set("claims", claims);
+    c.set("idToken", match[1]);
     await next();
   } catch (_e) {
     return c.json({ error: "invalid_token" }, 401);

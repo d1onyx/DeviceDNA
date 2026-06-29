@@ -1,14 +1,14 @@
 package com.devstdvad.devicedna
 
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
-import com.devstdvad.devicedna.presentation.batteryintelligence.ChargingHourStatus
-import com.devstdvad.devicedna.presentation.batteryintelligence.buildChargingSessions
-import com.devstdvad.devicedna.presentation.batteryintelligence.buildHourlyTimeline
-import com.devstdvad.devicedna.presentation.batteryintelligence.calculateAccumulatedChargePercent
-import com.devstdvad.devicedna.presentation.batteryintelligence.estimateCapacityRetentionPercent
+import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHourStatus
+import com.devstdvad.devicedna.domain.batteryintelligence.buildChargingSessions
+import com.devstdvad.devicedna.domain.batteryintelligence.buildHourlyTimeline
+import com.devstdvad.devicedna.domain.batteryintelligence.calculateAccumulatedChargePercent
+import com.devstdvad.devicedna.domain.batteryintelligence.estimateCapacityRetentionPercent
+import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.ZoneOffset
 
 class BatteryIntelligenceTest {
 
@@ -68,7 +68,7 @@ class BatteryIntelligenceTest {
         val hour = buildHourlyTimeline(
             daySnapshots = snapshots,
             dayStartMillis = 0L,
-            zoneId = ZoneOffset.UTC,
+            timeZone = TimeZone.UTC,
         ).first()
 
         assertEquals(10f, hour.goodMinutes, 0.01f)

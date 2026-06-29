@@ -35,9 +35,11 @@ import com.devstdvad.devicedna.data.repository.ThermalRepositoryImpl
 import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.core.CurrentActivityHolder
 import com.devstdvad.devicedna.data.subscription.DevSubscriptionBillingGateway
+import com.devstdvad.devicedna.data.subscription.BackendSubscriptionVerifier
 import com.devstdvad.devicedna.data.subscription.PlayBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
+import com.devstdvad.devicedna.data.subscription.SubscriptionVerifier
 import com.devstdvad.devicedna.data.subscription.SubscriptionStore
 import com.devstdvad.devicedna.data.source.AndroidAppsDataSource
 import com.devstdvad.devicedna.data.source.AndroidBatteryDataSource
@@ -184,7 +186,8 @@ val appModule = module {
             DevSubscriptionBillingGateway()
         }
     }
-    single { SubscriptionRepository(get<SubscriptionStore>(), get()) }
+    single<SubscriptionVerifier> { BackendSubscriptionVerifier(get(), get()) }
+    single { SubscriptionRepository(get<SubscriptionStore>(), get(), get()) }
 
     // Widgets
     single { WidgetSnapshotCache(androidContext()) }

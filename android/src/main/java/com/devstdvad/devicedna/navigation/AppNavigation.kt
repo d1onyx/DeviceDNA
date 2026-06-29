@@ -81,6 +81,7 @@ import com.devstdvad.devicedna.presentation.onboarding.OnboardingScreen
 import com.devstdvad.devicedna.presentation.overview.OverviewScreen
 import com.devstdvad.devicedna.presentation.settings.SettingsScreen
 import com.devstdvad.devicedna.presentation.subscription.SubscriptionScreen
+import com.devstdvad.devicedna.data.sync.AccountCheckOutcome
 import com.devstdvad.devicedna.presentation.widgets.WidgetsScreen
 import com.devstdvad.devicedna.presentation.system.SystemHubScreen
 import com.devstdvad.devicedna.presentation.sync.SyncViewModel
@@ -92,7 +93,7 @@ import org.koin.compose.koinInject
 fun AppNavigation(
     settings: UserSettings,
     authState: AuthUiState,
-    onGoogleSignIn: () -> Unit,
+    onGoogleSignIn: (forceAccountPicker: Boolean) -> Unit,
     onOnboardingComplete: () -> Unit,
     deepLinkRoute: String? = null,
     onDeepLinkHandled: () -> Unit = {},
@@ -111,7 +112,50 @@ fun AppNavigation(
     }
 
     if (!authState.isSignedIn) {
-        AuthScreen(state = authState, onGoogleSignIn = onGoogleSignIn)
+        AuthScreen(state = authState, onGoogleSignIn = { onGoogleSignIn(false) })
+        return
+    }
+
+    val syncViewModel = koinViewModel<SyncViewModel>()
+    val syncState by syncViewModel.state.collectAsState()
+
+    LaunchedEffect(authState.user?.uid) {
+        syncViewModel.verifyAccountOnce(authState.user?.uid)
+    }
+
+    val accountCheckPending = syncState.accountCheckKey != authState.user?.uid ||
+        syncState.lastAccountCheck == null
+
+    if (accountCheckPending || syncState.isCheckingAccount) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppTheme.colors.background),
+        ) {
+            LoadingScreen()
+        }
+        return
+    }
+
+    if (syncState.lastAccountCheck != AccountCheckOutcome.Verified) {
+        val accountError = when (syncState.lastAccountCheck) {
+            AccountCheckOutcome.Removed -> "Account no longer exists. Sign in again."
+            AccountCheckOutcome.Disabled -> "Account is disabled."
+            AccountCheckOutcome.NotSignedIn -> "Sign in again."
+            is AccountCheckOutcome.Failed -> "Could not verify account with the server."
+            AccountCheckOutcome.Verified -> null
+            else -> null
+        }
+
+        AuthScreen(
+            state = authState.copy(
+                user = null,
+                isLoading = false,
+                errorMessage = accountError,
+            ),
+            onGoogleSignIn = { onGoogleSignIn(true) },
+            requirePrivacyConsent = false,
+        )
         return
     }
 
@@ -121,8 +165,7 @@ fun AppNavigation(
     }
 
     // Check/sync the device on startup (runs in background, does not block UI).
-    val syncViewModel = koinViewModel<SyncViewModel>()
-    LaunchedEffect(authState.user?.email) { syncViewModel.triggerOnce() }
+    LaunchedEffect(authState.user?.uid) { syncViewModel.triggerOnce() }
 
     val hapticManager = koinInject<HapticManager>()
     val soundManager = koinInject<SoundManager>()

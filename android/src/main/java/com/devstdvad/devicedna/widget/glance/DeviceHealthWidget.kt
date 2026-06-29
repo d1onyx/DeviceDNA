@@ -21,7 +21,7 @@ import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 class DeviceHealthWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotCache(context).current()
-        if (snapshot.lastUpdatedMillis == 0L || !snapshot.isPremium) WidgetRefreshScheduler.refreshNow(context)
+        if (snapshot.lastUpdatedMillis == 0L) WidgetRefreshScheduler.refreshNow(context)
         val ctx = localizedWidgetContext(context)
 
         provideContent {

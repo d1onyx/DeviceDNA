@@ -17,13 +17,19 @@ class DevSubscriptionBillingGateway : SubscriptionBillingGateway {
 
     override suspend fun restorePurchases(): SubscriptionPurchaseResult = devSuccess()
 
-    private fun devSuccess(): SubscriptionPurchaseResult.Success =
-        SubscriptionPurchaseResult.Success(
+    private fun devSuccess(): SubscriptionPurchaseResult.Success {
+        val now = System.currentTimeMillis()
+        return SubscriptionPurchaseResult.Success(
             PremiumEntitlements(
                 features = PremiumFeature.entries.toSet(),
-                issuedAtMillis = System.currentTimeMillis(),
-                expiresAtMillis = null,
+                issuedAtMillis = now,
+                expiresAtMillis = now + DEV_SUBSCRIPTION_DURATION_MS,
                 source = EntitlementSource.Dev,
             ),
         )
+    }
+
+    private companion object {
+        const val DEV_SUBSCRIPTION_DURATION_MS = 60_000L
+    }
 }

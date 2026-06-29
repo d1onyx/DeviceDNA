@@ -4,6 +4,7 @@ import android.util.Log
 import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.data.auth.AuthRepository
 import com.devstdvad.devicedna.data.sync.model.DeviceSyncPayload
+import kotlinx.coroutines.withTimeoutOrNull
 
 sealed interface SyncOutcome {
     data object NotSignedIn : SyncOutcome
@@ -11,6 +12,14 @@ sealed interface SyncOutcome {
     data object UpToDate : SyncOutcome
     data class Synced(val lastSyncedAt: String?) : SyncOutcome
     data class Failed(val reason: String?) : SyncOutcome
+}
+
+sealed interface AccountCheckOutcome {
+    data object Verified : AccountCheckOutcome
+    data object NotSignedIn : AccountCheckOutcome
+    data object Removed : AccountCheckOutcome
+    data object Disabled : AccountCheckOutcome
+    data class Failed(val reason: String?) : AccountCheckOutcome
 }
 
 /**
@@ -24,6 +33,48 @@ class DeviceSyncManager(
     private val stateStore: SyncStateStore,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
+    suspend fun ensureAccountExists(): AccountCheckOutcome {
+        if (authRepository.uid == null) {
+            Log.d(TAG, "account check skipped: not signed in")
+            return AccountCheckOutcome.NotSignedIn
+        }
+
+        val idToken = runCatching {
+            withTimeoutOrNull(ACCOUNT_CHECK_TIMEOUT_MS) { authRepository.getIdToken() }
+        }
+            .getOrElse { exception ->
+                Log.w(TAG, "account check failed to get id token: ${exception.message}", exception)
+                return AccountCheckOutcome.Failed(exception.message)
+            }
+        if (idToken == null) {
+            Log.w(TAG, "account check failed: no id token before timeout")
+            return AccountCheckOutcome.Failed("No id token before timeout.")
+        }
+
+        return try {
+            val status = withTimeoutOrNull(ACCOUNT_CHECK_TIMEOUT_MS) {
+                api.getAccountStatus(idToken)
+            } ?: return AccountCheckOutcome.Failed("Account check timed out.")
+
+            when (status) {
+                AccountStatus.Exists -> AccountCheckOutcome.Verified
+                AccountStatus.NotFound -> {
+                    Log.w(TAG, "account no longer exists on backend; signing out")
+                    authRepository.clearLocalSession(removeGoogleAccount = true)
+                    AccountCheckOutcome.Removed
+                }
+                AccountStatus.Disabled -> {
+                    Log.w(TAG, "account is disabled on backend; signing out")
+                    authRepository.clearLocalSession(removeGoogleAccount = true)
+                    AccountCheckOutcome.Disabled
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Account check failed: ${e.message}", e)
+            AccountCheckOutcome.Failed(e.message)
+        }
+    }
+
     suspend fun syncIfNeeded(force: Boolean = false): SyncOutcome {
         Log.d(TAG, "syncIfNeeded(force=$force) baseUrl=${BuildConfig.SYNC_BASE_URL}")
 
@@ -86,5 +137,6 @@ class DeviceSyncManager(
 
     private companion object {
         const val TAG = "DeviceSync"
+        const val ACCOUNT_CHECK_TIMEOUT_MS = 8_000L
     }
 }

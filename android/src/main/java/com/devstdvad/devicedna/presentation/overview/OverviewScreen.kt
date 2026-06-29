@@ -134,11 +134,11 @@ fun OverviewScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val cpuUsage = state.cpuUsage ?: 0f
+                    val cpuUsage = state.cpuUsage
                     GaugeRing(
-                        value = cpuUsage,
+                        value = cpuUsage ?: 0f,
                         label = "CPU",
-                        valueText = "${cpuUsage.toInt()}%",
+                        valueText = cpuUsage?.let { "${it.toInt()}%" } ?: "—",
                         accentColor = colors.cpuColor,
                         size = 100.dp,
                         strokeWidth = 9.dp,

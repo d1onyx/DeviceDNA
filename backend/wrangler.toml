@@ -13,15 +13,24 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 # [MIGRATE] MUST match the app's Firebase project_id (android/google-services.json).
 # Otherwise ID token verification will fail.
-FIREBASE_PROJECT_ID = "device-dna-test"
+FIREBASE_PROJECT_ID = "devicedna-test2"
 PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"
+GOOGLE_PLAY_PACKAGE_NAME = "com.devstdvad.devicedna"
+GOOGLE_PLAY_PREMIUM_PRODUCT_ID = "devicedna_premium"
 
 # [MIGRATE] KV namespace for caching Google's public keys (JWKS).
 # The id is obtained via:  wrangler kv namespace create PUBLIC_JWK_CACHE_KV
 # (or automatically via ./setup-cloudflare.sh)
 [[kv_namespaces]]
 binding = "PUBLIC_JWK_CACHE_KV"
-id = "04db2110228248379bfe1bf58411a632"
+id = "6a1cf461e6554ee99ee8b87ae4425d41"
 
 # [MIGRATE] The DATABASE_URL (Neon) secret is set separately, NOT here:
 #   wrangler secret put DATABASE_URL
+
+# Optional: set when using /internal subscription upserts:
+#   wrangler secret put INTERNAL_API_KEY
+
+# Required for real Google Play subscription verification:
+#   wrangler secret put GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
+#   wrangler secret put GOOGLE_PLAY_PRIVATE_KEY

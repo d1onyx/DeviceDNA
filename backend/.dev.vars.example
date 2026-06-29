@@ -1,3 +1,6 @@
 # Copy to .dev.vars for local `wrangler dev`.
 # Neon connection string (pooled), e.g.:
 DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx.eu-central-1.aws.neon.tech/devicedna?sslmode=require"
+
+# Optional: required only for internal subscription upserts.
+INTERNAL_API_KEY="change-me"

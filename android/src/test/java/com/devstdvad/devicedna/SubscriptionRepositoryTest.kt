@@ -8,6 +8,8 @@ import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionOperationResult
 import com.devstdvad.devicedna.data.subscription.SubscriptionPurchaseResult
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
+import com.devstdvad.devicedna.data.subscription.SubscriptionVerificationResult
+import com.devstdvad.devicedna.data.subscription.SubscriptionVerifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -55,6 +57,62 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
+    fun `play purchase saves backend verified entitlement`() = runTest {
+        val store = FakePremiumEntitlementsStore()
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(
+                PremiumEntitlements(
+                    features = PremiumFeature.entries.toSet(),
+                    issuedAtMillis = 1_000L,
+                    source = EntitlementSource.Play,
+                    productId = "devicedna_premium",
+                    purchaseToken = "purchase-token",
+                ),
+            ),
+            verifier = FakeVerifier(
+                SubscriptionVerificationResult.Success(
+                    PremiumEntitlements(
+                        features = PremiumFeature.entries.toSet(),
+                        issuedAtMillis = 2_000L,
+                        source = EntitlementSource.Backend,
+                        productId = "devicedna_premium",
+                    ),
+                ),
+            ),
+        )
+
+        val result = repository.purchasePremium()
+
+        assertTrue(result is SubscriptionOperationResult.Success)
+        val entitlements = repository.entitlements.first()
+        assertTrue(entitlements.hasFeature(PremiumFeature.RemoveAds))
+        assertTrue(entitlements.source == EntitlementSource.Backend)
+    }
+
+    @Test
+    fun `play purchase without verifier does not save local premium`() = runTest {
+        val store = FakePremiumEntitlementsStore()
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(
+                PremiumEntitlements(
+                    features = PremiumFeature.entries.toSet(),
+                    issuedAtMillis = 1_000L,
+                    source = EntitlementSource.Play,
+                    productId = "devicedna_premium",
+                    purchaseToken = "purchase-token",
+                ),
+            ),
+        )
+
+        val result = repository.purchasePremium()
+
+        assertTrue(result is SubscriptionOperationResult.Failure)
+        assertFalse(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds))
+    }
+
+    @Test
     fun `expired entitlement does not grant feature`() {
         val entitlements = PremiumEntitlements(
             features = setOf(PremiumFeature.RemoveAds),
@@ -90,5 +148,14 @@ class SubscriptionRepositoryTest {
 
         override suspend fun restorePurchases(): SubscriptionPurchaseResult =
             SubscriptionPurchaseResult.Success(entitlements)
+    }
+
+    private class FakeVerifier(
+        private val result: SubscriptionVerificationResult,
+    ) : SubscriptionVerifier {
+        override suspend fun verifyGooglePlayPurchase(
+            productId: String,
+            purchaseToken: String,
+        ): SubscriptionVerificationResult = result
     }
 }

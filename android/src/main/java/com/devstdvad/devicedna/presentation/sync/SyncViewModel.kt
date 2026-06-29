@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.sync
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.data.sync.AccountCheckOutcome
 import com.devstdvad.devicedna.data.sync.DeviceSyncManager
 import com.devstdvad.devicedna.data.sync.SyncOutcome
 import com.devstdvad.devicedna.data.sync.SyncStateStore
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SyncUiState(
+    val accountCheckKey: String? = null,
+    val isCheckingAccount: Boolean = false,
+    val lastAccountCheck: AccountCheckOutcome? = null,
     val isSyncing: Boolean = false,
     val lastOutcome: SyncOutcome? = null,
     val lastSyncTime: Long = 0L,
@@ -26,10 +30,28 @@ class SyncViewModel(
     val state: StateFlow<SyncUiState> = _state.asStateFlow()
 
     private var autoTriggered = false
+    private var checkedAccountKey: String? = null
 
     init {
         viewModelScope.launch {
             _state.update { it.copy(lastSyncTime = stateStore.current().lastSyncTime) }
+        }
+    }
+
+    /** Called on startup before showing signed-in app content. */
+    fun verifyAccountOnce(accountKey: String?) {
+        if (accountKey.isNullOrBlank() || checkedAccountKey == accountKey) return
+        checkedAccountKey = accountKey
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    accountCheckKey = accountKey,
+                    isCheckingAccount = true,
+                    lastAccountCheck = null,
+                )
+            }
+            val outcome = manager.ensureAccountExists()
+            _state.update { it.copy(isCheckingAccount = false, lastAccountCheck = outcome) }
         }
     }
 

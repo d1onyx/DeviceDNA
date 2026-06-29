@@ -16,10 +16,12 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 data class AuthUser(
+    val uid: String,
     val displayName: String,
     val email: String,
     val photoUrl: String?,
@@ -64,7 +66,11 @@ class AuthRepository(private val context: Context) {
         return user.getIdToken(false).await().token
     }
 
-    fun createGoogleSignInIntent(): Intent? {
+    suspend fun createGoogleSignInIntent(forceAccountPicker: Boolean = false): Intent? {
+        if (forceAccountPicker) {
+            clearLocalSession(removeGoogleAccount = true)
+        }
+
         val clientId = webClientId.takeIf { it.isNotBlank() } ?: return null
         val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(clientId)
@@ -92,7 +98,20 @@ class AuthRepository(private val context: Context) {
         ).signOut().await()
     }
 
+    suspend fun clearLocalSession(removeGoogleAccount: Boolean = false) {
+        firebaseAuth?.signOut()
+        if (removeGoogleAccount) {
+            withTimeoutOrNull(3_000L) {
+                GoogleSignIn.getClient(
+                    context,
+                    GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build(),
+                ).revokeAccess().await()
+            }
+        }
+    }
+
     private fun FirebaseUser.toAuthUser(): AuthUser = AuthUser(
+        uid = uid,
         displayName = displayName.orEmpty().ifBlank { "DeviceDNA user" },
         email = email.orEmpty(),
         photoUrl = photoUrl?.toString(),

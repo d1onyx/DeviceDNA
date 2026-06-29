@@ -8,6 +8,8 @@ data class PremiumEntitlements(
     val issuedAtMillis: Long = 0L,
     val expiresAtMillis: Long? = null,
     val source: EntitlementSource = EntitlementSource.None,
+    val productId: String? = null,
+    val purchaseToken: String? = null,
 ) {
     val isActive: Boolean
         get() = features.isNotEmpty() && !isExpired()

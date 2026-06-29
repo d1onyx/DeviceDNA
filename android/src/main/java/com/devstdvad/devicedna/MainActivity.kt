@@ -90,8 +90,11 @@ class MainActivity : ComponentActivity() {
                         authState = authState,
                         deepLinkRoute = pendingRoute,
                         onDeepLinkHandled = { pendingRoute = null },
-                        onGoogleSignIn = {
-                            authViewModel.createGoogleSignInIntent()?.let(googleSignInLauncher::launch)
+                        onGoogleSignIn = { forceAccountPicker ->
+                            authViewModel.launchGoogleSignIn(
+                                forceAccountPicker = forceAccountPicker,
+                                launch = googleSignInLauncher::launch,
+                            )
                         },
                         onOnboardingComplete = {
                             scope.launch { settingsStore.setOnboardingComplete(true) }

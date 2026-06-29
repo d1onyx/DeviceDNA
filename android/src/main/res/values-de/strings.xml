@@ -50,8 +50,8 @@
     <string name="settings_account_signed_in">Mit Google angemeldet</string>
     <string name="settings_sign_out">Abmelden</string>
     <string name="settings_privacy_policy_title">Datenschutzerklärung</string>
-    <string name="settings_privacy_policy_summary">Lokale Diagnose mit optionaler Google-Anmeldung.</string>
-    <string name="settings_privacy_policy_body">DeviceDNA liest Hardware- und Systemdiagnosen auf deinem Gerät, um CPU, Speicher, Akku, Sensoren, Kameras, Apps und Netzwerkdaten anzuzeigen. Sensible Kennungen werden standardmäßig maskiert. Die Google-Anmeldung wird nur zur Identifikation über Firebase Authentication verwendet; DeviceDNA verkauft keine Hardwarediagnosen und lädt sie nicht auf einen privaten Server hoch. Werbung kann über Google Mobile Ads ausgeliefert werden und Google-Dienste kontaktieren. Optionale Funktionen mit Netzwerkzugriff, etwa öffentliche IP-Abfrage oder Firebase-Authentifizierung, können Google oder den ausgewählten Netzwerkendpunkt kontaktieren und sind klar opt-in. Du kannst dich abmelden, die öffentliche IP-Abfrage deaktivieren, IMEI und Seriennummern verborgen halten, Hintergrundmonitoring reduzieren und Android-Berechtigungen jederzeit in den Systemeinstellungen widerrufen.</string>
+    <string name="settings_privacy_policy_summary">Gerätediagnose, Sync, Werbung und Premium-Prüfung.</string>
+    <string name="settings_privacy_policy_body">DeviceDNA liest Hardware-, OS-, Akku-, Speicher-, Netzwerk-, Sensor-, Kamerametadaten, installierte App-Inventare und Gesundheitsdiagnosen, um sie in der App anzuzeigen. Wenn du dich anmeldest oder Sync verwendest, überträgt DeviceDNA deine Firebase-Konto-ID, Android ID, Gerätezusammenfassung, Diagnosesnapshot, Sync-Zeitpunkte und Premium-Status an das DeviceDNA-Backend auf Cloudflare und Neon. Die Google-Anmeldung nutzt Firebase Authentication. Echte Premium-Käufe nutzen Google Play Billing und eine Backend-Prüfung mit Google Play. Werbung kann über Google Mobile Ads angezeigt werden. Die öffentliche IP-Abfrage kontaktiert api.ipify.org nur, wenn sie aktiviert ist. Sensible Kennungen sind standardmäßig maskiert; die Kameraberechtigung wird für Kamera-/Taschenlampentests verwendet, Fotos oder Videos werden nicht aufgezeichnet. DeviceDNA verkauft keine personenbezogenen oder sensiblen Daten. Du kannst dich abmelden, die öffentliche IP-Abfrage deaktivieren, IMEI/Seriennummer verborgen halten, Hintergrundmonitoring reduzieren, Android-Berechtigungen widerrufen oder die Löschung von Backend-Daten über den Entwicklerkontakt im Google Play-Eintrag anfragen.</string>
 
     <string name="auth_badge_ready">Firebase bereit</string>
     <string name="auth_badge_setup">Setup nötig</string>
@@ -61,13 +61,13 @@
     <string name="auth_value_sync">Firebase Auth</string>
     <string name="auth_value_device">Geräteprofil</string>
     <string name="auth_google">Mit Google fortfahren</string>
-    <string name="auth_terms">Wenn du fortfährst, nutzt du Firebase Authentication für die Identität. Diagnosen bleiben lokal, sofern eine Funktion nicht ausdrücklich Netzwerkzugriff benötigt.</string>
+    <string name="auth_terms">Wenn du fortfährst, nutzt du Firebase Authentication für die Identität. Angemeldeter Sync kann Gerätediagnosen an das DeviceDNA-Backend hochladen.</string>
     <string name="auth_privacy_accept_prefix">Ich habe die folgende Richtlinie gelesen und akzeptiere sie:</string>
     <string name="auth_privacy_link">Datenschutzrichtlinie</string>
     <string name="auth_privacy_required">Du musst die Datenschutzrichtlinie akzeptieren, um fortzufahren.</string>
     <string name="auth_privacy_policy_title">Datenschutzrichtlinie</string>
     <string name="auth_privacy_policy_summary">Wie deine Gerätedaten auf Drittanbieter-Diensten gespeichert werden.</string>
-    <string name="auth_privacy_policy_body">TODO</string>
+    <string name="auth_privacy_policy_body">DeviceDNA sammelt und synchronisiert deine Firebase-Konto-ID, Android ID, Gerätezusammenfassung, Diagnosesnapshot, Sync-Zeitpunkte und Premium-Status, um angemeldeten Sync, Kontoprüfungen und Abo-Verifizierung bereitzustellen. Diagnosen können Hardware-, OS-, Akku-, Speicher-, Netzwerk-, Sensor-, Kamerametadaten, installierte App-Inventare und Gesundheitsdaten enthalten. Die Google-Anmeldung nutzt Firebase Authentication. Echte Premium-Käufe nutzen Google Play Billing und Backend-Verifizierung. Werbung kann über Google Mobile Ads angezeigt werden. Die öffentliche IP-Abfrage kontaktiert api.ipify.org nur, wenn sie aktiviert ist. DeviceDNA verkauft keine personenbezogenen oder sensiblen Daten. Du kannst dich abmelden, Berechtigungen widerrufen, optionale Netzwerkfunktionen deaktivieren und die Löschung von Backend-Daten über den Entwicklerkontakt im Google Play-Eintrag anfragen.</string>
     <string name="auth_privacy_policy_close">Verstanden</string>
 
     <string name="onboarding_skip">Überspringen</string>
@@ -315,6 +315,7 @@
     <string name="widget_metric_cpu_temp">CPU-Temp.</string>
     <string name="widget_metric_hottest_zone">Heißeste Zone</string>
     <string name="widget_metric_cpu_clock">CPU-Takt</string>
+    <string name="widget_metric_thermal_peak">Temperaturspitze</string>
     <string name="widget_caption_cpu_load">CPU-Last</string>
     <string name="widget_metric_ram">RAM</string>
     <string name="widget_metric_storage">Speicher</string>

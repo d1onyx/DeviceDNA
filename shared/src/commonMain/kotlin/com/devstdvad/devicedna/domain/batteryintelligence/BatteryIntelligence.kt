@@ -243,7 +243,7 @@ fun filterBatteryHistoryForDay(
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ): List<BatteryHistorySnapshot> = history.filterForDay(dayStartMillis, timeZone)
 
-internal fun buildHourlyTimeline(
+fun buildHourlyTimeline(
     daySnapshots: List<BatteryHistorySnapshot>,
     dayStartMillis: Long,
     timeZone: TimeZone,

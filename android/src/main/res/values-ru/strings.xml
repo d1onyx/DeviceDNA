@@ -50,8 +50,8 @@
     <string name="settings_account_signed_in">Вход выполнен через Google</string>
     <string name="settings_sign_out">Выйти</string>
     <string name="settings_privacy_policy_title">Политика конфиденциальности</string>
-    <string name="settings_privacy_policy_summary">Локальная диагностика с опциональным входом Google.</string>
-    <string name="settings_privacy_policy_body">DeviceDNA считывает аппаратные и системные диагностические данные на вашем устройстве, чтобы показывать информацию о CPU, памяти, батарее, хранилище, сенсорах, камерах, приложениях и сети. Чувствительные идентификаторы скрыты по умолчанию. Вход через Google используется только для идентификации аккаунта через Firebase Authentication; DeviceDNA не продаёт аппаратную диагностику и не загружает её на частный сервер. Реклама может показываться через Google Mobile Ads и обращаться к сервисам Google. Опциональные функции, которым нужен интернет, например проверка публичного IP или Firebase-аутентификация, могут обращаться к Google или выбранному сетевому endpoint и включаются явно. Вы можете выйти из аккаунта, отключить публичный IP, оставить IMEI и серийные номера скрытыми, уменьшить фоновый мониторинг и отозвать разрешения Android в системных настройках.</string>
+    <string name="settings_privacy_policy_summary">Диагностика устройства, синхронизация, реклама и проверка Premium.</string>
+    <string name="settings_privacy_policy_body">DeviceDNA считывает аппаратные данные, ОС, батарею, хранилище, сеть, сенсоры, метаданные камер, список установленных приложений и показатели здоровья устройства, чтобы показывать их в приложении. Если вы входите в аккаунт или используете синхронизацию, DeviceDNA передаёт идентификатор Firebase-аккаунта, Android ID, сводку устройства, диагностический снимок, время синхронизации и статус Premium на backend DeviceDNA в Cloudflare и Neon. Вход через Google использует Firebase Authentication. Реальные покупки Premium используют Google Play Billing и серверную проверку через Google Play. Реклама может показываться через Google Mobile Ads. Проверка публичного IP обращается к api.ipify.org только если включена. Чувствительные идентификаторы скрыты по умолчанию; разрешение камеры используется для тестов камеры/фонарика, фото и видео не записываются. DeviceDNA не продаёт персональные или чувствительные данные. Вы можете выйти, отключить публичный IP, скрыть IMEI/серийный номер, уменьшить фоновый мониторинг, отозвать разрешения Android или запросить удаление backend-данных через контакт разработчика в Google Play.</string>
 
     <string name="auth_badge_ready">Firebase готов</string>
     <string name="auth_badge_setup">Нужна настройка</string>
@@ -61,13 +61,13 @@
     <string name="auth_value_sync">Firebase Auth</string>
     <string name="auth_value_device">Профиль устройства</string>
     <string name="auth_google">Продолжить с Google</string>
-    <string name="auth_terms">Продолжая, вы используете Firebase Authentication для входа. Диагностика остаётся локальной, если функция явно не сообщает, что ей нужен интернет.</string>
+    <string name="auth_terms">Продолжая, вы используете Firebase Authentication для входа. Синхронизация после входа может загружать диагностику устройства на backend DeviceDNA.</string>
     <string name="auth_privacy_accept_prefix">Я прочитал(а) и принимаю</string>
     <string name="auth_privacy_link">Политику конфиденциальности</string>
     <string name="auth_privacy_required">Чтобы продолжить, необходимо принять Политику конфиденциальности.</string>
     <string name="auth_privacy_policy_title">Политика конфиденциальности</string>
     <string name="auth_privacy_policy_summary">Как данные вашего устройства хранятся на сторонних сервисах.</string>
-    <string name="auth_privacy_policy_body">TODO</string>
+    <string name="auth_privacy_policy_body">DeviceDNA собирает и синхронизирует идентификатор Firebase-аккаунта, Android ID, сводку устройства, диагностический снимок, время синхронизации и статус Premium, чтобы обеспечивать синхронизацию, проверку аккаунта и проверку подписки. Диагностика может включать аппаратные данные, ОС, батарею, хранилище, сеть, сенсоры, метаданные камер, список установленных приложений и состояние устройства. Вход через Google использует Firebase Authentication. Реальные покупки Premium используют Google Play Billing и серверную проверку. Реклама может показываться через Google Mobile Ads. Проверка публичного IP обращается к api.ipify.org только если включена. DeviceDNA не продаёт персональные или чувствительные данные. Вы можете выйти, отозвать разрешения, отключить опциональные сетевые функции и запросить удаление backend-данных через контакт разработчика в Google Play.</string>
     <string name="auth_privacy_policy_close">Понятно</string>
 
     <string name="onboarding_skip">Пропустить</string>
@@ -315,6 +315,7 @@
     <string name="widget_metric_cpu_temp">Темп. ЦП</string>
     <string name="widget_metric_hottest_zone">Горячая зона</string>
     <string name="widget_metric_cpu_clock">Частота ЦП</string>
+    <string name="widget_metric_thermal_peak">Пик температуры</string>
     <string name="widget_caption_cpu_load">Загрузка ЦП</string>
     <string name="widget_metric_ram">ОЗУ</string>
     <string name="widget_metric_storage">Память</string>

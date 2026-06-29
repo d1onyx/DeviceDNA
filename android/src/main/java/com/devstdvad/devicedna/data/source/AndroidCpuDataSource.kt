@@ -17,6 +17,11 @@ import java.io.File
 class AndroidCpuDataSource(private val context: Context) {
 
     private data class ProcStatSample(val work: Long, val total: Long)
+    private data class CpuIdleSample(
+        val idleTimeMicros: Long,
+        val onlineCoreCount: Int,
+        val elapsedRealtimeNanos: Long,
+    )
 
     suspend fun getCpuInfo(): AppResult<CpuInfo> = withContext(Dispatchers.IO) {
         runCatching {
@@ -26,7 +31,7 @@ class AndroidCpuDataSource(private val context: Context) {
             val minFreqMhz = (cores.minOfOrNull { it.minFrequencyKhz } ?: 0L).div(1000).toInt()
             val maxFreqMhz = (allMaxFreqs.maxOrNull() ?: 0L).div(1000).toInt()
 
-            val usagePercent = measureCpuUsage()
+            val usagePercent = measureCpuUsage(cores)
             val instructionSets = buildInstructionSets()
             val processCount = getProcessCount()
             val chipset = detectChipset()
@@ -149,14 +154,65 @@ class AndroidCpuDataSource(private val context: Context) {
         return sets
     }
 
-    private suspend fun measureCpuUsage(): Float? = runCatching {
+    private suspend fun measureCpuUsage(cores: List<CpuCore>): Float? =
+        measureCpuUsageFromProcStat()
+            ?: measureCpuUsageFromIdleTime(cores)
+            ?: estimateCpuUsageFromFrequencies(cores)
+
+    private suspend fun measureCpuUsageFromProcStat(): Float? = runCatching {
         val s1 = readProcStatSample() ?: return null
-        delay(250)
+        delay(CPU_USAGE_SAMPLE_MS)
         val s2 = readProcStatSample() ?: return null
         val deltaWork = s2.work - s1.work
         val deltaTotal = s2.total - s1.total
         if (deltaTotal <= 0) null else (deltaWork.toFloat() / deltaTotal * 100f).coerceIn(0f, 100f)
     }.getOrNull()
+
+    private suspend fun measureCpuUsageFromIdleTime(cores: List<CpuCore>): Float? = runCatching {
+        val s1 = readCpuIdleSample(cores) ?: return null
+        delay(CPU_USAGE_SAMPLE_MS)
+        val s2 = readCpuIdleSample(cores) ?: return null
+        val elapsedMicros = ((s2.elapsedRealtimeNanos - s1.elapsedRealtimeNanos) / 1_000L)
+            .coerceAtLeast(1L)
+        val coreCount = minOf(s1.onlineCoreCount, s2.onlineCoreCount).coerceAtLeast(1)
+        val capacityMicros = elapsedMicros * coreCount
+        val idleDelta = (s2.idleTimeMicros - s1.idleTimeMicros).coerceAtLeast(0L)
+        ((1f - idleDelta.toFloat() / capacityMicros) * 100f).coerceIn(0f, 100f)
+    }.getOrNull()
+
+    private fun readCpuIdleSample(cores: List<CpuCore>): CpuIdleSample? {
+        var totalIdleMicros = 0L
+        var sampledCores = 0
+        cores.filter { it.isOnline }.forEach { core ->
+            val coreIdle = File("/sys/devices/system/cpu/cpu${core.index}/cpuidle")
+                .listFiles()
+                ?.filter { it.name.startsWith("state") }
+                ?.sumOf { stateDir -> readLongFile("${stateDir.path}/time") ?: 0L }
+                ?: 0L
+            if (coreIdle > 0L) {
+                totalIdleMicros += coreIdle
+                sampledCores++
+            }
+        }
+        if (sampledCores == 0) return null
+        return CpuIdleSample(
+            idleTimeMicros = totalIdleMicros,
+            onlineCoreCount = sampledCores,
+            elapsedRealtimeNanos = System.nanoTime(),
+        )
+    }
+
+    private fun estimateCpuUsageFromFrequencies(cores: List<CpuCore>): Float? {
+        val ratios = cores.filter { it.isOnline }.mapNotNull { core ->
+            val current = core.currentFrequencyKhz ?: return@mapNotNull null
+            val min = core.minFrequencyKhz
+            val max = core.maxFrequencyKhz
+            if (max <= min || current <= 0L) return@mapNotNull null
+            ((current - min).toFloat() / (max - min)).coerceIn(0f, 1f)
+        }
+        if (ratios.isEmpty()) return null
+        return (ratios.average().toFloat() * 100f).coerceIn(0f, 100f)
+    }
 
     private fun readProcStatSample(): ProcStatSample? = runCatching {
         val line = File("/proc/stat").readLines().firstOrNull { it.startsWith("cpu ") } ?: return null
@@ -182,4 +238,8 @@ class AndroidCpuDataSource(private val context: Context) {
     private fun readLongFile(path: String): Long? = runCatching {
         File(path).readText().trim().toLong()
     }.getOrNull()
+
+    private companion object {
+        const val CPU_USAGE_SAMPLE_MS = 750L
+    }
 }

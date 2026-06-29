@@ -21,9 +21,8 @@ import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 class BatteryWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetSnapshotCache(context).current()
-        // Re-check on first render and whenever still locked, so a freshly activated
-        // subscription unlocks the widget without waiting for the periodic worker.
-        if (snapshot.lastUpdatedMillis == 0L || !snapshot.isPremium) WidgetRefreshScheduler.refreshNow(context)
+        // Re-check on first render; premium users can also refresh manually from the widget.
+        if (snapshot.lastUpdatedMillis == 0L) WidgetRefreshScheduler.refreshNow(context)
         val ctx = localizedWidgetContext(context)
 
         provideContent {
