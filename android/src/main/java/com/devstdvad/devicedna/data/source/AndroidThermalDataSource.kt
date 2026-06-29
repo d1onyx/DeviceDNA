@@ -30,12 +30,8 @@ class AndroidThermalDataSource {
                 thermalBase.listFiles()
                     ?.filter { it.name.startsWith("thermal_zone") }
                     ?.sortedBy { it.name.removePrefix("thermal_zone").toIntOrNull() ?: 0 }
-                    ?.take(20)
-                    ?.forEach { zoneDir ->
-                        val typeName = runCatching { File(zoneDir, "type").readText().trim() }.getOrDefault("unknown")
-                        val temp = runCatching { File(zoneDir, "temp").readText().trim().toFloat() / 1000f }.getOrNull()
-                        zones.add(ThermalZone(name = typeName, type = classifyZone(typeName), temperatureCelsius = temp))
-                    }
+                    ?.mapNotNull(::readThermalZone)
+                    ?.forEach(zones::add)
             }
             if (zones.isEmpty()) {
                 zones.add(ThermalZone("battery", ThermalZoneType.Battery, null))
@@ -46,6 +42,17 @@ class AndroidThermalDataSource {
             onSuccess = { AppResult.Success(it) },
             onFailure = { AppResult.Error(AppError.Unknown(it.message ?: "Thermal read failed")) },
         )
+    }
+
+    private fun readThermalZone(zoneDir: File): ThermalZone? {
+        val typeName = runCatching { File(zoneDir, "type").readText().trim() }.getOrDefault("unknown")
+        if (typeName.isControlOrNonTemperatureZone()) return null
+
+        val temp = runCatching {
+            File(zoneDir, "temp").readText().trim().toFloat()
+        }.getOrNull()?.toValidTemperatureCelsius() ?: return null
+
+        return ThermalZone(name = typeName, type = classifyZone(typeName), temperatureCelsius = temp)
     }
 
     private fun classifyZone(type: String): ThermalZoneType {
@@ -61,5 +68,33 @@ class AndroidThermalDataSource {
             "board" in lower || "pmic" in lower -> ThermalZoneType.Board
             else -> ThermalZoneType.Unknown
         }
+    }
+
+    private fun String.isControlOrNonTemperatureZone(): Boolean {
+        val lower = lowercase()
+        return NON_TEMPERATURE_ZONE_MARKERS.any { it in lower }
+    }
+
+    private fun Float.toValidTemperatureCelsius(): Float? {
+        val celsius = this / 1000f
+        return celsius.takeIf { it in MIN_VALID_TEMP_C..MAX_VALID_TEMP_C }
+    }
+
+    private companion object {
+        const val MIN_VALID_TEMP_C = -20f
+        const val MAX_VALID_TEMP_C = 125f
+        val NON_TEMPERATURE_ZONE_MARKERS = listOf(
+            "bcl",
+            "ibat",
+            "vbat",
+            "vph",
+            "-lvl",
+            "_lvl",
+            "dcvs",
+            "-step",
+            "_step",
+            "-lowf",
+            "_lowf",
+        )
     }
 }
