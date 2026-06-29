@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
@@ -58,7 +59,6 @@ import com.devstdvad.devicedna.core.design.component.ErrorBanner
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
-import com.devstdvad.devicedna.data.subscription.EntitlementSource
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -282,7 +282,9 @@ fun SubscriptionScreen(
                         Text(stringResource(R.string.subscription_restore))
                     }
 
-                    if (state.source == EntitlementSource.Dev && state.isPremiumActive) {
+                    // Dev builds only (no real Play billing): allow clearing the local premium
+                    // regardless of source (Dev locally, or Backend after dev-via-backend/refresh).
+                    if (!BuildConfig.USE_REAL_BILLING && state.isPremiumActive) {
                         Spacer(Modifier.height(4.dp))
                         TextButton(
                             onClick = {
