@@ -36,11 +36,32 @@ android {
         val adMobBannerAdUnitId = localProperties.getProperty("adMobBannerAdUnitId")
             ?: (project.findProperty("adMobBannerAdUnitId") as String?)
             ?: "ca-app-pub-3940256099942544/9214589741"
+        val adMobInterstitialAdUnitId = localProperties.getProperty("adMobInterstitialAdUnitId")
+            ?: (project.findProperty("adMobInterstitialAdUnitId") as String?)
+            ?: "ca-app-pub-3940256099942544/1033173712"
         manifestPlaceholders["adMobAppId"] = adMobAppId
         buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$adMobBannerAdUnitId\"")
+        buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"$adMobInterstitialAdUnitId\"")
+
+        // Google Play subscription Product ID (must match the one created in Play Console).
+        // Override via local.properties -> premiumSubProductId, or a -PpremiumSubProductId Gradle property.
+        val premiumSubProductId = localProperties.getProperty("premiumSubProductId")
+            ?: (project.findProperty("premiumSubProductId") as String?)
+            ?: "devicedna_premium"
+        buildConfigField("String", "PREMIUM_SUB_PRODUCT_ID", "\"$premiumSubProductId\"")
     }
 
+    // Selects the premium billing implementation (see AppModule). Defaults: debug = dev billing
+    // (instant unlock, no Play needed), release = real Google Play Billing. Override either build
+    // type with `-PrealBilling=true|false` (or realBilling=... in local.properties) to, e.g., build
+    // a debug variant wired to real Play Billing for testing on an internal test track.
+    val realBillingOverride = (localProperties.getProperty("realBilling")
+        ?: (project.findProperty("realBilling") as String?))?.toBooleanStrictOrNull()
+
     buildTypes {
+        debug {
+            buildConfigField("boolean", "USE_REAL_BILLING", "${realBillingOverride ?: false}")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -48,6 +69,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            buildConfigField("boolean", "USE_REAL_BILLING", "${realBillingOverride ?: true}")
         }
     }
 
@@ -80,6 +102,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.billing.ktx)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
