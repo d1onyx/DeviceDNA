@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.batteryintelligence
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -29,6 +31,7 @@ import kotlin.math.roundToInt
 data class BatteryIntelligenceUiState(
     val isLoading: Boolean = true,
     val isPremiumUnlocked: Boolean = false,
+    val isChargingTrackingEnabled: Boolean = true,
     val intelligence: BatteryIntelligenceReport? = null,
     val error: String? = null,
 )
@@ -38,7 +41,8 @@ data class BatteryIntelligenceReport(
     val degradationRiskPercent: Int,
     val degradationRiskLabel: String,
     val degradationSummary: String,
-    val chargingAdvice: List<String>,
+    // String resource IDs (localized at display/export time so advice follows the app language).
+    val chargingAdvice: List<Int>,
     val cycleHistory: List<BatteryCyclePoint>,
     val chargingHistory: List<ChargingHistoryEntry>,
     val hourlyTimeline: List<ChargingHourSlot>,
@@ -136,7 +140,7 @@ data class ChargeSpeedStats(
 class BatteryIntelligenceViewModel(
     observeBattery: ObserveBatteryUseCase,
     subscriptionRepository: SubscriptionRepository,
-    historyStore: BatteryIntelligenceHistoryStore,
+    private val historyStore: BatteryIntelligenceHistoryStore,
 ) : ViewModel() {
     private val zoneId: ZoneId = ZoneId.systemDefault()
     private val selectedDayStartMillis = MutableStateFlow(todayStartMillis(zoneId))
@@ -152,33 +156,41 @@ class BatteryIntelligenceViewModel(
         combine(
             subscriptionRepository.entitlements,
             batteryState,
-        ) { entitlements, batteryResult ->
+            historyStore.chargingTrackingEnabled,
+        ) { entitlements, batteryResult, trackingEnabled ->
             val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence)
             val info = (batteryResult as? AppResult.Success)?.value
-            unlocked to info
-        }.onEach { (unlocked, info) ->
-            if (unlocked && info != null) {
+            Triple(unlocked, info, trackingEnabled)
+        }.onEach { (unlocked, info, trackingEnabled) ->
+            if (unlocked && trackingEnabled && info != null) {
                 historyStore.record(info)
             }
         }.launchIn(viewModelScope)
     }
 
     val state: StateFlow<BatteryIntelligenceUiState> = combine(
-        subscriptionRepository.entitlements,
-        batteryState,
-        historyStore.snapshots,
+        combine(
+            subscriptionRepository.entitlements,
+            batteryState,
+            historyStore.snapshots,
+        ) { entitlements, batteryResult, history ->
+            Triple(entitlements, batteryResult, history)
+        },
         selectedDayStartMillis,
         selectedHour,
-    ) { entitlements, batteryResult, history, dayStartMillis, hour ->
+        historyStore.chargingTrackingEnabled,
+    ) { (entitlements, batteryResult, history), dayStartMillis, hour, trackingEnabled ->
         val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence)
         when (batteryResult) {
             null -> BatteryIntelligenceUiState(
                 isLoading = true,
                 isPremiumUnlocked = unlocked,
+                isChargingTrackingEnabled = trackingEnabled,
             )
             is AppResult.Success -> BatteryIntelligenceUiState(
                 isLoading = false,
                 isPremiumUnlocked = unlocked,
+                isChargingTrackingEnabled = trackingEnabled,
                 intelligence = if (unlocked) {
                     batteryResult.value.toIntelligenceReport(
                         history = history,
@@ -193,6 +205,7 @@ class BatteryIntelligenceViewModel(
             is AppResult.Error -> BatteryIntelligenceUiState(
                 isLoading = false,
                 isPremiumUnlocked = unlocked,
+                isChargingTrackingEnabled = trackingEnabled,
                 error = batteryResult.cause.message,
             )
         }
@@ -204,6 +217,12 @@ class BatteryIntelligenceViewModel(
 
     fun selectHour(hour: Int) {
         selectedHour.value = hour.coerceIn(0, 23)
+    }
+
+    fun setChargingTrackingEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            historyStore.setChargingTrackingEnabled(enabled)
+        }
     }
 
     fun goToPreviousDay() {
@@ -307,26 +326,27 @@ private fun BatteryInfo.buildDegradationSummary(riskLabel: String, healthScore: 
     }
 }
 
-private fun BatteryInfo.buildChargingAdvice(): List<String> = buildList {
+// Returns string resource IDs (not text) so the advice is localized at display/export time.
+private fun BatteryInfo.buildChargingAdvice(): List<Int> = buildList {
     if (temperatureCelsius >= 40f) {
-        add("Let the phone cool before fast charging or running heavy workloads.")
+        add(R.string.battery_advice_cool_before_charge)
     }
     if (levelPercent >= 90 && status == BatteryStatus.Charging) {
-        add("Unplug soon or use a charge limit when available to reduce time near 100%.")
+        add(R.string.battery_advice_unplug_near_full)
     }
     if (levelPercent <= 15) {
-        add("Avoid frequent deep discharge; charging before 15-20% is gentler on the battery.")
+        add(R.string.battery_advice_avoid_deep_discharge)
     }
     if (source.name == "Wireless" && temperatureCelsius >= 35f) {
-        add("Wireless charging is convenient but can add heat; use wired charging when the phone is warm.")
+        add(R.string.battery_advice_wireless_heat)
     }
     if ((estimatedWatts ?: 0f) in 0.1f..5f && status == BatteryStatus.Charging) {
-        add("Charging power is low. Try a better cable, a stronger wall adapter, or cleaning the charging port.")
+        add(R.string.battery_advice_low_power)
     }
-    add("For daily use, staying roughly between 20% and 80% reduces long-term stress.")
-    add("If a charging hour is yellow, check the cable, adapter, heat, case, and background load before continuing.")
+    add(R.string.battery_advice_keep_20_80)
+    add(R.string.battery_advice_yellow_hour)
     if (isPowerSaveMode) {
-        add("Power saver is enabled; it can reduce heat and discharge rate during low battery periods.")
+        add(R.string.battery_advice_power_saver)
     }
 }.distinct()
 

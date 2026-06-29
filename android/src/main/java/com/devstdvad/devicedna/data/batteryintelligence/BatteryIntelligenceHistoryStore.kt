@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.data.batteryintelligence
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -31,8 +32,20 @@ class BatteryIntelligenceHistoryStore(
             .sortedBy { it.timestampMillis }
     }
 
+    val chargingTrackingEnabled: Flow<Boolean> = context.batteryIntelligenceDataStore.data.map { prefs ->
+        prefs[CHARGING_TRACKING_ENABLED] ?: true
+    }
+
+    suspend fun setChargingTrackingEnabled(value: Boolean) {
+        context.batteryIntelligenceDataStore.edit { prefs ->
+            prefs[CHARGING_TRACKING_ENABLED] = value
+        }
+    }
+
     suspend fun record(info: BatteryInfo, timestampMillis: Long = System.currentTimeMillis()) {
         context.batteryIntelligenceDataStore.edit { prefs ->
+            if (prefs[CHARGING_TRACKING_ENABLED] == false) return@edit
+
             val existing = prefs[SNAPSHOTS]
                 ?.let { encoded -> runCatching { json.decodeFromString<BatteryHistoryPayload>(encoded).snapshots }.getOrNull() }
                 .orEmpty()
@@ -75,6 +88,7 @@ class BatteryIntelligenceHistoryStore(
 
     private companion object {
         val SNAPSHOTS = stringPreferencesKey("snapshots")
+        val CHARGING_TRACKING_ENABLED = booleanPreferencesKey("charging_tracking_enabled")
         const val MAX_SNAPSHOTS = 240
         const val MIN_SNAPSHOT_INTERVAL_MS = 15L * 60L * 1000L
     }

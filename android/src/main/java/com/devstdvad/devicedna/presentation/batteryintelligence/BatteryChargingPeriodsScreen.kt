@@ -39,6 +39,8 @@ import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
+import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
@@ -49,6 +51,7 @@ import java.util.Locale
 @Composable
 fun BatteryChargingPeriodsScreen(
     dayStartMillis: Long,
+    settings: UserSettings = UserSettings(),
     onBackClick: () -> Unit,
     onChargingSessionClick: (ChargingSessionSummary) -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
@@ -114,6 +117,7 @@ fun BatteryChargingPeriodsScreen(
                 items(sessions.size) { index ->
                     FullChargingSessionCard(
                         session = sessions[index],
+                        settings = settings,
                         onClick = { onChargingSessionClick(sessions[index]) },
                     )
                 }
@@ -125,6 +129,7 @@ fun BatteryChargingPeriodsScreen(
 @Composable
 private fun FullChargingSessionCard(
     session: ChargingSessionSummary,
+    settings: UserSettings,
     onClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -177,7 +182,11 @@ private fun FullChargingSessionCard(
         ) {
             Text("${session.averageWatts.formatWatts()} avg", style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
             Text("${session.peakWatts.formatWatts()} peak", style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
-            Text("${session.maxTemperatureCelsius}°C max", style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
+            Text(
+                "${SettingsFormatters.formatTemperature(session.maxTemperatureCelsius, settings.temperatureUnit)} max",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textSecondary,
+            )
         }
     }
 }

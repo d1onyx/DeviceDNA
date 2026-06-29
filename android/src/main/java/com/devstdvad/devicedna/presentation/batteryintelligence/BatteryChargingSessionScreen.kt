@@ -45,6 +45,8 @@ import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
+import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.compose.koinInject
 import java.time.Instant
 import java.time.ZoneId
@@ -56,6 +58,7 @@ import java.util.Locale
 fun BatteryChargingSessionScreen(
     sessionStartMillis: Long,
     sessionEndMillis: Long?,
+    settings: UserSettings = UserSettings(),
     onBackClick: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(),
     historyStore: BatteryIntelligenceHistoryStore = koinInject(),
@@ -160,7 +163,14 @@ fun BatteryChargingSessionScreen(
                     InfoRow(stringResource(R.string.battery_session_level), if (first != null && lastCharging != null) "${first.levelPercent}% → ${lastCharging.levelPercent}% (${formatDelta(lastCharging.levelPercent - first.levelPercent)})" else stringResource(R.string.common_not_reported), copyable = false)
                     InfoRow(stringResource(R.string.battery_intelligence_average_speed), watts.averageOrNull().formatWatts(), copyable = false)
                     InfoRow(stringResource(R.string.battery_intelligence_peak_speed), watts.maxOrNull().formatWatts(), copyable = false)
-                    InfoRow(stringResource(R.string.battery_session_max_temp), chargingSnapshots.maxOfOrNull { it.temperatureCelsius }?.let { "$it°C" } ?: stringResource(R.string.common_not_reported), copyable = false, showDivider = false)
+                    InfoRow(
+                        stringResource(R.string.battery_session_max_temp),
+                        chargingSnapshots.maxOfOrNull { it.temperatureCelsius }?.let {
+                            SettingsFormatters.formatTemperature(it, settings.temperatureUnit)
+                        } ?: stringResource(R.string.common_not_reported),
+                        copyable = false,
+                        showDivider = false,
+                    )
                 }
             }
 
@@ -183,7 +193,7 @@ fun BatteryChargingSessionScreen(
                         )
                     } else {
                         sessionSnapshots.forEachIndexed { index, snapshot ->
-                            SessionChangeRow(snapshot = snapshot, zoneId = zoneId)
+                            SessionChangeRow(snapshot = snapshot, settings = settings, zoneId = zoneId)
                             if (index != sessionSnapshots.lastIndex) Spacer(Modifier.height(8.dp))
                         }
                     }
@@ -196,6 +206,7 @@ fun BatteryChargingSessionScreen(
 @Composable
 private fun SessionChangeRow(
     snapshot: BatteryHistorySnapshot,
+    settings: UserSettings,
     zoneId: ZoneId,
 ) {
     val colors = AppTheme.colors
@@ -239,7 +250,11 @@ private fun SessionChangeRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text("${snapshot.levelPercent}%", style = MaterialTheme.typography.titleMedium, color = colors.batteryColor)
-            Text("${snapshot.estimatedWatts.formatWatts()} • ${snapshot.temperatureCelsius}°C", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+            Text(
+                "${snapshot.estimatedWatts.formatWatts()} • ${SettingsFormatters.formatTemperature(snapshot.temperatureCelsius, settings.temperatureUnit)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textMuted,
+            )
         }
     }
 }

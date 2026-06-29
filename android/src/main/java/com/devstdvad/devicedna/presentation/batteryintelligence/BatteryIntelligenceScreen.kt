@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.History
@@ -44,6 +45,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,13 +76,16 @@ import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
 import com.devstdvad.devicedna.data.settings.ExportFormat
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BatteryIntelligenceScreen(
     viewModel: BatteryIntelligenceViewModel = koinViewModel(),
     exportViewModel: BatteryAnalyticsExportViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     onSubscribeClick: () -> Unit = {},
     onChargingSessionClick: (ChargingSessionSummary) -> Unit = {},
     onShowAllChargingSessionsClick: (Long) -> Unit = {},
@@ -106,6 +111,26 @@ fun BatteryIntelligenceScreen(
         return
     }
 
+    if (!state.isPremiumUnlocked) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.background)
+                .padding(
+                    start = 16.dp,
+                    top = 12.dp + contentPadding.calculateTopPadding(),
+                    end = 16.dp,
+                    bottom = 12.dp + contentPadding.calculateBottomPadding(),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            PremiumLockedBatteryIntelligence(
+                onSubscribeClick = onSubscribeClick,
+            )
+        }
+        return
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -113,20 +138,11 @@ fun BatteryIntelligenceScreen(
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
-            top = 12.dp,
+            top = 12.dp + contentPadding.calculateTopPadding(),
             bottom = 12.dp + contentPadding.calculateBottomPadding(),
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (!state.isPremiumUnlocked) {
-            item {
-                PremiumLockedBatteryIntelligence(
-                    onSubscribeClick = onSubscribeClick,
-                )
-            }
-            return@LazyColumn
-        }
-
         val report = state.intelligence
         if (report == null) {
             item {
@@ -153,6 +169,13 @@ fun BatteryIntelligenceScreen(
                     exportViewModel.export(report, selectedExportFormat)
                     feedback?.confirm()
                 },
+            )
+        }
+
+        item {
+            ChargingTrackingToggleCard(
+                enabled = state.isChargingTrackingEnabled,
+                onEnabledChange = viewModel::setChargingTrackingEnabled,
             )
         }
 
@@ -218,6 +241,7 @@ fun BatteryIntelligenceScreen(
             SectionCard {
                 DailyChargingTimeline(
                     report = report,
+                    settings = settings,
                     onPreviousDay = viewModel::goToPreviousDay,
                     onNextDay = viewModel::goToNextDay,
                     onChargingSessionClick = onChargingSessionClick,
@@ -230,8 +254,8 @@ fun BatteryIntelligenceScreen(
             SectionCard {
                 SectionTitle(Icons.Outlined.Lightbulb, stringResource(R.string.battery_intelligence_charging_advice))
                 Spacer(Modifier.height(10.dp))
-                report.chargingAdvice.forEachIndexed { index, advice ->
-                    AdviceRow(number = index + 1, text = advice)
+                report.chargingAdvice.forEachIndexed { index, adviceRes ->
+                    AdviceRow(number = index + 1, text = stringResource(adviceRes))
                     if (index != report.chargingAdvice.lastIndex) Spacer(Modifier.height(8.dp))
                 }
             }
@@ -311,6 +335,7 @@ fun BatteryIntelligenceScreen(
 @Composable
 private fun DailyChargingTimeline(
     report: BatteryIntelligenceReport,
+    settings: UserSettings,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
     onChargingSessionClick: (ChargingSessionSummary) -> Unit,
@@ -375,6 +400,7 @@ private fun DailyChargingTimeline(
         visibleSessions.forEachIndexed { index, session ->
             ChargingSessionCard(
                 session = session,
+                settings = settings,
                 onClick = { onChargingSessionClick(session) },
             )
             if (index != visibleSessions.lastIndex) Spacer(Modifier.height(8.dp))
@@ -404,6 +430,7 @@ private fun DailyChargingTimeline(
 @Composable
 private fun ChargingSessionCard(
     session: ChargingSessionSummary,
+    settings: UserSettings,
     onClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -432,7 +459,7 @@ private fun ChargingSessionCard(
             )
             Spacer(Modifier.height(3.dp))
             Text(
-                text = "${session.averageWatts.formatWatts()} avg • ${session.maxTemperatureCelsius}°C max",
+                text = "${session.averageWatts.formatWatts()} avg • ${SettingsFormatters.formatTemperature(session.maxTemperatureCelsius, settings.temperatureUnit)} max",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textMuted,
             )
@@ -616,6 +643,46 @@ private fun ChargingHistoryRow(entry: ChargingHistoryEntry) {
     }
 }
 
+@Composable
+private fun ChargingTrackingToggleCard(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+    val colors = AppTheme.colors
+    SectionCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.battery_intelligence_tracking_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.textPrimary,
+                )
+                Text(
+                    text = stringResource(
+                        if (enabled) {
+                            R.string.battery_intelligence_tracking_enabled_summary
+                        } else {
+                            R.string.battery_intelligence_tracking_disabled_summary
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textSecondary,
+                )
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+            )
+        }
+    }
+}
 
 @Composable
 private fun BatteryAnalyticsExportCard(
@@ -771,6 +838,20 @@ private fun PremiumLockedBatteryIntelligence(
             }
         }
         Spacer(Modifier.height(16.dp))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(
+                R.string.battery_intelligence_feature_health_analysis,
+                R.string.battery_intelligence_feature_charging_history,
+                R.string.battery_intelligence_feature_wear_forecast,
+                R.string.battery_intelligence_feature_cycle_stats,
+                R.string.battery_intelligence_feature_charge_speed,
+            ).forEach { labelRes ->
+                LockedFeatureRow(text = stringResource(labelRes))
+            }
+        }
+        Spacer(Modifier.height(16.dp))
         Button(
             onClick = {
                 feedback?.confirm()
@@ -787,6 +868,33 @@ private fun PremiumLockedBatteryIntelligence(
             Spacer(Modifier.size(8.dp))
             Text(stringResource(R.string.battery_intelligence_unlock_button))
         }
+    }
+}
+
+@Composable
+private fun LockedFeatureRow(text: String) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = colors.batteryColor,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.textPrimary,
+        )
     }
 }
 
