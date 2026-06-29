@@ -1,5 +1,6 @@
 package com.devstdvad.devicedna.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -38,7 +39,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +59,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.devstdvad.devicedna.BuildConfig
 import com.devstdvad.devicedna.ads.AdMobTopBanner
+import com.devstdvad.devicedna.ads.rememberInterstitialAdManager
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.feedback.AppFeedback
 import com.devstdvad.devicedna.core.feedback.HapticManager
@@ -135,15 +140,79 @@ fun AppNavigation(
         val navController = rememberNavController()
         val backStack by navController.currentBackStackEntryAsState()
         val currentRoute = backStack?.destination?.route ?: NavRoutes.DASHBOARD
+
+        // Guarantee Back returns from any non-home screen (some launchers/OEM back handling
+        // would otherwise finish the activity instead of letting NavHost pop).
+        BackHandler(enabled = currentRoute != NavRoutes.DASHBOARD) {
+            if (!navController.popBackStack()) {
+                navController.navigate(NavRoutes.DASHBOARD) {
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
         val colors = AppTheme.colors
 
         val rootRoutes = bottomNavItems.map { it.route }.toSet()
         val showBottomBar = currentRoute in rootRoutes
 
+        val showAds = !entitlements.hasFeature(PremiumFeature.RemoveAds)
+        // Always called unconditionally (Compose rules); adUnitId blanked for premium users.
+        val interstitialManager = rememberInterstitialAdManager(
+            adUnitId = if (showAds) BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID else "",
+        )
+        var interstitialShowing by remember { mutableStateOf(false) }
+        var navCount by remember { mutableIntStateOf(0) }
+        var lastRootRoute by remember { mutableStateOf<String?>(null) }
+
+        fun onNavEvent() {
+            navCount++
+            if (navCount >= 15) {
+                interstitialManager.showIfReady(
+                    onShowing = { interstitialShowing = true },
+                    onDismissed = { interstitialShowing = false },
+                )
+                navCount = 0
+            }
+        }
+
+        LaunchedEffect(currentRoute) {
+            if (currentRoute !in rootRoutes) return@LaunchedEffect
+            val prev = lastRootRoute
+            if (prev != null && currentRoute != prev) onNavEvent()
+            lastRootRoute = currentRoute
+        }
+
+        // Hub tab requested by a widget deep-link (e.g. "hardware/battery").
+        var requestedHardwareTab by remember { mutableStateOf<String?>(null) }
+        var requestedSystemTab by remember { mutableStateOf<String?>(null) }
+
         // Navigate to a route requested by a home-screen widget tap (once).
+        // Use the SAME options as the bottom-nav so the target becomes a proper top-level
+        // sibling of Dashboard ([dashboard, target]) rather than a child nested inside
+        // Dashboard's saved sub-stack. Nesting it (e.g. via popUpTo(inclusive) + a second
+        // navigate) makes restoreState later re-restore the target when the user taps the
+        // Dashboard tab, which would bounce them straight back to the widget's screen.
         LaunchedEffect(deepLinkRoute) {
             val route = deepLinkRoute ?: return@LaunchedEffect
-            navController.navigate(route)
+            val target = when {
+                route.startsWith("hardware/") -> {
+                    requestedHardwareTab = route.substringAfter("hardware/")
+                    NavRoutes.HARDWARE
+                }
+                route.startsWith("system/") -> {
+                    requestedSystemTab = route.substringAfter("system/")
+                    NavRoutes.SYSTEM
+                }
+                else -> route
+            }
+            if (target != currentRoute) {
+                navController.navigate(target) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
             onDeepLinkHandled()
         }
 
@@ -151,15 +220,19 @@ fun AppNavigation(
             topBar = {
                 AdMobTopBanner(
                     adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID,
-                    enabled = !entitlements.hasFeature(PremiumFeature.RemoveAds),
+                    enabled = !entitlements.hasFeature(PremiumFeature.RemoveAds) && !interstitialShowing,
                 )
             },
             bottomBar = {
                 AnimatedContent(
                     targetState = showBottomBar,
                     transitionSpec = {
-                        (slideInVertically { it } + fadeIn(tween(220))) togetherWith
-                            (slideOutVertically { it } + fadeOut(tween(180)))
+                        if (settings.reducedMotion) {
+                            fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                        } else {
+                            (slideInVertically { it } + fadeIn(tween(220))) togetherWith
+                                (slideOutVertically { it } + fadeOut(tween(180)))
+                        }
                     },
                     label = "bottom_bar_visibility",
                 ) { visible ->
@@ -167,6 +240,7 @@ fun AppNavigation(
                         FloatingPillNavBar(
                             items = bottomNavItems,
                             currentRoute = currentRoute,
+                            reducedMotion = settings.reducedMotion,
                             onItemClick = { item ->
                                 if (item.route != currentRoute) {
                                     feedback.navTap()
@@ -191,40 +265,62 @@ fun AppNavigation(
                 navController = navController,
                 startDestination = NavRoutes.DASHBOARD,
                 enterTransition = {
-                    slideInVertically(
-                        initialOffsetY = { (it * 0.04f).toInt() },
-                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                    ) + fadeIn(tween(220))
+                    if (settings.reducedMotion) {
+                        fadeIn(tween(0))
+                    } else {
+                        slideInVertically(
+                            initialOffsetY = { (it * 0.04f).toInt() },
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        ) + fadeIn(tween(220))
+                    }
                 },
-                exitTransition = { fadeOut(tween(160)) },
-                popEnterTransition = { fadeIn(tween(220)) },
+                exitTransition = { fadeOut(tween(if (settings.reducedMotion) 0 else 160)) },
+                popEnterTransition = { fadeIn(tween(if (settings.reducedMotion) 0 else 220)) },
                 popExitTransition = {
-                    slideOutVertically(
-                        targetOffsetY = { (it * 0.04f).toInt() },
-                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                    ) + fadeOut(tween(160))
+                    if (settings.reducedMotion) {
+                        fadeOut(tween(0))
+                    } else {
+                        slideOutVertically(
+                            targetOffsetY = { (it * 0.04f).toInt() },
+                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        ) + fadeOut(tween(160))
+                    }
                 },
             ) {
                 composable(NavRoutes.DASHBOARD) {
                     OverviewScreen(
+                        settings = settings,
                         onSettingsClick = { navController.navigate(NavRoutes.SETTINGS) },
                         contentPadding = padding,
                     )
                 }
                 composable(NavRoutes.HARDWARE) {
-                    HardwareScreen(contentPadding = padding)
+                    HardwareScreen(
+                        settings = settings,
+                        contentPadding = padding,
+                        initialTab = requestedHardwareTab,
+                        onTabConsumed = { requestedHardwareTab = null },
+                        onTabSelected = ::onNavEvent,
+                    )
                 }
                 composable(NavRoutes.SYSTEM) {
-                    SystemHubScreen(contentPadding = padding)
+                    SystemHubScreen(
+                        settings = settings,
+                        contentPadding = padding,
+                        initialTab = requestedSystemTab,
+                        onTabConsumed = { requestedSystemTab = null },
+                        onTabSelected = ::onNavEvent,
+                    )
                 }
                 composable(NavRoutes.APPS) {
-                    AppsScreen(contentPadding = padding)
+                    AppsScreen(settings = settings, contentPadding = padding)
                 }
                 composable(NavRoutes.TESTS) {
                     TestsScreen(contentPadding = padding)
                 }
                 composable(NavRoutes.BATTERY_INTELLIGENCE) {
                     BatteryIntelligenceScreen(
+                        settings = settings,
                         onSubscribeClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
                         onChargingSessionClick = { session ->
                             navController.navigate(
@@ -241,6 +337,7 @@ fun AppNavigation(
                     SettingsScreen(
                         onSubscriptionClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
                         onWidgetsClick = { navController.navigate(NavRoutes.WIDGETS) },
+                        contentPadding = padding,
                     )
                 }
                 composable(NavRoutes.SUBSCRIPTION) {
@@ -268,6 +365,7 @@ fun AppNavigation(
                     BatteryChargingSessionScreen(
                         sessionStartMillis = startMillis,
                         sessionEndMillis = rawEndMillis.takeIf { it >= 0L },
+                        settings = settings,
                         onBackClick = { navController.popBackStack() },
                         contentPadding = padding,
                     )
@@ -281,6 +379,7 @@ fun AppNavigation(
                     val dayStartMillis = entry.arguments?.getLong(NavRoutes.DAY_START_ARG) ?: 0L
                     BatteryChargingPeriodsScreen(
                         dayStartMillis = dayStartMillis,
+                        settings = settings,
                         onBackClick = { navController.popBackStack() },
                         onChargingSessionClick = { session ->
                             navController.navigate(
@@ -299,6 +398,7 @@ fun AppNavigation(
 private fun FloatingPillNavBar(
     items: List<BottomNavItem>,
     currentRoute: String,
+    reducedMotion: Boolean,
     onItemClick: (BottomNavItem) -> Unit,
 ) {
     val colors = AppTheme.colors
@@ -329,6 +429,7 @@ private fun FloatingPillNavBar(
                 NavPillItem(
                     item = item,
                     selected = selected,
+                    reducedMotion = reducedMotion,
                     onClick = { onItemClick(item) },
                     modifier = Modifier.weight(1f),
                 )
@@ -341,21 +442,26 @@ private fun FloatingPillNavBar(
 private fun NavPillItem(
     item: BottomNavItem,
     selected: Boolean,
+    reducedMotion: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     val scale by animateFloatAsState(
         targetValue = if (selected) 1f else 0.92f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
+        animationSpec = if (reducedMotion) {
+            tween(0)
+        } else {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
+            )
+        },
         label = "nav_item_scale",
     )
     val labelAlpha by animateFloatAsState(
         targetValue = if (selected) 1f else 0.55f,
-        animationSpec = tween(180),
+        animationSpec = tween(if (reducedMotion) 0 else 180),
         label = "nav_label_alpha",
     )
 
