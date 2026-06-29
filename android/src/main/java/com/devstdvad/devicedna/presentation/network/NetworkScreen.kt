@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,17 +36,25 @@ import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.AccentCard
 import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
+import com.devstdvad.devicedna.data.settings.DataUnit
+import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.ConnectionType
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
+import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun NetworkScreen(
     viewModel: NetworkViewModel = koinViewModel(),
+    settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
+
+    LaunchedEffect(settings.publicIpEnabled) {
+        viewModel.setPublicIpLookupEnabled(settings.publicIpEnabled)
+    }
 
     if (state.isLoading) { LoadingScreen(); return }
 
@@ -65,7 +74,9 @@ fun NetworkScreen(
                 val isCellular = net.connectionType == ConnectionType.Cellular
                 val icon = if (isWifi) Icons.Outlined.Wifi else Icons.Outlined.SignalCellularAlt
                 val typeLabel = when (net.connectionType) {
-                    ConnectionType.WiFi -> net.ssid ?: "Wi-Fi"
+                    ConnectionType.WiFi -> net.ssid?.let {
+                        if (settings.maskSensitive) PrivacyMask.maskSsid(it) else it
+                    } ?: "Wi-Fi"
                     ConnectionType.Cellular -> net.cellularGeneration ?: "Cellular"
                     ConnectionType.Ethernet -> "Ethernet"
                     ConnectionType.None -> "Offline"
@@ -120,6 +131,7 @@ fun NetworkScreen(
                                     icon = Icons.Outlined.ArrowDownward,
                                     speed = rx,
                                     label = "Download",
+                                    dataUnit = settings.dataUnit,
                                     color = colors.success,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -129,6 +141,7 @@ fun NetworkScreen(
                                     icon = Icons.Outlined.ArrowUpward,
                                     speed = tx,
                                     label = "Upload",
+                                    dataUnit = settings.dataUnit,
                                     color = colors.networkColor,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -150,7 +163,15 @@ fun NetworkScreen(
                     if (net.activeTransports.isNotEmpty()) {
                         InfoRow("Transports", net.activeTransports.joinToString(", "), copyable = false)
                     }
-                    net.macAddress?.let { InfoRow("MAC", it, maskedValue = PrivacyMask.maskMac(it), copyable = true, showDivider = false) }
+                    net.macAddress?.let {
+                        InfoRow(
+                            "MAC",
+                            it,
+                            maskedValue = if (settings.maskSensitive) PrivacyMask.maskMac(it) else null,
+                            copyable = true,
+                            showDivider = false,
+                        )
+                    }
                         ?: InfoRow("Status", if (net.connectionType == ConnectionType.None) "Offline" else "Connected", copyable = false, showDivider = false)
                 }
             }
@@ -174,12 +195,32 @@ fun NetworkScreen(
             item {
                 SectionCard {
                     Text("Addresses", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                    net.localIpv4?.let { InfoRow("IPv4", it, maskedValue = PrivacyMask.maskIpv4(it)) }
+                    net.localIpv4?.let {
+                        InfoRow("IPv4", it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv4(it) else null)
+                    }
                         ?: InfoRow("IPv4", "Not available", copyable = false)
-                    net.localIpv6?.let { InfoRow("IPv6", it, maskedValue = PrivacyMask.maskIpv6(it)) }
+                    net.localIpv6?.let {
+                        InfoRow("IPv6", it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv6(it) else null)
+                    }
                         ?: InfoRow("IPv6", "Not available", copyable = false)
-                    net.gateway?.let { InfoRow("Gateway", it, maskedValue = PrivacyMask.maskIpv4(it)) }
+                    net.gateway?.let {
+                        InfoRow("Gateway", it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv4(it) else null)
+                    }
                     net.subnetMask?.let { InfoRow("Subnet", it, copyable = false) }
+                    InfoRow(
+                        label = "Public IP",
+                        value = when {
+                            !settings.publicIpEnabled -> "Disabled in privacy settings"
+                            state.publicIpLoading -> "Loading..."
+                            state.publicIp != null -> state.publicIp ?: "Not available"
+                            else -> state.publicIpError ?: "Not available"
+                        },
+                        maskedValue = state.publicIp
+                            ?.takeIf { settings.publicIpEnabled && settings.maskSensitive }
+                            ?.let(::maskIp),
+                        copyable = settings.publicIpEnabled && state.publicIp != null,
+                        showDivider = net.dns.isNotEmpty(),
+                    )
                     if (net.dns.isNotEmpty()) InfoRow("DNS", net.dns.joinToString(", "), copyable = true, showDivider = false)
                 }
             }
@@ -192,6 +233,7 @@ private fun SpeedChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     speed: Long,
     label: String,
+    dataUnit: DataUnit,
     color: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
 ) {
@@ -206,7 +248,7 @@ private fun SpeedChip(
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
         Column {
-            Text(formatSpeed(speed), style = MaterialTheme.typography.titleSmall, color = color)
+            Text(formatSpeed(speed, dataUnit), style = MaterialTheme.typography.titleSmall, color = color)
             Text(label, style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
         }
     }
@@ -235,12 +277,9 @@ private fun rssiToBars(rssi: Int): Int = when {
     else -> 0
 }
 
-private fun formatSpeed(bytesPerSec: Long): String {
-    val kbps = bytesPerSec / 1024f
-    val mbps = kbps / 1024f
-    return when {
-        mbps >= 1f -> "%.1f MB/s".format(mbps)
-        kbps >= 1f -> "%.0f KB/s".format(kbps)
-        else -> "${bytesPerSec} B/s"
-    }
+private fun formatSpeed(bytesPerSec: Long, dataUnit: DataUnit): String {
+    return SettingsFormatters.formatBytesPerSecond(bytesPerSec, dataUnit)
 }
+
+private fun maskIp(ip: String): String =
+    if (":" in ip) PrivacyMask.maskIpv6(ip) else PrivacyMask.maskIpv4(ip)
