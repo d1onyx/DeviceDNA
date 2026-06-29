@@ -22,9 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.RestartAlt
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -107,13 +110,6 @@ fun SubscriptionScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                ErrorBanner(
-                    message = state.errorMessage,
-                    onDismiss = viewModel::dismissError,
-                )
-            }
-
-            item {
                 SectionCard {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -179,6 +175,27 @@ fun SubscriptionScreen(
                         detail = stringResource(R.string.subscription_feature_no_ads_detail),
                         active = state.removesAds,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    PremiumFeatureRow(
+                        icon = Icons.Outlined.Widgets,
+                        title = stringResource(R.string.subscription_feature_widgets_title),
+                        detail = stringResource(R.string.subscription_feature_widgets_detail),
+                        active = state.widgets,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    PremiumFeatureRow(
+                        icon = Icons.Outlined.BatteryChargingFull,
+                        title = stringResource(R.string.subscription_feature_battery_title),
+                        detail = stringResource(R.string.subscription_feature_battery_detail),
+                        active = state.batteryIntelligence,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    PremiumFeatureRow(
+                        icon = Icons.Outlined.MonitorHeart,
+                        title = stringResource(R.string.subscription_feature_smart_alerts_title),
+                        detail = stringResource(R.string.subscription_feature_smart_alerts_detail),
+                        active = state.smartAlerts,
+                    )
                 }
             }
 
@@ -238,6 +255,16 @@ fun SubscriptionScreen(
                             }
                         }
                     }
+
+                    // Purchase errors are shown right under the activate button, where the user
+                    // is looking after tapping it (collapses to nothing when there is no error).
+                    if (state.errorMessage != null) {
+                        Spacer(Modifier.height(10.dp))
+                    }
+                    ErrorBanner(
+                        message = state.errorMessage,
+                        onDismiss = viewModel::dismissError,
+                    )
 
                     Spacer(Modifier.height(10.dp))
                     OutlinedButton(

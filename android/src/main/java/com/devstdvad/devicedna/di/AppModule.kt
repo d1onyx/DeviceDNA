@@ -33,7 +33,9 @@ import com.devstdvad.devicedna.data.repository.StorageRepositoryImpl
 import com.devstdvad.devicedna.data.repository.SystemRepositoryImpl
 import com.devstdvad.devicedna.data.repository.ThermalRepositoryImpl
 import com.devstdvad.devicedna.data.settings.SettingsStore
+import com.devstdvad.devicedna.core.CurrentActivityHolder
 import com.devstdvad.devicedna.data.subscription.DevSubscriptionBillingGateway
+import com.devstdvad.devicedna.data.subscription.PlayBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.data.subscription.SubscriptionStore
@@ -173,8 +175,15 @@ val appModule = module {
     }
     single { DeviceSyncManager(get(), get(), get(), get()) }
 
-    // Subscription
-    single<SubscriptionBillingGateway> { DevSubscriptionBillingGateway() }
+    // Subscription. Real Google Play Billing when USE_REAL_BILLING (release), dev gateway otherwise.
+    single { CurrentActivityHolder() }
+    single<SubscriptionBillingGateway> {
+        if (BuildConfig.USE_REAL_BILLING) {
+            PlayBillingGateway(androidContext(), get())
+        } else {
+            DevSubscriptionBillingGateway()
+        }
+    }
     single { SubscriptionRepository(get<SubscriptionStore>(), get()) }
 
     // Widgets

@@ -95,6 +95,7 @@ fun SettingsScreen(
     subscriptionRepository: SubscriptionRepository = koinInject(),
     onSubscriptionClick: () -> Unit = {},
     onWidgetsClick: () -> Unit = {},
+    contentPadding: PaddingValues = PaddingValues(),
 ) {
     val colors = AppTheme.colors
     val settings by viewModel.settings.collectAsState()
@@ -122,7 +123,12 @@ fun SettingsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 12.dp + contentPadding.calculateTopPadding(),
+            bottom = 12.dp + contentPadding.calculateBottomPadding(),
+        ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {

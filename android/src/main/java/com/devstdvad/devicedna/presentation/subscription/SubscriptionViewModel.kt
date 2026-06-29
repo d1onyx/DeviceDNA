@@ -24,6 +24,15 @@ data class SubscriptionUiState(
 ) {
     val removesAds: Boolean
         get() = PremiumFeature.RemoveAds in features && isPremiumActive
+
+    val widgets: Boolean
+        get() = PremiumFeature.Widgets in features && isPremiumActive
+
+    val batteryIntelligence: Boolean
+        get() = PremiumFeature.BatteryIntelligence in features && isPremiumActive
+
+    val smartAlerts: Boolean
+        get() = PremiumFeature.SmartAlerts in features && isPremiumActive
 }
 
 private data class SubscriptionOperationState(
