@@ -16,12 +16,8 @@ class AndroidDisplayDataSource(private val context: Context) {
     fun getDisplayInfo(): AppResult<DisplayInfo> = runCatching {
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
-        // Use non-deprecated Display API for API 30+
-        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            context.display ?: @Suppress("DEPRECATION") wm.defaultDisplay
-        } else {
-            @Suppress("DEPRECATION") wm.defaultDisplay
-        }
+        @Suppress("DEPRECATION")
+        val display = wm.defaultDisplay
 
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
@@ -32,8 +28,11 @@ class AndroidDisplayDataSource(private val context: Context) {
         val dpi = metrics.densityDpi
         val xdpi = metrics.xdpi.takeIf { it > 0 } ?: dpi.toFloat()
         val ydpi = metrics.ydpi.takeIf { it > 0 } ?: dpi.toFloat()
-        val diagPx = sqrt((widthPx.toDouble().let { it * it } + heightPx.toDouble().let { it * it }))
-        val diagInches = (diagPx / sqrt(xdpi.toDouble().let { it * it } + ydpi.toDouble().let { it * it })).toFloat()
+        val widthInches = widthPx / xdpi
+        val heightInches = heightPx / ydpi
+        val diagInches = sqrt(
+            widthInches.toDouble().let { it * it } + heightInches.toDouble().let { it * it },
+        ).toFloat()
 
         val fontScale = context.resources.configuration.fontScale
 
