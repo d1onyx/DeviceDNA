@@ -592,27 +592,19 @@ private fun HourlyChart(
                 Text("0", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
             }
         }
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(end = 58.dp, top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("00", "03", "06", "09", "12", "15", "18", "21").forEach { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = labelColor.copy(alpha = 0.62f),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+            listOf("00", "03", "06", "09", "12", "15", "18", "21", "24").forEach { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = labelColor.copy(alpha = 0.62f),
+                )
             }
-            Text(
-                text = "24",
-                style = MaterialTheme.typography.labelLarge,
-                color = labelColor.copy(alpha = 0.62f),
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
         }
     }
 }
