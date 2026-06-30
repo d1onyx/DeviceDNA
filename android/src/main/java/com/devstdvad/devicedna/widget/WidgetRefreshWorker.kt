@@ -54,13 +54,19 @@ class WidgetRefreshWorker(
         Result.retry()
     }
 
-    /** Records a battery snapshot when Battery Intelligence is unlocked. Never fails the job. */
+    /**
+     * Records a battery snapshot when Battery Intelligence is unlocked and tracking is on; otherwise
+     * drops a "recording paused" marker so the timeline keeps that gap empty. Never fails the job.
+     */
     private suspend fun recordBatteryHistory() {
         runCatching {
             val unlocked = subscriptionRepository.entitlements.first()
                 .hasFeature(PremiumFeature.BatteryIntelligence)
-            if (unlocked) {
+            val trackingEnabled = batteryHistoryStore.chargingTrackingEnabled.first()
+            if (unlocked && trackingEnabled) {
                 batteryRepository.getBatterySnapshot().getOrNull()?.let { batteryHistoryStore.record(it) }
+            } else {
+                batteryHistoryStore.markRecordingPaused()
             }
         }
     }

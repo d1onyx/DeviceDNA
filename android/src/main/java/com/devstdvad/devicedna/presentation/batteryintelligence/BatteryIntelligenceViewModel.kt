@@ -57,8 +57,10 @@ class BatteryIntelligenceViewModel(
             val info = (batteryResult as? AppResult.Success)?.value
             Triple(unlocked, info, trackingEnabled)
         }.onEach { (unlocked, info, trackingEnabled) ->
-            if (unlocked && trackingEnabled && info != null) {
-                historyStore.record(info)
+            when {
+                unlocked && trackingEnabled && info != null -> historyStore.record(info)
+                // Drop a marker so the timeline leaves the un-tracked gap empty. No-op if already marked.
+                !unlocked || !trackingEnabled -> historyStore.markRecordingPaused()
             }
         }.launchIn(viewModelScope)
     }

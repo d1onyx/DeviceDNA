@@ -225,7 +225,8 @@ fun buildChargingSessions(
     var active = mutableListOf<BatteryHistorySnapshot>()
 
     scoped.forEach { snapshot ->
-        val charging = snapshot.isCharging || snapshot.isPlugged
+        // A pause marker is not a charging sample; it ends the active session like a disconnect.
+        val charging = !snapshot.recordingPaused && (snapshot.isCharging || snapshot.isPlugged)
         if (charging) {
             active.add(snapshot)
         } else if (active.isNotEmpty()) {
@@ -256,6 +257,9 @@ fun buildHourlyTimeline(
     val minuteBuckets = Array(24) { HourMinuteBucket() }
     val sorted = history.sortedBy { it.timestampMillis }
     sorted.forEachIndexed { index, snapshot ->
+        // A pause marker records that tracking stopped here; nothing is known after it until the next
+        // real sample, so paint nothing forward from it (the gap stays NoData).
+        if (snapshot.recordingPaused) return@forEachIndexed
         val nextSnapshot = sorted.getOrNull(index + 1)
         val nextMillis = nextSnapshot?.timestampMillis
             ?: defaultIntervalEnd(snapshot.timestampMillis, dayStartMillis, timeZone, nowMillis)
@@ -276,7 +280,7 @@ fun buildHourlyTimeline(
         allocateMinutes(snapshot, nextSnapshot, clampedStart, clampedEnd, minuteBuckets, timeZone)
     }
 
-    val daySnapshots = sorted.filter { it.timestampMillis in dayStart until dayEnd }
+    val daySnapshots = sorted.filter { it.timestampMillis in dayStart until dayEnd && !it.recordingPaused }
     return (0..23).map { hour ->
         val bucket = minuteBuckets[hour]
         val samples = daySnapshots.filter { it.hourOfDay(timeZone) == hour }
@@ -642,7 +646,7 @@ private fun List<BatteryHistorySnapshot>.scopedToDayWithCarryIn(
     // Only bridge an ongoing charge across midnight when it was still being recorded just before
     // midnight. A stale sample (long recording gap before the day) must not fabricate a session.
     val carryIn = sorted.lastOrNull { it.timestampMillis < dayStart }
-        ?.takeIf { (it.isCharging || it.isPlugged) && dayStart - it.timestampMillis <= MAX_INTERVAL_FILL_MS }
+        ?.takeIf { !it.recordingPaused && (it.isCharging || it.isPlugged) && dayStart - it.timestampMillis <= MAX_INTERVAL_FILL_MS }
         ?.copy(timestampMillis = dayStart)
     return listOfNotNull(carryIn) + day
 }
@@ -667,10 +671,11 @@ private fun List<BatteryHistorySnapshot>.toChargingSessionSummary(
     timeZone: TimeZone,
     nowMillis: Long,
 ): ChargingSessionSummary? {
-    val chargingSamples = filter { it.isCharging || it.isPlugged }
+    val chargingSamples = filter { (it.isCharging || it.isPlugged) && !it.recordingPaused }
     val start = chargingSamples.firstOrNull() ?: return null
     val last = last()
-    val disconnected = !(last.isCharging || last.isPlugged)
+    // A trailing pause marker ends the session at the moment tracking stopped, like a disconnect.
+    val disconnected = last.recordingPaused || !(last.isCharging || last.isPlugged)
     val endMillis = if (disconnected) last.timestampMillis else null
     val endSample = if (disconnected && size >= 2) get(size - 2) else last
     val watts = chargingSamples.mapNotNull { it.estimatedWatts }.filter { it > 0f }

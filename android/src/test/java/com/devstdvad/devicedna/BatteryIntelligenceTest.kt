@@ -220,6 +220,27 @@ class BatteryIntelligenceTest {
         assertTrue(sessions.isEmpty())
     }
 
+    @Test
+    fun `a recording-paused marker keeps the gap empty even while charging continues`() {
+        val snapshots = listOf(
+            snapshot(minute = 10, plugged = true, level = 84), // premium on, charging
+            snapshot(minute = 11, plugged = true, level = 84).copy(recordingPaused = true), // premium off
+            snapshot(minute = 130, plugged = true, level = 84), // premium on again ~2h later, charging
+        )
+
+        val timeline = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 0L,
+            timeZone = TimeZone.UTC,
+            nowMillis = 3 * HOUR_MS,
+        )
+
+        // The hour with no recording (premium off) must stay empty, even though the phone kept charging.
+        assertEquals(ChargingHourStatus.NoData, timeline[1].status)
+        // Recording resumes -> charging is shown again.
+        assertTrue(timeline[2].status != ChargingHourStatus.NoData)
+    }
+
     private fun snapshot(
         minute: Int,
         plugged: Boolean,

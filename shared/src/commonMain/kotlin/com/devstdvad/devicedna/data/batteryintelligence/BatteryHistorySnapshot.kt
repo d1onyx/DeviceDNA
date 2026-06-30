@@ -19,6 +19,12 @@ data class BatteryHistorySnapshot(
     val currentMa: Int?,
     val estimatedWatts: Float?,
     val chargeCycles: Int?,
+    /**
+     * Marks the moment recording stopped (premium/tracking turned off). The timeline must not bridge
+     * or paint across such a marker, so periods without recording stay empty even if the device kept
+     * charging. Defaults to false for backward compatibility with previously stored snapshots.
+     */
+    val recordingPaused: Boolean = false,
 ) {
     val isCharging: Boolean
         get() = status == BatteryStatus.Charging.name || status == BatteryStatus.Full.name

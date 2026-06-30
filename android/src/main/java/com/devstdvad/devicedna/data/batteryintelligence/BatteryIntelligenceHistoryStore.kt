@@ -61,6 +61,30 @@ class BatteryIntelligenceHistoryStore(
     }
 
     /**
+     * Records a "recording paused" marker (premium/tracking turned off) so the timeline leaves the
+     * following gap empty instead of bridging across it. No-op when there is no history yet or the
+     * last entry is already a marker, so it can be called freely on every locked emission.
+     */
+    suspend fun markRecordingPaused(timestampMillis: Long = System.currentTimeMillis()) {
+        context.batteryIntelligenceDataStore.edit { prefs ->
+            val existing = prefs[SNAPSHOTS]
+                ?.let { encoded -> runCatching { json.decodeFromString<BatteryHistoryPayload>(encoded).snapshots }.getOrNull() }
+                .orEmpty()
+                .sortedBy { it.timestampMillis }
+
+            val last = existing.lastOrNull() ?: return@edit
+            if (last.recordingPaused) return@edit
+
+            val marker = last.copy(timestampMillis = timestampMillis, recordingPaused = true)
+            prefs[SNAPSHOTS] = json.encodeToString(
+                BatteryHistoryPayload(
+                    snapshots = (existing + marker).takeLast(MAX_SNAPSHOTS),
+                ),
+            )
+        }
+    }
+
+    /**
      * Merges externally imported snapshots into the stored history, de-duplicating by timestamp,
      * keeping chronological order and the [MAX_SNAPSHOTS] cap. Bypasses the tracking toggle because
      * importing is an explicit user action. Returns how many new snapshots were added.
