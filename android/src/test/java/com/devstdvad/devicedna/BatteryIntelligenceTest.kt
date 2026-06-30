@@ -58,33 +58,31 @@ class BatteryIntelligenceTest {
     }
 
     @Test
-    fun `hourly timeline keeps minute order for charge and discharge periods`() {
+    fun `each minute is painted by the live state with no grey gaps`() {
+        // User scenario within one hour: charge 0-30, unplug and discharge 30-50, charge again 50-60.
         val snapshots = listOf(
-            snapshot(minute = 0, plugged = true, level = 20),
-            snapshot(minute = 10, plugged = true, level = 30),
-            snapshot(minute = 20, plugged = true, level = 30), // flat while charging -> still charging
-            snapshot(minute = 30, plugged = false, level = 25),
+            snapshot(minute = 0, plugged = true, level = 50), // on charger
+            snapshot(minute = 30, plugged = false, level = 54), // unplugged -> discharging
+            snapshot(minute = 50, plugged = true, level = 50), // back on charger
         )
 
         val hour = buildHourlyTimeline(
             history = snapshots,
             dayStartMillis = 0L,
             timeZone = TimeZone.UTC,
+            nowMillis = HOUR_MS,
         ).first()
 
-        // Charging stays charging even where the percentage is flat; no grey Stable here.
-        assertEquals(20f, hour.goodMinutes, 0.01f)
         assertEquals(0f, hour.stableMinutes, 0.01f)
-        assertEquals(25f, hour.dischargeMinutes, 0.01f)
-        assertEquals(4, hour.segments.size)
+        assertEquals(40f, hour.goodMinutes, 0.01f) // 0-30 + 50-60
+        assertEquals(20f, hour.dischargeMinutes, 0.01f) // 30-50
+        assertEquals(3, hour.segments.size)
         assertEquals(ChargingHourStatus.GoodCharging, hour.segments[0].status)
         assertEquals(0f, hour.segments[0].startMinute, 0.01f)
-        assertEquals(ChargingHourStatus.GoodCharging, hour.segments[1].status)
-        assertEquals(10f, hour.segments[1].startMinute, 0.01f)
-        assertEquals(ChargingHourStatus.Discharging, hour.segments[2].status)
-        assertEquals(20f, hour.segments[2].startMinute, 0.01f)
-        assertEquals(ChargingHourStatus.Discharging, hour.segments[3].status)
-        assertEquals(30f, hour.segments[3].startMinute, 0.01f)
+        assertEquals(ChargingHourStatus.Discharging, hour.segments[1].status)
+        assertEquals(30f, hour.segments[1].startMinute, 0.01f)
+        assertEquals(ChargingHourStatus.GoodCharging, hour.segments[2].status)
+        assertEquals(50f, hour.segments[2].startMinute, 0.01f)
     }
 
     @Test
@@ -106,10 +104,10 @@ class BatteryIntelligenceTest {
     }
 
     @Test
-    fun `flat percentage while on battery is stable`() {
+    fun `on battery is discharging not grey even when flat`() {
         val snapshots = listOf(
             snapshot(minute = 0, plugged = false, level = 60),
-            snapshot(minute = 20, plugged = false, level = 60), // idle, not charging
+            snapshot(minute = 20, plugged = false, level = 60), // idle on battery
         )
 
         val hour = buildHourlyTimeline(
@@ -119,7 +117,8 @@ class BatteryIntelligenceTest {
             nowMillis = HOUR_MS,
         ).first()
 
-        assertTrue(hour.stableMinutes > 0f)
+        assertEquals(0f, hour.stableMinutes, 0.01f)
+        assertTrue(hour.dischargeMinutes > 0f)
         assertEquals(0f, hour.goodMinutes, 0.01f)
     }
 
@@ -142,10 +141,10 @@ class BatteryIntelligenceTest {
     }
 
     @Test
-    fun `an unrecorded gap stays NoData instead of being filled`() {
+    fun `a gap between two same-state samples is filled continuously`() {
         val snapshots = listOf(
             snapshotAt(HOUR_MS, plugged = true, level = 40), // 01:00 charging
-            snapshotAt(9 * HOUR_MS, plugged = true, level = 95), // 09:00 charging, 8h gap (no recording)
+            snapshotAt(9 * HOUR_MS, plugged = true, level = 95), // 09:00 charging
         )
 
         val timeline = buildHourlyTimeline(
@@ -155,16 +154,13 @@ class BatteryIntelligenceTest {
             nowMillis = 12 * HOUR_MS,
         )
 
-        // The 8h gap (e.g. premium inactive) must not be painted by extrapolating the 01:00 state.
-        assertEquals(ChargingHourStatus.NoData, timeline[3].status)
-        assertEquals(ChargingHourStatus.NoData, timeline[5].status)
-        // Each sample still paints a short window in its own hour.
-        assertTrue(timeline[1].status != ChargingHourStatus.NoData)
-        assertTrue(timeline[9].status != ChargingHourStatus.NoData)
+        // No unplug event between the two samples -> the device stayed on charger the whole time.
+        assertTrue(timeline[3].status != ChargingHourStatus.NoData)
+        assertTrue(timeline[5].status != ChargingHourStatus.NoData)
     }
 
     @Test
-    fun `an unrecorded overnight gap is not painted on the next day`() {
+    fun `overnight charging shows on the next day until unplug`() {
         val snapshots = listOf(
             snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0 (plug-in)
             snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 80), // 07:00 day 1 (unplug)
@@ -177,11 +173,11 @@ class BatteryIntelligenceTest {
             nowMillis = 2 * DAY_MS + 12 * HOUR_MS,
         )
 
-        // Nothing was recorded overnight, so the early hours must stay empty.
-        assertEquals(ChargingHourStatus.NoData, timeline[0].status)
-        assertEquals(ChargingHourStatus.NoData, timeline[6].status)
-        // The unplug sample still leaves a short marker in its own hour.
-        assertTrue(timeline[7].status != ChargingHourStatus.NoData)
+        // Charging from before midnight until the 07:00 unplug fills the early hours.
+        assertEquals(ChargingHourStatus.GoodCharging, timeline[0].status)
+        assertEquals(ChargingHourStatus.GoodCharging, timeline[6].status)
+        // After unplug it is discharging.
+        assertEquals(ChargingHourStatus.Discharging, timeline[7].status)
     }
 
     @Test

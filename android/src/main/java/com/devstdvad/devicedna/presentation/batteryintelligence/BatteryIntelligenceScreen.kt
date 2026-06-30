@@ -61,13 +61,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -517,7 +513,6 @@ private fun HourlyChart(
     val goodColor = ChargingHourStatus.GoodCharging.chartColor()
     val poorColor = ChargingHourStatus.PoorCharging.chartColor()
     val dischargeColor = ChargingHourStatus.Discharging.chartColor()
-    val stableColor = ChargingHourStatus.Stable.chartColor()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -538,7 +533,7 @@ private fun HourlyChart(
                 val chartWidth = size.width
                 val chartHeight = size.height
                 val hourWidth = chartWidth / 24f
-                val barWidth = hourWidth * 0.58f
+                val barWidth = hourWidth * 0.68f
                 val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
 
                 listOf(0f, 0.25f, 0.5f, 0.75f, 1f).forEach { fraction ->
@@ -550,7 +545,7 @@ private fun HourlyChart(
                         strokeWidth = 1f,
                     )
                 }
-                (0..24 step 3).forEach { hour ->
+                listOf(0, 6, 12, 18, 24).forEach { hour ->
                     val x = hour * hourWidth
                     drawLine(
                         color = dashedGridColor,
@@ -561,44 +556,27 @@ private fun HourlyChart(
                     )
                 }
 
-                // Each hour is a single rounded-top bar; the minutes spent in each state stack from
-                // the baseline up (good, poor, discharge, stable), so the column reads at a glance.
-                hours.forEach { slot ->
-                    val stacked = listOf(
-                        slot.goodMinutes to goodColor,
-                        slot.poorMinutes to poorColor,
-                        slot.dischargeMinutes to dischargeColor,
-                        slot.stableMinutes to stableColor,
-                    ).filter { it.first > 0f }
-                    val totalMinutes = stacked.fold(0f) { acc, pair -> acc + pair.first }.coerceAtMost(60f)
-                    if (totalMinutes <= 0f) return@forEach
+                fun colorFor(status: ChargingHourStatus): Color = when (status) {
+                    ChargingHourStatus.GoodCharging -> goodColor
+                    ChargingHourStatus.PoorCharging -> poorColor
+                    ChargingHourStatus.Discharging -> dischargeColor
+                    ChargingHourStatus.Stable, ChargingHourStatus.NoData -> Color.Transparent
+                }
 
+                hours.forEach { slot ->
                     val left = slot.hour * hourWidth + (hourWidth - barWidth) / 2f
-                    val barHeight = (totalMinutes / 60f) * chartHeight
-                    val barTop = chartHeight - barHeight
-                    val radius = minOf(barWidth / 2f, barHeight)
-                    val barPath = Path().apply {
-                        addRoundRect(
-                            RoundRect(
-                                rect = Rect(left, barTop, left + barWidth, chartHeight),
-                                topLeft = CornerRadius(radius, radius),
-                                topRight = CornerRadius(radius, radius),
-                                bottomRight = CornerRadius.Zero,
-                                bottomLeft = CornerRadius.Zero,
-                            ),
+                    slot.segments.forEach segmentLoop@{ segment ->
+                        if (segment.durationMinutes <= 0f) return@segmentLoop
+                        val segmentStart = segment.startMinute.coerceIn(0f, 60f)
+                        val segmentEnd = (segment.startMinute + segment.durationMinutes).coerceIn(0f, 60f)
+                        val bottom = chartHeight - (segmentStart / 60f) * chartHeight
+                        val top = chartHeight - (segmentEnd / 60f) * chartHeight
+                        drawRoundRect(
+                            color = colorFor(segment.status),
+                            topLeft = Offset(left, top),
+                            size = Size(barWidth, bottom - top),
+                            cornerRadius = CornerRadius(4f, 4f),
                         )
-                    }
-                    clipPath(barPath) {
-                        var y = chartHeight
-                        stacked.forEach { (minutes, color) ->
-                            val segmentHeight = (minutes / 60f) * chartHeight
-                            drawRect(
-                                color = color,
-                                topLeft = Offset(left, y - segmentHeight),
-                                size = Size(barWidth, segmentHeight),
-                            )
-                            y -= segmentHeight
-                        }
                     }
                 }
             }
@@ -619,10 +597,10 @@ private fun HourlyChart(
                 .fillMaxWidth()
                 .padding(end = 58.dp, top = 8.dp),
         ) {
-            listOf("00", "03", "06", "09", "12", "15", "18", "21").forEach { label ->
+            listOf("00", "06", "12", "18").forEach { label ->
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = labelColor.copy(alpha = 0.62f),
                     modifier = Modifier.weight(1f),
                 )
@@ -640,7 +618,6 @@ private fun TimelineLegend() {
         LegendItem(stringResource(R.string.battery_intelligence_legend_good), ChargingHourStatus.GoodCharging.chartColor(), Modifier.weight(1f))
         LegendItem(stringResource(R.string.battery_intelligence_legend_poor), ChargingHourStatus.PoorCharging.chartColor(), Modifier.weight(1f))
         LegendItem(stringResource(R.string.battery_intelligence_legend_discharge), ChargingHourStatus.Discharging.chartColor(), Modifier.weight(1f))
-        LegendItem(stringResource(R.string.battery_intelligence_legend_stable), ChargingHourStatus.Stable.chartColor(), Modifier.weight(1f))
     }
 }
 

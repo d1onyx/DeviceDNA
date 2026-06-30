@@ -261,23 +261,15 @@ fun buildHourlyTimeline(
         // real sample, so paint nothing forward from it (the gap stays NoData).
         if (snapshot.recordingPaused) return@forEachIndexed
         val nextSnapshot = sorted.getOrNull(index + 1)
-        val nextMillis = nextSnapshot?.timestampMillis
-            ?: defaultIntervalEnd(snapshot.timestampMillis, dayStartMillis, timeZone, nowMillis)
-        // How far a sample's state is trusted to persist into a gap. When the next sample reports
-        // the same plugged state we trust it bridged the gap (continuous charging/discharging), so
-        // sparse hourly samples still render as one block. When it differs — or there is no next
-        // sample — the state is uncertain, so only a short window is filled and the rest of the gap
-        // stays NoData instead of being fabricated (e.g. while premium/recording was off).
-        val fillWindow = if (nextSnapshot != null && nextSnapshot.isPlugged == snapshot.isPlugged) {
-            CONSISTENT_STATE_FILL_MS
-        } else {
-            MAX_INTERVAL_FILL_MS
-        }
-        val filledEnd = minOf(nextMillis, snapshot.timestampMillis + fillWindow)
+        // A sample's state persists until the next recorded sample. State changes (plug/unplug) are
+        // captured as their own samples, so the whole interval is painted with this sample's state.
+        // A pause marker as the next sample bounds the fill at the moment tracking stopped; the live
+        // (trailing) sample is filled up to now.
+        val intervalEnd = nextSnapshot?.timestampMillis ?: minOf(dayEnd, nowMillis)
         // Keep only the portion that lands inside the selected day (handles near-midnight overlap).
         val clampedStart = maxOf(snapshot.timestampMillis, dayStart)
-        val clampedEnd = minOf(filledEnd, dayEnd)
-        allocateMinutes(snapshot, nextSnapshot, clampedStart, clampedEnd, minuteBuckets, timeZone)
+        val clampedEnd = minOf(intervalEnd, dayEnd)
+        allocateMinutes(snapshot, clampedStart, clampedEnd, minuteBuckets, timeZone)
     }
 
     val daySnapshots = sorted.filter { it.timestampMillis in dayStart until dayEnd && !it.recordingPaused }
@@ -520,41 +512,20 @@ private data class HourMinuteBucket(
 )
 
 /**
- * How long a single recorded sample stands in for. Recording runs roughly every 15 min while
- * active (and on plug/unplug events), so a gap beyond this window means recording was paused and
- * the period must stay NoData instead of being filled by the previous sample's state.
+ * Recency window for bridging an ongoing charge across midnight (see [scopedToDayWithCarryIn]). A
+ * charge sample older than this just before midnight is treated as stale and not carried in.
  */
 private const val MAX_INTERVAL_FILL_MS = 20L * 60L * 1000L
 
-/**
- * Longer trust window used when two consecutive samples agree on the plugged state. Charging in the
- * background is only sampled roughly hourly (Doze throttles the worker), so a continuous charge must
- * bridge gaps of that size to render as one block instead of fragments.
- */
-private const val CONSISTENT_STATE_FILL_MS = 2L * 60L * 60L * 1000L
-
-private fun defaultIntervalEnd(
-    timestampMillis: Long,
-    dayStartMillis: Long,
-    timeZone: TimeZone,
-    nowMillis: Long,
-): Long {
-    val dayEnd = dayStartMillis.toLocalDate(timeZone)
-        .plus(1, DateTimeUnit.DAY)
-        .startMillis(timeZone)
-    return minOf(timestampMillis + 15L * 60_000L, dayEnd, nowMillis)
-}
-
 private fun allocateMinutes(
     snapshot: BatteryHistorySnapshot,
-    nextSnapshot: BatteryHistorySnapshot?,
     startMillis: Long,
     endMillis: Long,
     buckets: Array<HourMinuteBucket>,
     timeZone: TimeZone,
 ) {
     if (endMillis <= startMillis) return
-    val status = snapshot.toMinuteStatus(nextSnapshot)
+    val status = snapshot.toSelfStatus()
     var cursor = startMillis
     while (cursor < endMillis) {
         val cursorDateTime = cursor.toLocalDateTime(timeZone)
@@ -580,34 +551,15 @@ private fun allocateMinutes(
     }
 }
 
-private fun BatteryHistorySnapshot.toMinuteStatus(nextSnapshot: BatteryHistorySnapshot?): ChargingHourStatus {
-    // The trailing (live) sample has no successor to diff against, so reflect its own state
-    // instead of defaulting to Stable — otherwise a charge/discharge happening "now" shows grey.
-    val next = nextSnapshot ?: return toSelfStatus()
-    val levelDelta = next.levelPercent - levelPercent
-    return when {
-        levelDelta > 0 -> chargingShade(next)
-        levelDelta < 0 -> ChargingHourStatus.Discharging
-        // Flat percentage: a device reporting Charging is trickle/slow-charging (common when warm or
-        // near full), not idle — show it as charging rather than a grey Stable block.
-        isActivelyCharging() || next.isActivelyCharging() -> chargingShade(next)
-        else -> ChargingHourStatus.Stable
-    }
-}
-
-/** Status implied by a single sample on its own (used for the live trailing sample). */
+/**
+ * The state a sample represents until the next sample. Every minute is either charging (plugged:
+ * green when healthy, amber when slow/hot/near-full) or discharging (on battery, red) — there is no
+ * grey "stable" state.
+ */
 private fun BatteryHistorySnapshot.toSelfStatus(): ChargingHourStatus = when {
-    isActivelyCharging() -> if (isPoorCharging()) ChargingHourStatus.PoorCharging else ChargingHourStatus.GoodCharging
-    isPlugged -> ChargingHourStatus.Stable
+    isPlugged -> if (isPoorCharging()) ChargingHourStatus.PoorCharging else ChargingHourStatus.GoodCharging
     else -> ChargingHourStatus.Discharging
 }
-
-private fun BatteryHistorySnapshot.chargingShade(next: BatteryHistorySnapshot): ChargingHourStatus =
-    if (isPoorCharging() || next.isPoorCharging()) ChargingHourStatus.PoorCharging else ChargingHourStatus.GoodCharging
-
-/** True when the sample is actively charging (plugged and drawing), excluding the Full holding state. */
-private fun BatteryHistorySnapshot.isActivelyCharging(): Boolean =
-    status == BatteryStatus.Charging.name
 
 private fun BatteryHistorySnapshot.isPoorCharging(): Boolean {
     if (temperatureCelsius >= 40f) return true
