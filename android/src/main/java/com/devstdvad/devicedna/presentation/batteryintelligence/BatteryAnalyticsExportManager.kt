@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.domain.batteryintelligence.BatteryCyclePoint
 import com.devstdvad.devicedna.domain.batteryintelligence.BatteryIntelligenceReport
@@ -13,20 +14,39 @@ import com.devstdvad.devicedna.domain.batteryintelligence.ChargingMinuteSegment
 import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 
+/** Outcome of parsing an imported battery-analytics JSON file. */
+data class ParsedBatteryImport(
+    val snapshots: List<BatteryHistorySnapshot>,
+    /** True when snapshots were reconstructed from report fields because the file had no raw history. */
+    val degraded: Boolean,
+)
+
 class BatteryAnalyticsExportManager(
     private val context: Context,
 ) {
-    suspend fun export(report: BatteryIntelligenceReport, format: ExportFormat): Result<Uri> = runCatching {
+    private val jsonFormat = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
+    suspend fun export(
+        report: BatteryIntelligenceReport,
+        format: ExportFormat,
+        rawSnapshots: List<BatteryHistorySnapshot> = emptyList(),
+    ): Result<Uri> = runCatching {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val extension = format.name.lowercase(Locale.US)
         val file = File(context.cacheDir, "DeviceDNA_BatteryAnalytics_$timestamp.$extension")
@@ -34,7 +54,7 @@ class BatteryAnalyticsExportManager(
         withContext(Dispatchers.IO) {
             file.writeText(
                 when (format) {
-                    ExportFormat.Json -> renderJson(report)
+                    ExportFormat.Json -> renderJson(report, rawSnapshots)
                     ExportFormat.Csv -> renderCsv(report)
                     ExportFormat.Txt -> renderTxt(report)
                 },
@@ -42,6 +62,35 @@ class BatteryAnalyticsExportManager(
         }
 
         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+    /**
+     * Reads and parses a previously exported battery-analytics JSON file. Prefers the lossless
+     * `raw_snapshots` array; falls back to reconstructing snapshots from `selected_hour_history`
+     * (flagged [ParsedBatteryImport.degraded]) for files exported before raw history was included.
+     */
+    suspend fun parseImport(uri: Uri): Result<ParsedBatteryImport> = runCatching {
+        val text = withContext(Dispatchers.IO) {
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+                ?: error("Unable to open the selected file.")
+        }
+        val root = JSONObject(text)
+
+        val rawArray = root.optJSONArray("raw_snapshots")
+        if (rawArray != null && rawArray.length() > 0) {
+            return@runCatching ParsedBatteryImport(
+                snapshots = jsonFormat.decodeFromString<List<BatteryHistorySnapshot>>(rawArray.toString()),
+                degraded = false,
+            )
+        }
+
+        val reconstructed = root.optJSONArray("selected_hour_history")
+            ?.let { array -> (0 until array.length()).mapNotNull { array.getJSONObject(it).toReconstructedSnapshot() } }
+            .orEmpty()
+        if (reconstructed.isEmpty()) {
+            error("No battery history found in this file.")
+        }
+        ParsedBatteryImport(snapshots = reconstructed, degraded = true)
     }
 
     fun buildShareIntent(uri: Uri, format: ExportFormat): Intent {
@@ -58,7 +107,7 @@ class BatteryAnalyticsExportManager(
         }
     }
 
-    private fun renderJson(report: BatteryIntelligenceReport): String {
+    private fun renderJson(report: BatteryIntelligenceReport, rawSnapshots: List<BatteryHistorySnapshot>): String {
         val json = JSONObject()
             .put("exported_at", DateTimeFormatter.ISO_INSTANT.format(Instant.now()))
             .put("selected_day_label", report.selectedDayLabel)
@@ -95,6 +144,8 @@ class BatteryAnalyticsExportManager(
             .put("selected_hour", report.selectedHour)
             .put("selected_hour_history", JSONArray(report.selectedHourHistory.map { it.toJson() }))
             .put("cycle_history", JSONArray(report.cycleHistory.map { it.toJson() }))
+            // Lossless raw history so the file can be re-imported to fully restore the timeline.
+            .put("raw_snapshots", JSONArray(jsonFormat.encodeToString(rawSnapshots)))
 
         return json.toString(2)
     }
@@ -298,6 +349,24 @@ private fun ChargingHistoryEntry.toJson(): JSONObject = JSONObject()
 private fun BatteryCyclePoint.toJson(): JSONObject = JSONObject()
     .put("label", label)
     .put("cycles", cycles)
+
+/** Best-effort reconstruction of a raw snapshot from a `selected_hour_history` entry. */
+private fun JSONObject.toReconstructedSnapshot(): BatteryHistorySnapshot? {
+    val isoTime = optString("time").takeIf { it.isNotBlank() } ?: return null
+    val timestampMillis = runCatching {
+        OffsetDateTime.parse(isoTime).toInstant().toEpochMilli()
+    }.getOrNull() ?: return null
+    return BatteryHistorySnapshot(
+        timestampMillis = timestampMillis,
+        levelPercent = optInt("level_percent", 0),
+        status = optString("status").ifBlank { "Unknown" },
+        source = optString("source").ifBlank { "Unknown" },
+        temperatureCelsius = optDouble("temperature_celsius", 0.0).toFloat(),
+        currentMa = null,
+        estimatedWatts = if (isNull("watts")) null else optDouble("watts").toFloat(),
+        chargeCycles = null,
+    )
+}
 
 private fun JSONObject.putNullable(name: String, value: Any?): JSONObject =
     put(name, value ?: JSONObject.NULL)

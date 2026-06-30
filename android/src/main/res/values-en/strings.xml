@@ -238,6 +238,11 @@
     <string name="battery_intelligence_export_button">Download analytics</string>
     <string name="battery_intelligence_exporting">Preparing file...</string>
     <string name="battery_intelligence_export_share_title">Share battery analytics</string>
+    <string name="battery_intelligence_import_button">Import JSON</string>
+    <string name="battery_intelligence_importing">Importing…</string>
+    <string name="battery_intelligence_import_success">Imported %1$d new sample(s).</string>
+    <string name="battery_intelligence_import_none">No new samples found to import.</string>
+    <string name="battery_intelligence_import_degraded">Imported %1$d sample(s) from an older file (limited data — re-export for the full timeline).</string>
     <string name="battery_session_title">Charging session</string>
     <string name="battery_session_summary">Session summary</string>
     <string name="battery_session_summary_body">Recorded changes between plug-in and disconnect for this charging period.</string>

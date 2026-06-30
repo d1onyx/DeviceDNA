@@ -66,7 +66,7 @@ class BatteryIntelligenceTest {
         )
 
         val hour = buildHourlyTimeline(
-            daySnapshots = snapshots,
+            history = snapshots,
             dayStartMillis = 0L,
             timeZone = TimeZone.UTC,
         ).first()
@@ -85,12 +85,58 @@ class BatteryIntelligenceTest {
         assertEquals(30f, hour.segments[3].startMinute, 0.01f)
     }
 
+    @Test
+    fun `overnight charging fills the early hours of the next day`() {
+        val snapshots = listOf(
+            snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0
+            snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 80), // 07:00 day 1 (unplug)
+        )
+
+        val timeline = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 2 * DAY_MS,
+            timeZone = TimeZone.UTC,
+            nowMillis = 2 * DAY_MS + 12 * HOUR_MS,
+        )
+
+        assertEquals(ChargingHourStatus.GoodCharging, timeline[0].status)
+        assertEquals(60f, timeline[0].goodMinutes, 0.01f)
+        assertEquals(ChargingHourStatus.GoodCharging, timeline[6].status)
+        assertEquals(60f, timeline[6].goodMinutes, 0.01f)
+        assertEquals(ChargingHourStatus.NoData, timeline[10].status)
+    }
+
+    @Test
+    fun `a charging session that spans midnight surfaces on the next day`() {
+        val snapshots = listOf(
+            snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0
+            snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 80), // 07:00 day 1 (unplug)
+        )
+
+        val sessions = buildChargingSessions(
+            history = snapshots,
+            dayStartMillis = 2 * DAY_MS,
+            timeZone = TimeZone.UTC,
+            nowMillis = 2 * DAY_MS + 12 * HOUR_MS,
+        )
+
+        assertEquals(1, sessions.size)
+        assertEquals(2 * DAY_MS, sessions[0].startMillis)
+        assertEquals(2 * DAY_MS + 7 * HOUR_MS, sessions[0].endMillis)
+    }
+
     private fun snapshot(
         minute: Int,
         plugged: Boolean,
         level: Int,
+    ): BatteryHistorySnapshot = snapshotAt(minute * 60_000L, plugged, level)
+
+    private fun snapshotAt(
+        timestampMillis: Long,
+        plugged: Boolean,
+        level: Int,
     ): BatteryHistorySnapshot = BatteryHistorySnapshot(
-        timestampMillis = minute * 60_000L,
+        timestampMillis = timestampMillis,
         levelPercent = level,
         status = if (plugged) "Charging" else "Discharging",
         source = if (plugged) "AC" else "Unknown",
@@ -99,4 +145,9 @@ class BatteryIntelligenceTest {
         estimatedWatts = if (plugged) 8f else null,
         chargeCycles = null,
     )
+
+    private companion object {
+        const val HOUR_MS = 3_600_000L
+        const val DAY_MS = 86_400_000L
+    }
 }

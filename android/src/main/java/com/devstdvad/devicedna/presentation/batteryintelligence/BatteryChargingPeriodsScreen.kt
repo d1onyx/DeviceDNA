@@ -41,7 +41,6 @@ import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHisto
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
 import com.devstdvad.devicedna.domain.batteryintelligence.buildChargingSessions
-import com.devstdvad.devicedna.domain.batteryintelligence.filterBatteryHistoryForDay
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -62,7 +61,8 @@ fun BatteryChargingPeriodsScreen(
     val timeZone = TimeZone.currentSystemDefault()
     val snapshots by historyStore.snapshots.collectAsState(initial = emptyList())
     val sessions = buildChargingSessions(
-        daySnapshots = filterBatteryHistoryForDay(snapshots, dayStartMillis, timeZone),
+        history = snapshots,
+        dayStartMillis = dayStartMillis,
         timeZone = timeZone,
     )
 

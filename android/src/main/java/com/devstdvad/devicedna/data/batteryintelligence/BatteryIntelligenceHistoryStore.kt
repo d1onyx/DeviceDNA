@@ -60,6 +60,36 @@ class BatteryIntelligenceHistoryStore(
         }
     }
 
+    /**
+     * Merges externally imported snapshots into the stored history, de-duplicating by timestamp,
+     * keeping chronological order and the [MAX_SNAPSHOTS] cap. Bypasses the tracking toggle because
+     * importing is an explicit user action. Returns how many new snapshots were added.
+     */
+    suspend fun importSnapshots(imported: List<BatteryHistorySnapshot>): Int {
+        if (imported.isEmpty()) return 0
+        var added = 0
+        context.batteryIntelligenceDataStore.edit { prefs ->
+            val existing = prefs[SNAPSHOTS]
+                ?.let { encoded -> runCatching { json.decodeFromString<BatteryHistoryPayload>(encoded).snapshots }.getOrNull() }
+                .orEmpty()
+            val existingTimestamps = existing.mapTo(HashSet()) { it.timestampMillis }
+            val fresh = imported
+                .filter { it.timestampMillis !in existingTimestamps }
+                .distinctBy { it.timestampMillis }
+            added = fresh.size
+            if (fresh.isEmpty()) return@edit
+
+            prefs[SNAPSHOTS] = json.encodeToString(
+                BatteryHistoryPayload(
+                    snapshots = (existing + fresh)
+                        .sortedBy { it.timestampMillis }
+                        .takeLast(MAX_SNAPSHOTS),
+                ),
+            )
+        }
+        return added
+    }
+
     private fun BatteryHistorySnapshot.shouldAppend(next: BatteryHistorySnapshot): Boolean {
         val elapsed = next.timestampMillis - timestampMillis
         if (elapsed >= MIN_SNAPSHOT_INTERVAL_MS) return true

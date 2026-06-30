@@ -146,12 +146,12 @@ fun BatteryInfo.toBatteryIntelligenceReport(
     }
 
     val selectedDaySnapshots = history.filterForDay(selectedDayStartMillis, timeZone)
-    val hourlyTimeline = buildHourlyTimeline(selectedDaySnapshots, selectedDayStartMillis, timeZone, nowMillis)
+    val hourlyTimeline = buildHourlyTimeline(history, selectedDayStartMillis, timeZone, nowMillis)
     val selectedHourHistory = selectedDaySnapshots
         .filter { it.hourOfDay(timeZone) == selectedHour }
         .sortedBy { it.timestampMillis }
         .map { it.toChargingHistoryEntry(timeZone) }
-    val dailyChargingSessions = buildChargingSessions(selectedDaySnapshots, timeZone, nowMillis)
+    val dailyChargingSessions = buildChargingSessions(history, selectedDayStartMillis, timeZone, nowMillis)
 
     return BatteryIntelligenceReport(
         healthScore = healthScore,
@@ -211,14 +211,20 @@ fun nextDayStartMillis(
 }
 
 fun buildChargingSessions(
-    daySnapshots: List<BatteryHistorySnapshot>,
+    history: List<BatteryHistorySnapshot>,
+    dayStartMillis: Long? = null,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
     nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
 ): List<ChargingSessionSummary> {
+    val scoped = if (dayStartMillis == null) {
+        history.sortedBy { it.timestampMillis }
+    } else {
+        history.scopedToDayWithCarryIn(dayStartMillis, timeZone)
+    }
     val sessions = mutableListOf<List<BatteryHistorySnapshot>>()
     var active = mutableListOf<BatteryHistorySnapshot>()
 
-    daySnapshots.sortedBy { it.timestampMillis }.forEach { snapshot ->
+    scoped.forEach { snapshot ->
         val charging = snapshot.isCharging || snapshot.isPlugged
         if (charging) {
             active.add(snapshot)
@@ -237,27 +243,30 @@ fun buildChargingSessions(
         .sortedByDescending { it.startMillis }
 }
 
-fun filterBatteryHistoryForDay(
-    history: List<BatteryHistorySnapshot>,
-    dayStartMillis: Long,
-    timeZone: TimeZone = TimeZone.currentSystemDefault(),
-): List<BatteryHistorySnapshot> = history.filterForDay(dayStartMillis, timeZone)
-
 fun buildHourlyTimeline(
-    daySnapshots: List<BatteryHistorySnapshot>,
+    history: List<BatteryHistorySnapshot>,
     dayStartMillis: Long,
     timeZone: TimeZone,
     nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
 ): List<ChargingHourSlot> {
+    val dayStart = dayStartMillis.toLocalDate(timeZone).startMillis(timeZone)
+    val dayEnd = dayStartMillis.toLocalDate(timeZone)
+        .plus(1, DateTimeUnit.DAY)
+        .startMillis(timeZone)
     val minuteBuckets = Array(24) { HourMinuteBucket() }
-    val sorted = daySnapshots.sortedBy { it.timestampMillis }
+    val sorted = history.sortedBy { it.timestampMillis }
     sorted.forEachIndexed { index, snapshot ->
         val nextSnapshot = sorted.getOrNull(index + 1)
         val nextMillis = nextSnapshot?.timestampMillis
             ?: defaultIntervalEnd(snapshot.timestampMillis, dayStartMillis, timeZone, nowMillis)
-        allocateMinutes(snapshot, nextSnapshot, snapshot.timestampMillis, nextMillis, minuteBuckets, timeZone)
+        // Paint only the portion of [snapshot, next) that lands inside the selected day, so an
+        // interval that began before midnight (e.g. overnight charging) still fills its hours.
+        val clampedStart = maxOf(snapshot.timestampMillis, dayStart)
+        val clampedEnd = minOf(nextMillis, dayEnd)
+        allocateMinutes(snapshot, nextSnapshot, clampedStart, clampedEnd, minuteBuckets, timeZone)
     }
 
+    val daySnapshots = sorted.filter { it.timestampMillis in dayStart until dayEnd }
     return (0..23).map { hour ->
         val bucket = minuteBuckets[hour]
         val samples = daySnapshots.filter { it.hourOfDay(timeZone) == hour }
@@ -571,6 +580,27 @@ private fun List<BatteryHistorySnapshot>.filterForDay(
         .plus(1, DateTimeUnit.DAY)
         .startMillis(timeZone)
     return filter { it.timestampMillis in start until end }
+}
+
+/**
+ * The day's snapshots, prefixed with a synthetic "carry-in" sample at 00:00 when the device was
+ * still charging at midnight. This lets a charging session that began the previous evening be
+ * detected on the selected day instead of being lost at the day boundary.
+ */
+private fun List<BatteryHistorySnapshot>.scopedToDayWithCarryIn(
+    dayStartMillis: Long,
+    timeZone: TimeZone,
+): List<BatteryHistorySnapshot> {
+    val sorted = sortedBy { it.timestampMillis }
+    val dayStart = dayStartMillis.toLocalDate(timeZone).startMillis(timeZone)
+    val dayEnd = dayStartMillis.toLocalDate(timeZone)
+        .plus(1, DateTimeUnit.DAY)
+        .startMillis(timeZone)
+    val day = sorted.filter { it.timestampMillis in dayStart until dayEnd }
+    val carryIn = sorted.lastOrNull { it.timestampMillis < dayStart }
+        ?.takeIf { it.isCharging || it.isPlugged }
+        ?.copy(timestampMillis = dayStart)
+    return listOfNotNull(carryIn) + day
 }
 
 private fun BatteryHistorySnapshot.hourOfDay(timeZone: TimeZone): Int =

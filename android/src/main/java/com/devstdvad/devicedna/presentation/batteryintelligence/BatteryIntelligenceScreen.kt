@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Lightbulb
@@ -44,6 +45,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -104,6 +106,9 @@ fun BatteryIntelligenceScreen(
     val feedback = LocalAppFeedback.current
     var selectedExportFormat by remember { mutableStateOf(ExportFormat.Json) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { exportViewModel.import(it) }
+    }
     val exportShareTitle = stringResource(R.string.battery_intelligence_export_share_title)
 
     LaunchedEffect(exportState.shareIntent) {
@@ -111,6 +116,10 @@ fun BatteryIntelligenceScreen(
             exportLauncher.launch(android.content.Intent.createChooser(intent, exportShareTitle))
             exportViewModel.clearShareIntent()
         }
+    }
+
+    LaunchedEffect(exportState.importResult) {
+        if (exportState.importResult != null) feedback?.confirm()
     }
 
     if (state.isLoading) {
@@ -166,7 +175,9 @@ fun BatteryIntelligenceScreen(
             BatteryAnalyticsExportCard(
                 selectedFormat = selectedExportFormat,
                 isExporting = exportState.isExporting,
+                isImporting = exportState.isImporting,
                 errorMessage = exportState.errorMessage,
+                importResult = exportState.importResult,
                 onFormatSelected = { format ->
                     selectedExportFormat = format
                     exportViewModel.clearError()
@@ -175,6 +186,12 @@ fun BatteryIntelligenceScreen(
                 onExportClick = {
                     exportViewModel.export(report, selectedExportFormat)
                     feedback?.confirm()
+                },
+                onImportClick = {
+                    exportViewModel.clearError()
+                    exportViewModel.clearImportResult()
+                    importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                    feedback?.light()
                 },
             )
         }
@@ -695,9 +712,12 @@ private fun ChargingTrackingToggleCard(
 private fun BatteryAnalyticsExportCard(
     selectedFormat: ExportFormat,
     isExporting: Boolean,
+    isImporting: Boolean,
     errorMessage: String?,
+    importResult: BatteryAnalyticsExportState.ImportResult?,
     onFormatSelected: (ExportFormat) -> Unit,
     onExportClick: () -> Unit,
+    onImportClick: () -> Unit,
 ) {
     val colors = AppTheme.colors
     SectionCard {
@@ -736,10 +756,23 @@ private fun BatteryAnalyticsExportCard(
                 color = colors.critical,
             )
         }
+        importResult?.let { result ->
+            val message = when {
+                result.addedCount == 0 -> stringResource(R.string.battery_intelligence_import_none)
+                result.degraded -> stringResource(R.string.battery_intelligence_import_degraded, result.addedCount)
+                else -> stringResource(R.string.battery_intelligence_import_success, result.addedCount)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (result.degraded) colors.warning else colors.batteryColor,
+            )
+        }
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = onExportClick,
-            enabled = !isExporting,
+            enabled = !isExporting && !isImporting,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.accent,
@@ -768,6 +801,36 @@ private fun BatteryAnalyticsExportCard(
                     } else {
                         Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(stringResource(R.string.battery_intelligence_export_button))
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onImportClick,
+            enabled = !isExporting && !isImporting,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            AnimatedContent(
+                targetState = isImporting,
+                transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(100)) },
+                label = "battery_analytics_import_button",
+            ) { loading ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = colors.textMuted,
+                            strokeWidth = 2.dp,
+                        )
+                        Text(stringResource(R.string.battery_intelligence_importing))
+                    } else {
+                        Icon(Icons.Outlined.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(stringResource(R.string.battery_intelligence_import_button))
                     }
                 }
             }

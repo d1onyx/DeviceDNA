@@ -238,6 +238,11 @@
     <string name="battery_intelligence_export_button">Скачать аналитику</string>
     <string name="battery_intelligence_exporting">Готовим файл...</string>
     <string name="battery_intelligence_export_share_title">Поделиться аналитикой батареи</string>
+    <string name="battery_intelligence_import_button">Импорт JSON</string>
+    <string name="battery_intelligence_importing">Импорт…</string>
+    <string name="battery_intelligence_import_success">Импортировано новых записей: %1$d.</string>
+    <string name="battery_intelligence_import_none">Новых записей для импорта не найдено.</string>
+    <string name="battery_intelligence_import_degraded">Импортировано записей из старого файла: %1$d (ограниченные данные — переэкспортируйте для полного графика).</string>
     <string name="battery_session_title">Сессия зарядки</string>
     <string name="battery_session_summary">Сводка сессии</string>
     <string name="battery_session_summary_body">Записанные изменения между подключением и отключением для этого периода зарядки.</string>

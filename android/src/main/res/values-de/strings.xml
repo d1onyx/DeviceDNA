@@ -238,6 +238,11 @@
     <string name="battery_intelligence_export_button">Analyse herunterladen</string>
     <string name="battery_intelligence_exporting">Datei wird vorbereitet...</string>
     <string name="battery_intelligence_export_share_title">Akkuanalyse teilen</string>
+    <string name="battery_intelligence_import_button">JSON importieren</string>
+    <string name="battery_intelligence_importing">Wird importiert…</string>
+    <string name="battery_intelligence_import_success">%1$d neue Datenpunkte importiert.</string>
+    <string name="battery_intelligence_import_none">Keine neuen Datenpunkte zum Importieren gefunden.</string>
+    <string name="battery_intelligence_import_degraded">%1$d Datenpunkte aus einer älteren Datei importiert (eingeschränkte Daten – für den vollständigen Verlauf neu exportieren).</string>
     <string name="battery_session_title">Ladesitzung</string>
     <string name="battery_session_summary">Sitzungsübersicht</string>
     <string name="battery_session_summary_body">Aufgezeichnete Änderungen zwischen Einstecken und Trennen in diesem Ladezeitraum.</string>

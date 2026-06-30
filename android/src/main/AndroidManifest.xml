@@ -60,6 +60,16 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Records charging-session boundaries even while the app is closed / device in Doze. -->
+        <receiver
+            android:name=".widget.PowerConnectionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Premium home-screen widgets (Jetpack Glance) -->
         <receiver
             android:name=".widget.glance.BatteryWidgetReceiver"
