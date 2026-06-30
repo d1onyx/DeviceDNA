@@ -1,9 +1,15 @@
 # Copy to .dev.vars for local `wrangler dev`.
-# Neon connection string (pooled), e.g.:
+
+# Required for local auth and sync.
 DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx.eu-central-1.aws.neon.tech/devicedna?sslmode=require"
+FIREBASE_WEB_API_KEY="AIzaSy..."
 
 # Optional: required only for internal subscription upserts.
-INTERNAL_API_KEY="change-me"
+# INTERNAL_API_KEY="change-me"
+
+# Optional: required only when testing real Google Play purchase verification.
+# GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL="service-account@project.iam.gserviceaccount.com"
+# GOOGLE_PLAY_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 # Local/dev only: enables POST /v1/subscription/dev/activate, which grants a
 # 10-minute Premium subscription persisted to Neon. Never set this in production.
