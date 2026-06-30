@@ -563,7 +563,9 @@ private fun allocateMinutes(
 }
 
 private fun BatteryHistorySnapshot.toMinuteStatus(nextSnapshot: BatteryHistorySnapshot?): ChargingHourStatus {
-    val next = nextSnapshot ?: return ChargingHourStatus.Stable
+    // The trailing (live) sample has no successor to diff against, so reflect its own state
+    // instead of defaulting to Stable — otherwise a charge/discharge happening "now" shows grey.
+    val next = nextSnapshot ?: return toSelfStatus()
     val levelDelta = next.levelPercent - levelPercent
     return when {
         levelDelta > 0 && (isPoorCharging() || next.isPoorCharging()) -> ChargingHourStatus.PoorCharging
@@ -571,6 +573,13 @@ private fun BatteryHistorySnapshot.toMinuteStatus(nextSnapshot: BatteryHistorySn
         levelDelta < 0 -> ChargingHourStatus.Discharging
         else -> ChargingHourStatus.Stable
     }
+}
+
+/** Status implied by a single sample on its own (used for the live trailing sample). */
+private fun BatteryHistorySnapshot.toSelfStatus(): ChargingHourStatus = when {
+    isCharging -> if (isPoorCharging()) ChargingHourStatus.PoorCharging else ChargingHourStatus.GoodCharging
+    isPlugged -> ChargingHourStatus.Stable
+    else -> ChargingHourStatus.Discharging
 }
 
 private fun BatteryHistorySnapshot.isPoorCharging(): Boolean {

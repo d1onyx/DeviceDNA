@@ -73,8 +73,9 @@ class BatteryIntelligenceTest {
         ).first()
 
         assertEquals(10f, hour.goodMinutes, 0.01f)
-        assertEquals(25f, hour.stableMinutes, 0.01f)
-        assertEquals(10f, hour.dischargeMinutes, 0.01f)
+        assertEquals(10f, hour.stableMinutes, 0.01f)
+        // The trailing discharging sample now reflects its own state (Discharging), not Stable.
+        assertEquals(25f, hour.dischargeMinutes, 0.01f)
         assertEquals(4, hour.segments.size)
         assertEquals(ChargingHourStatus.GoodCharging, hour.segments[0].status)
         assertEquals(0f, hour.segments[0].startMinute, 0.01f)
@@ -82,7 +83,7 @@ class BatteryIntelligenceTest {
         assertEquals(10f, hour.segments[1].startMinute, 0.01f)
         assertEquals(ChargingHourStatus.Discharging, hour.segments[2].status)
         assertEquals(20f, hour.segments[2].startMinute, 0.01f)
-        assertEquals(ChargingHourStatus.Stable, hour.segments[3].status)
+        assertEquals(ChargingHourStatus.Discharging, hour.segments[3].status)
         assertEquals(30f, hour.segments[3].startMinute, 0.01f)
     }
 
