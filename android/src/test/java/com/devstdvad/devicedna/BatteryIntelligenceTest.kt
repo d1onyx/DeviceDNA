@@ -58,11 +58,11 @@ class BatteryIntelligenceTest {
     }
 
     @Test
-    fun `hourly timeline keeps minute order for charge stable and discharge periods`() {
+    fun `hourly timeline keeps minute order for charge and discharge periods`() {
         val snapshots = listOf(
             snapshot(minute = 0, plugged = true, level = 20),
             snapshot(minute = 10, plugged = true, level = 30),
-            snapshot(minute = 20, plugged = true, level = 30),
+            snapshot(minute = 20, plugged = true, level = 30), // flat while charging -> still charging
             snapshot(minute = 30, plugged = false, level = 25),
         )
 
@@ -72,19 +72,73 @@ class BatteryIntelligenceTest {
             timeZone = TimeZone.UTC,
         ).first()
 
-        assertEquals(10f, hour.goodMinutes, 0.01f)
-        assertEquals(10f, hour.stableMinutes, 0.01f)
-        // The trailing discharging sample now reflects its own state (Discharging), not Stable.
+        // Charging stays charging even where the percentage is flat; no grey Stable here.
+        assertEquals(20f, hour.goodMinutes, 0.01f)
+        assertEquals(0f, hour.stableMinutes, 0.01f)
         assertEquals(25f, hour.dischargeMinutes, 0.01f)
         assertEquals(4, hour.segments.size)
         assertEquals(ChargingHourStatus.GoodCharging, hour.segments[0].status)
         assertEquals(0f, hour.segments[0].startMinute, 0.01f)
-        assertEquals(ChargingHourStatus.Stable, hour.segments[1].status)
+        assertEquals(ChargingHourStatus.GoodCharging, hour.segments[1].status)
         assertEquals(10f, hour.segments[1].startMinute, 0.01f)
         assertEquals(ChargingHourStatus.Discharging, hour.segments[2].status)
         assertEquals(20f, hour.segments[2].startMinute, 0.01f)
         assertEquals(ChargingHourStatus.Discharging, hour.segments[3].status)
         assertEquals(30f, hour.segments[3].startMinute, 0.01f)
+    }
+
+    @Test
+    fun `charging with a flat percentage renders as charging not stable`() {
+        val snapshots = listOf(
+            snapshot(minute = 0, plugged = true, level = 84),
+            snapshot(minute = 30, plugged = true, level = 84), // warm trickle charge, percent unchanged
+        )
+
+        val hour = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 0L,
+            timeZone = TimeZone.UTC,
+            nowMillis = HOUR_MS,
+        ).first()
+
+        assertEquals(0f, hour.stableMinutes, 0.01f)
+        assertTrue(hour.goodMinutes + hour.poorMinutes > 0f)
+    }
+
+    @Test
+    fun `flat percentage while on battery is stable`() {
+        val snapshots = listOf(
+            snapshot(minute = 0, plugged = false, level = 60),
+            snapshot(minute = 20, plugged = false, level = 60), // idle, not charging
+        )
+
+        val hour = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 0L,
+            timeZone = TimeZone.UTC,
+            nowMillis = HOUR_MS,
+        ).first()
+
+        assertTrue(hour.stableMinutes > 0f)
+        assertEquals(0f, hour.goodMinutes, 0.01f)
+    }
+
+    @Test
+    fun `continuous charging bridges sparse hourly samples into one block`() {
+        val snapshots = listOf(
+            snapshot(minute = 0, plugged = true, level = 84),
+            snapshot(minute = 60, plugged = true, level = 86), // 1h later, still plugged
+        )
+
+        val timeline = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 0L,
+            timeZone = TimeZone.UTC,
+            nowMillis = 2 * HOUR_MS,
+        )
+
+        // The whole hour between the two plugged samples is filled, not just a 20-min window.
+        assertEquals(60f, timeline[0].goodMinutes + timeline[0].poorMinutes, 0.01f)
     }
 
     @Test
