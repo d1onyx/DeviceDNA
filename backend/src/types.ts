@@ -14,8 +14,8 @@ export interface Env {
   // Shared secret guarding the Google Play RTDN webhook (POST /play/notifications?token=...).
   // Pub/Sub push cannot send headers, so the token travels in the query string.
   PLAY_RTDN_VERIFICATION_TOKEN?: string;
-  // When "true", enables POST /v1/subscription/dev/activate which grants a short
-  // (10-minute) Premium subscription for local/dev testing. Must stay unset/false in prod.
+  // When "true", enables POST /v1/subscription/dev/activate which grants a non-expiring
+  // Premium subscription for local/dev testing. Must stay unset/false in prod.
   DEV_SUBSCRIPTIONS_ENABLED?: string;
 }
 

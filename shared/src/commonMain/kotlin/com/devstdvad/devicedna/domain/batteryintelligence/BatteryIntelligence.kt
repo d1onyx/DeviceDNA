@@ -145,7 +145,8 @@ fun BatteryInfo.toBatteryIntelligenceReport(
         else -> "Low"
     }
 
-    val selectedDaySnapshots = history.filterForDay(selectedDayStartMillis, timeZone)
+    val measurementHistory = history.measurementSamples()
+    val selectedDaySnapshots = measurementHistory.filterForDay(selectedDayStartMillis, timeZone)
     val hourlyTimeline = buildHourlyTimeline(history, selectedDayStartMillis, timeZone, nowMillis)
     val selectedHourHistory = selectedDaySnapshots
         .filter { it.hourOfDay(timeZone) == selectedHour }
@@ -159,8 +160,8 @@ fun BatteryInfo.toBatteryIntelligenceReport(
         degradationRiskLabel = riskLabel,
         degradationSummary = buildDegradationSummary(riskLabel, healthScore),
         chargingAdvice = buildChargingAdvice(),
-        cycleHistory = buildCycleHistory(history, timeZone, nowMillis),
-        chargingHistory = buildChargingHistory(history, nowMillis),
+        cycleHistory = buildCycleHistory(measurementHistory, timeZone, nowMillis),
+        chargingHistory = buildChargingHistory(measurementHistory, nowMillis),
         hourlyTimeline = hourlyTimeline,
         selectedDayStartMillis = selectedDayStartMillis,
         selectedDayLabel = selectedDayStartMillis.formatDayLabel(timeZone, nowMillis),
@@ -169,8 +170,8 @@ fun BatteryInfo.toBatteryIntelligenceReport(
         selectedHourHistory = selectedHourHistory,
         dailyChargingSessions = dailyChargingSessions,
         canGoNextDay = selectedDayStartMillis.toLocalDate(timeZone) < today(timeZone, nowMillis),
-        cycleStats = buildCycleStats(history),
-        chargeSpeed = buildChargeSpeedStats(history),
+        cycleStats = buildCycleStats(measurementHistory),
+        chargeSpeed = buildChargeSpeedStats(measurementHistory),
     )
 }
 
@@ -348,7 +349,7 @@ private fun BatteryInfo.buildChargingAdvice(): List<BatteryAdvice> = buildList {
     if (source == ChargeSource.Wireless && temperatureCelsius >= 35f) {
         add(BatteryAdvice.WirelessHeat)
     }
-    if ((estimatedWatts ?: 0f) in 0.1f..5f && status == BatteryStatus.Charging) {
+    if (estimatedWatts.isLowPositiveChargingPower() && status == BatteryStatus.Charging) {
         add(BatteryAdvice.LowPower)
     }
     add(BatteryAdvice.Keep20To80)
@@ -493,6 +494,9 @@ private fun List<BatteryHistorySnapshot>.countChargingSessions(): Int {
 private fun List<Float>.averageOrNull(): Float? =
     takeIf { it.isNotEmpty() }?.let { values -> (values.sum() / values.size) }
 
+private fun List<BatteryHistorySnapshot>.measurementSamples(): List<BatteryHistorySnapshot> =
+    filterNot { it.recordingPaused }
+
 private fun BatteryHistorySnapshot.relativeLabel(nowMillis: Long): String {
     val minutesAgo = ((nowMillis - timestampMillis).coerceAtLeast(0L) / 60_000L).toInt()
     return when {
@@ -566,8 +570,11 @@ private fun BatteryHistorySnapshot.isPoorCharging(): Boolean {
     if (levelPercent >= 90) return true
     if (source == ChargeSource.Wireless.name && temperatureCelsius >= 35f) return true
     val watts = estimatedWatts ?: return false
-    return watts in 0.1f..5f
+    return watts.isLowPositiveChargingPower()
 }
+
+private fun Float?.isLowPositiveChargingPower(): Boolean =
+    this != null && this > 0f && this <= 5f
 
 private fun List<BatteryHistorySnapshot>.filterForDay(
     dayStartMillis: Long,

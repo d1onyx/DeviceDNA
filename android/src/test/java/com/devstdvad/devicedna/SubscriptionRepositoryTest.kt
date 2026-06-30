@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna
 
 import com.devstdvad.devicedna.data.subscription.EntitlementSource
+import com.devstdvad.devicedna.data.subscription.DevSubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlements
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,6 +45,20 @@ class SubscriptionRepositoryTest {
         val entitlements = repository.entitlements.first()
         assertTrue(entitlements.hasFeature(PremiumFeature.RemoveAds, nowMillis = 1L))
         assertTrue(entitlements.source == EntitlementSource.Dev)
+    }
+
+    @Test
+    fun `dev billing grants a one hour premium entitlement`() = runTest {
+        val before = System.currentTimeMillis()
+        val result = DevSubscriptionBillingGateway().restorePurchases()
+
+        assertTrue(result is SubscriptionPurchaseResult.Success)
+        val entitlements = (result as SubscriptionPurchaseResult.Success).entitlements
+        val expiresAt = entitlements.expiresAtMillis
+        assertNotNull(expiresAt)
+        // Active right after purchase, valid for ~1 hour.
+        assertTrue(entitlements.hasFeature(PremiumFeature.BatteryIntelligence))
+        assertTrue((expiresAt!! - before) in (59 * 60_000L)..(61 * 60_000L))
     }
 
     @Test

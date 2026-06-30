@@ -1,0 +1,356 @@
+{
+  "exported_at": "2026-06-30T20:30:00+02:00",
+  "selected_day_label": "Demo: Jun 30, 2026",
+  "selected_day_range": "Jun 30 00:00 - 24:00",
+  "import_notes": "DeviceDNA import uses raw_snapshots when present. Other fields are informational and ignored by import.",
+  "demo_scenarios": [
+    "overnight AC 21:00-07:00",
+    "full battery kept plugged",
+    "slow USB charging",
+    "wireless hot charging",
+    "dock charging",
+    "unknown/no current sample"
+  ],
+  "raw_snapshots": [
+    {
+      "timestampMillis": 1782748800000,
+      "levelPercent": 35,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 31.2,
+      "currentMa": null,
+      "estimatedWatts": null,
+      "chargeCycles": null
+    },
+    {
+      "timestampMillis": 1782754200000,
+      "levelPercent": 28,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 32.0,
+      "currentMa": -320,
+      "estimatedWatts": 1.25,
+      "chargeCycles": null
+    },
+    {
+      "timestampMillis": 1782758700000,
+      "levelPercent": 21,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 32.8,
+      "currentMa": -410,
+      "estimatedWatts": 1.65,
+      "chargeCycles": null
+    },
+    {
+      "timestampMillis": 1782759600000,
+      "levelPercent": 21,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 33.1,
+      "currentMa": 1800,
+      "estimatedWatts": 8.15,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782760500000,
+      "levelPercent": 27,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 34.0,
+      "currentMa": 2100,
+      "estimatedWatts": 9.55,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782761400000,
+      "levelPercent": 34,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 34.6,
+      "currentMa": 2250,
+      "estimatedWatts": 10.25,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782763200000,
+      "levelPercent": 48,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 35.2,
+      "currentMa": 2350,
+      "estimatedWatts": 10.85,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782765000000,
+      "levelPercent": 61,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 36.0,
+      "currentMa": 2300,
+      "estimatedWatts": 10.65,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782766800000,
+      "levelPercent": 73,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 36.4,
+      "currentMa": 2050,
+      "estimatedWatts": 9.45,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782768600000,
+      "levelPercent": 82,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 37.0,
+      "currentMa": 1700,
+      "estimatedWatts": 7.8,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782770400000,
+      "levelPercent": 88,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 37.4,
+      "currentMa": 1350,
+      "estimatedWatts": 6.2,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782772200000,
+      "levelPercent": 93,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 38.0,
+      "currentMa": 900,
+      "estimatedWatts": 4.1,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782774000000,
+      "levelPercent": 96,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 38.4,
+      "currentMa": 650,
+      "estimatedWatts": 3.0,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782775800000,
+      "levelPercent": 98,
+      "status": "Charging",
+      "source": "AC",
+      "temperatureCelsius": 38.7,
+      "currentMa": 420,
+      "estimatedWatts": 1.9,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782777600000,
+      "levelPercent": 100,
+      "status": "Full",
+      "source": "AC",
+      "temperatureCelsius": 38.2,
+      "currentMa": 120,
+      "estimatedWatts": 0.55,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782784800000,
+      "levelPercent": 100,
+      "status": "Full",
+      "source": "AC",
+      "temperatureCelsius": 37.6,
+      "currentMa": 80,
+      "estimatedWatts": 0.36,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782794700000,
+      "levelPercent": 100,
+      "status": "Full",
+      "source": "AC",
+      "temperatureCelsius": 36.9,
+      "currentMa": 60,
+      "estimatedWatts": 0.28,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782795600000,
+      "levelPercent": 100,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 36.4,
+      "currentMa": -180,
+      "estimatedWatts": 0.72,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782797400000,
+      "levelPercent": 97,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 35.6,
+      "currentMa": -260,
+      "estimatedWatts": 1.05,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782801000000,
+      "levelPercent": 90,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 34.0,
+      "currentMa": -350,
+      "estimatedWatts": 1.4,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782806400000,
+      "levelPercent": 79,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 33.0,
+      "currentMa": -420,
+      "estimatedWatts": 1.68,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782810900000,
+      "levelPercent": 68,
+      "status": "NotCharging",
+      "source": "USB",
+      "temperatureCelsius": 34.2,
+      "currentMa": 110,
+      "estimatedWatts": 0.48,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782812700000,
+      "levelPercent": 70,
+      "status": "Charging",
+      "source": "USB",
+      "temperatureCelsius": 34.8,
+      "currentMa": 500,
+      "estimatedWatts": 2.2,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782814500000,
+      "levelPercent": 72,
+      "status": "Charging",
+      "source": "USB",
+      "temperatureCelsius": 35.1,
+      "currentMa": 480,
+      "estimatedWatts": 2.1,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782816300000,
+      "levelPercent": 73,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 35.4,
+      "currentMa": -300,
+      "estimatedWatts": 1.2,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782820800000,
+      "levelPercent": 66,
+      "status": "Charging",
+      "source": "Wireless",
+      "temperatureCelsius": 39.5,
+      "currentMa": 1200,
+      "estimatedWatts": 5.4,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782822000000,
+      "levelPercent": 69,
+      "status": "Charging",
+      "source": "Wireless",
+      "temperatureCelsius": 41.2,
+      "currentMa": 900,
+      "estimatedWatts": 4.0,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782823200000,
+      "levelPercent": 71,
+      "status": "Charging",
+      "source": "Wireless",
+      "temperatureCelsius": 42.5,
+      "currentMa": 650,
+      "estimatedWatts": 2.9,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782824400000,
+      "levelPercent": 72,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 40.4,
+      "currentMa": -520,
+      "estimatedWatts": 2.1,
+      "chargeCycles": 142
+    },
+    {
+      "timestampMillis": 1782829800000,
+      "levelPercent": 58,
+      "status": "Charging",
+      "source": "Dock",
+      "temperatureCelsius": 33.0,
+      "currentMa": 1600,
+      "estimatedWatts": 7.2,
+      "chargeCycles": 143
+    },
+    {
+      "timestampMillis": 1782831600000,
+      "levelPercent": 70,
+      "status": "Charging",
+      "source": "Dock",
+      "temperatureCelsius": 33.6,
+      "currentMa": 1700,
+      "estimatedWatts": 7.7,
+      "chargeCycles": 143
+    },
+    {
+      "timestampMillis": 1782833400000,
+      "levelPercent": 82,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 34.1,
+      "currentMa": -260,
+      "estimatedWatts": 1.0,
+      "chargeCycles": 143
+    },
+    {
+      "timestampMillis": 1782838800000,
+      "levelPercent": 64,
+      "status": "Unknown",
+      "source": "Unknown",
+      "temperatureCelsius": 32.2,
+      "currentMa": null,
+      "estimatedWatts": null,
+      "chargeCycles": 143
+    },
+    {
+      "timestampMillis": 1782842400000,
+      "levelPercent": 55,
+      "status": "Discharging",
+      "source": "Unknown",
+      "temperatureCelsius": 31.8,
+      "currentMa": -380,
+      "estimatedWatts": 1.52,
+      "chargeCycles": 143
+    }
+  ]
+}

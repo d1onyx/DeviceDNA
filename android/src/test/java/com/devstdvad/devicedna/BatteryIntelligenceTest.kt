@@ -6,6 +6,11 @@ import com.devstdvad.devicedna.domain.batteryintelligence.buildChargingSessions
 import com.devstdvad.devicedna.domain.batteryintelligence.buildHourlyTimeline
 import com.devstdvad.devicedna.domain.batteryintelligence.calculateAccumulatedChargePercent
 import com.devstdvad.devicedna.domain.batteryintelligence.estimateCapacityRetentionPercent
+import com.devstdvad.devicedna.domain.batteryintelligence.toBatteryIntelligenceReport
+import com.devstdvad.devicedna.domain.model.BatteryHealth
+import com.devstdvad.devicedna.domain.model.BatteryInfo
+import com.devstdvad.devicedna.domain.model.BatteryStatus
+import com.devstdvad.devicedna.domain.model.ChargeSource
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -101,6 +106,29 @@ class BatteryIntelligenceTest {
 
         assertEquals(0f, hour.stableMinutes, 0.01f)
         assertTrue(hour.goodMinutes + hour.poorMinutes > 0f)
+    }
+
+    @Test
+    fun `plugged charging below one tenth watt is poor not good`() {
+        val snapshots = listOf(
+            snapshot(minute = 0, plugged = true, level = 79).copy(
+                temperatureCelsius = 39.8f,
+                currentMa = -23,
+                estimatedWatts = 0.095335f,
+            ),
+        )
+
+        val hour = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 0L,
+            timeZone = TimeZone.UTC,
+            nowMillis = HOUR_MS,
+        ).first()
+
+        assertEquals(ChargingHourStatus.PoorCharging, hour.status)
+        assertEquals(60f, hour.poorMinutes, 0.01f)
+        assertEquals(0f, hour.goodMinutes, 0.01f)
+        assertEquals(ChargingHourStatus.PoorCharging, hour.segments.single().status)
     }
 
     @Test
@@ -237,6 +265,25 @@ class BatteryIntelligenceTest {
         assertTrue(timeline[2].status != ChargingHourStatus.NoData)
     }
 
+    @Test
+    fun `recording-paused marker is not shown as selected hour history`() {
+        val snapshots = listOf(
+            snapshot(minute = 5, plugged = true, level = 80),
+            snapshot(minute = 10, plugged = true, level = 80).copy(recordingPaused = true),
+        )
+
+        val report = currentBattery().toBatteryIntelligenceReport(
+            history = snapshots,
+            selectedDayStartMillis = 0L,
+            selectedHour = 0,
+            timeZone = TimeZone.UTC,
+            nowMillis = HOUR_MS,
+        )
+
+        assertEquals(1, report.selectedHourHistory.size)
+        assertEquals(5L * 60_000L, report.selectedHourHistory.single().timestampMillis)
+    }
+
     private fun snapshot(
         minute: Int,
         plugged: Boolean,
@@ -256,6 +303,21 @@ class BatteryIntelligenceTest {
         currentMa = if (plugged) 1_500 else null,
         estimatedWatts = if (plugged) 8f else null,
         chargeCycles = null,
+    )
+
+    private fun currentBattery(): BatteryInfo = BatteryInfo(
+        levelPercent = 80,
+        status = BatteryStatus.Charging,
+        health = BatteryHealth.Good,
+        source = ChargeSource.USB,
+        technology = "Li-ion",
+        temperatureCelsius = 30f,
+        voltageMv = 4_000,
+        currentMa = 1_500,
+        capacityMah = null,
+        chargeCycles = null,
+        isPresent = true,
+        estimatedWatts = 6f,
     )
 
     private companion object {

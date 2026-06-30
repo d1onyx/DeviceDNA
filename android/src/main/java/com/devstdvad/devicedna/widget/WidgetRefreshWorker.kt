@@ -19,6 +19,7 @@ import com.devstdvad.devicedna.widget.glance.GuardianWidget
 import com.devstdvad.devicedna.widget.glance.MemoryWidget
 import com.devstdvad.devicedna.widget.glance.ThermalGuardWidget
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -60,13 +61,18 @@ class WidgetRefreshWorker(
      */
     private suspend fun recordBatteryHistory() {
         runCatching {
-            val unlocked = subscriptionRepository.entitlements.first()
-                .hasFeature(PremiumFeature.BatteryIntelligence)
+            val entitlements = subscriptionRepository.entitlements.first()
+            val nowMillis = Clock.System.now().toEpochMilliseconds()
+            val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence, nowMillis)
+            val expiredAtMillis = entitlements.expiresAtMillis?.takeIf { it <= nowMillis }
             val trackingEnabled = batteryHistoryStore.chargingTrackingEnabled.first()
             if (unlocked && trackingEnabled) {
                 batteryRepository.getBatterySnapshot().getOrNull()?.let { batteryHistoryStore.record(it) }
             } else {
-                batteryHistoryStore.markRecordingPaused()
+                batteryHistoryStore.markRecordingPaused(
+                    timestampMillis = if (trackingEnabled) expiredAtMillis ?: nowMillis else nowMillis,
+                    removeSnapshotsAfterMarker = trackingEnabled && expiredAtMillis != null,
+                )
             }
         }
     }

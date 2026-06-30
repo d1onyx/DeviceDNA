@@ -65,20 +65,41 @@ class BatteryIntelligenceHistoryStore(
      * following gap empty instead of bridging across it. No-op when there is no history yet or the
      * last entry is already a marker, so it can be called freely on every locked emission.
      */
-    suspend fun markRecordingPaused(timestampMillis: Long = System.currentTimeMillis()) {
+    suspend fun markRecordingPaused(
+        timestampMillis: Long = System.currentTimeMillis(),
+        removeSnapshotsAfterMarker: Boolean = false,
+    ) {
         context.batteryIntelligenceDataStore.edit { prefs ->
             val existing = prefs[SNAPSHOTS]
                 ?.let { encoded -> runCatching { json.decodeFromString<BatteryHistoryPayload>(encoded).snapshots }.getOrNull() }
                 .orEmpty()
                 .sortedBy { it.timestampMillis }
 
-            val last = existing.lastOrNull() ?: return@edit
-            if (last.recordingPaused) return@edit
+            val retained = if (removeSnapshotsAfterMarker) {
+                existing.filter { it.timestampMillis <= timestampMillis }
+            } else {
+                existing
+            }
+            val last = retained.lastOrNull()
+            if (last == null) {
+                if (removeSnapshotsAfterMarker && existing.isNotEmpty()) {
+                    prefs[SNAPSHOTS] = json.encodeToString(BatteryHistoryPayload())
+                }
+                return@edit
+            }
+            if (last.recordingPaused) {
+                if (removeSnapshotsAfterMarker && retained.size != existing.size) {
+                    prefs[SNAPSHOTS] = json.encodeToString(
+                        BatteryHistoryPayload(snapshots = retained.takeLast(MAX_SNAPSHOTS)),
+                    )
+                }
+                return@edit
+            }
 
             val marker = last.copy(timestampMillis = timestampMillis, recordingPaused = true)
             prefs[SNAPSHOTS] = json.encodeToString(
                 BatteryHistoryPayload(
-                    snapshots = (existing + marker).takeLast(MAX_SNAPSHOTS),
+                    snapshots = (retained + marker).takeLast(MAX_SNAPSHOTS),
                 ),
             )
         }

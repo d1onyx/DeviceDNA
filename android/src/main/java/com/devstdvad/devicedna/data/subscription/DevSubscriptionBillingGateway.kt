@@ -17,8 +17,8 @@ class DevSubscriptionBillingGateway : SubscriptionBillingGateway {
 
     override suspend fun restorePurchases(): SubscriptionPurchaseResult = devSuccess()
 
-    // Grants a dev entitlement valid for 10 minutes. In local mode (DEV_SUBSCRIPTION_USE_BACKEND
-    // = false) the repository stores this directly. In backend mode the repository instead calls
+    // Grants a dev entitlement valid for 1 hour. In local mode (DEV_SUBSCRIPTION_USE_BACKEND = false)
+    // the repository stores this directly. In backend mode the repository instead calls
     // activateDevSubscription() and this local window is replaced by the backend-issued one.
     private fun devSuccess(): SubscriptionPurchaseResult.Success {
         val now = System.currentTimeMillis()
@@ -33,6 +33,6 @@ class DevSubscriptionBillingGateway : SubscriptionBillingGateway {
     }
 
     private companion object {
-        const val DEV_SUBSCRIPTION_DURATION_MS = 10 * 60 * 1000L
+        const val DEV_SUBSCRIPTION_DURATION_MS = 60 * 60 * 1000L
     }
 }

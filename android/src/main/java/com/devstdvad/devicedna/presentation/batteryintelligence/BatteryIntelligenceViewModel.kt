@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 
 data class BatteryIntelligenceUiState(
@@ -53,14 +54,20 @@ class BatteryIntelligenceViewModel(
             batteryState,
             historyStore.chargingTrackingEnabled,
         ) { entitlements, batteryResult, trackingEnabled ->
-            val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence)
             val info = (batteryResult as? AppResult.Success)?.value
-            Triple(unlocked, info, trackingEnabled)
-        }.onEach { (unlocked, info, trackingEnabled) ->
+            Triple(entitlements, info, trackingEnabled)
+        }.onEach { (entitlements, info, trackingEnabled) ->
+            val nowMillis = Clock.System.now().toEpochMilliseconds()
+            val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence, nowMillis)
+            val expiredAtMillis = entitlements.expiresAtMillis?.takeIf { it <= nowMillis }
             when {
                 unlocked && trackingEnabled && info != null -> historyStore.record(info)
                 // Drop a marker so the timeline leaves the un-tracked gap empty. No-op if already marked.
-                !unlocked || !trackingEnabled -> historyStore.markRecordingPaused()
+                !trackingEnabled -> historyStore.markRecordingPaused()
+                !unlocked -> historyStore.markRecordingPaused(
+                    timestampMillis = expiredAtMillis ?: nowMillis,
+                    removeSnapshotsAfterMarker = expiredAtMillis != null,
+                )
             }
         }.launchIn(viewModelScope)
     }

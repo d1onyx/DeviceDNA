@@ -10,8 +10,6 @@ import {
   type GooglePlaySubscriptionPurchase,
 } from "../lib/google-play";
 
-const DEV_SUBSCRIPTION_DURATION_MS = 10 * 60 * 1000;
-
 const activeSubscriptionStatuses = new Set(["active", "trialing", "grace_period", "canceled"]);
 const allowedSubscriptionStatuses = new Set([
   "inactive",
@@ -57,7 +55,7 @@ subscriptionRoutes.get("/subscription", async (c) => {
   return c.json(await getSubscriptionView(db, claims.uid));
 });
 
-// Dev-only: grant a short-lived Premium subscription persisted to Neon, mirroring the
+// Dev-only: grant a non-expiring Premium subscription persisted to Neon, mirroring the
 // real verify flow (writes to user_subscriptions, returns the same SubscriptionView).
 // Gated behind DEV_SUBSCRIPTIONS_ENABLED so it can never be reached in production.
 subscriptionRoutes.post("/subscription/dev/activate", async (c) => {
@@ -68,7 +66,7 @@ subscriptionRoutes.post("/subscription/dev/activate", async (c) => {
   const claims = c.get("claims");
   const productId = c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID ?? "devicedna_premium";
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + DEV_SUBSCRIPTION_DURATION_MS);
+  const expiresAt = null;
   const db = getDb(c.env.DATABASE_URL);
 
   const values = {
