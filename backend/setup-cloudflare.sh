@@ -67,6 +67,7 @@ put_secret FIREBASE_WEB_API_KEY
 put_optional_secret_from_env INTERNAL_API_KEY
 put_optional_secret_from_env GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
 put_optional_secret_from_env GOOGLE_PLAY_PRIVATE_KEY
+put_optional_secret_from_env PLAY_RTDN_VERIFICATION_TOKEN
 
 # 4) Deploy
 echo "==> Deploying the worker"

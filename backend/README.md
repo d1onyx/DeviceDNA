@@ -106,12 +106,13 @@ npx wrangler login
 DATABASE_URL="postgresql://...neon.tech/devicedna?sslmode=require" \
 FIREBASE_WEB_API_KEY="AIzaSy..." \
 bash setup-cloudflare.sh
+# Windows (PowerShell): set $env:DATABASE_URL / $env:FIREBASE_WEB_API_KEY, then ./setup-cloudflare.ps1
 
 # 4) Local check (optional):
 cp .dev.vars.example .dev.vars           # fill in DATABASE_URL and FIREBASE_WEB_API_KEY
 npm run dev
 
-# setup-cloudflare.sh deploys the Worker and prints a URL like:
+# setup-cloudflare.sh / setup-cloudflare.ps1 deploy the Worker and print a URL like:
 # https://devicedna-sync.<subdomain>.workers.dev
 ```
 

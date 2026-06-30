@@ -84,12 +84,19 @@ account.
 5. Generate Firebase config files:
 
    ```bash
+   # Linux/macOS
    ./scripts/setup-firebase-auth.sh <PROJECT_ID> <SHA1>
+   ```
+
+   ```powershell
+   # Windows (PowerShell)
+   ./scripts/setup-firebase-auth.ps1 -ProjectId <PROJECT_ID> -AndroidSha1 <SHA1>
    ```
 
    This script registers Android package `com.devstdvad.devicedna`, adds the
    SHA-1, downloads `android/google-services.json`, optionally downloads the iOS
-   plist, and rewrites `.firebaserc`.
+   plist, and rewrites `.firebaserc`. Both variants are equivalent; the `.ps1`
+   uses PowerShell-native JSON handling, so Python is not required on Windows.
 
 6. Copy the Firebase Web API key from:
 
@@ -150,12 +157,23 @@ changed. Generated SQL migrations are already committed in `backend/drizzle/`.
 4. Deploy:
 
    ```bash
+   # Linux/macOS
    cd backend
    npx wrangler login
 
    DATABASE_URL="postgresql://USER:PASSWORD@HOST/db?sslmode=require" \
    FIREBASE_WEB_API_KEY="AIzaSy..." \
    bash setup-cloudflare.sh
+   ```
+
+   ```powershell
+   # Windows (PowerShell)
+   cd backend
+   npx wrangler login
+
+   $env:DATABASE_URL="postgresql://USER:PASSWORD@HOST/db?sslmode=require"
+   $env:FIREBASE_WEB_API_KEY="AIzaSy..."
+   ./setup-cloudflare.ps1
    ```
 
    The script sets both required secrets, creates the KV namespace if needed, and
