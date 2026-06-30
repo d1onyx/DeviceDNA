@@ -259,10 +259,13 @@ fun buildHourlyTimeline(
         val nextSnapshot = sorted.getOrNull(index + 1)
         val nextMillis = nextSnapshot?.timestampMillis
             ?: defaultIntervalEnd(snapshot.timestampMillis, dayStartMillis, timeZone, nowMillis)
-        // Paint only the portion of [snapshot, next) that lands inside the selected day, so an
-        // interval that began before midnight (e.g. overnight charging) still fills its hours.
+        // A sample only vouches for a bounded window after it. A longer gap means recording was
+        // paused (premium inactive, app closed, Doze), so it must stay NoData rather than be filled
+        // by extrapolating the previous state.
+        val filledEnd = minOf(nextMillis, snapshot.timestampMillis + MAX_INTERVAL_FILL_MS)
+        // Keep only the portion that lands inside the selected day (handles near-midnight overlap).
         val clampedStart = maxOf(snapshot.timestampMillis, dayStart)
-        val clampedEnd = minOf(nextMillis, dayEnd)
+        val clampedEnd = minOf(filledEnd, dayEnd)
         allocateMinutes(snapshot, nextSnapshot, clampedStart, clampedEnd, minuteBuckets, timeZone)
     }
 
@@ -505,6 +508,13 @@ private data class HourMinuteBucket(
     val segments: MutableList<ChargingMinuteSegment> = mutableListOf(),
 )
 
+/**
+ * How long a single recorded sample stands in for. Recording runs roughly every 15 min while
+ * active (and on plug/unplug events), so a gap beyond this window means recording was paused and
+ * the period must stay NoData instead of being filled by the previous sample's state.
+ */
+private const val MAX_INTERVAL_FILL_MS = 20L * 60L * 1000L
+
 private fun defaultIntervalEnd(
     timestampMillis: Long,
     dayStartMillis: Long,
@@ -597,8 +607,10 @@ private fun List<BatteryHistorySnapshot>.scopedToDayWithCarryIn(
         .plus(1, DateTimeUnit.DAY)
         .startMillis(timeZone)
     val day = sorted.filter { it.timestampMillis in dayStart until dayEnd }
+    // Only bridge an ongoing charge across midnight when it was still being recorded just before
+    // midnight. A stale sample (long recording gap before the day) must not fabricate a session.
     val carryIn = sorted.lastOrNull { it.timestampMillis < dayStart }
-        ?.takeIf { it.isCharging || it.isPlugged }
+        ?.takeIf { (it.isCharging || it.isPlugged) && dayStart - it.timestampMillis <= MAX_INTERVAL_FILL_MS }
         ?.copy(timestampMillis = dayStart)
     return listOfNotNull(carryIn) + day
 }

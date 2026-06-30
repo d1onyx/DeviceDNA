@@ -8,6 +8,7 @@ import com.devstdvad.devicedna.domain.batteryintelligence.calculateAccumulatedCh
 import com.devstdvad.devicedna.domain.batteryintelligence.estimateCapacityRetentionPercent
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BatteryIntelligenceTest {
@@ -86,9 +87,31 @@ class BatteryIntelligenceTest {
     }
 
     @Test
-    fun `overnight charging fills the early hours of the next day`() {
+    fun `an unrecorded gap stays NoData instead of being filled`() {
         val snapshots = listOf(
-            snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0
+            snapshotAt(HOUR_MS, plugged = true, level = 40), // 01:00 charging
+            snapshotAt(9 * HOUR_MS, plugged = true, level = 95), // 09:00 charging, 8h gap (no recording)
+        )
+
+        val timeline = buildHourlyTimeline(
+            history = snapshots,
+            dayStartMillis = 0L,
+            timeZone = TimeZone.UTC,
+            nowMillis = 12 * HOUR_MS,
+        )
+
+        // The 8h gap (e.g. premium inactive) must not be painted by extrapolating the 01:00 state.
+        assertEquals(ChargingHourStatus.NoData, timeline[3].status)
+        assertEquals(ChargingHourStatus.NoData, timeline[5].status)
+        // Each sample still paints a short window in its own hour.
+        assertTrue(timeline[1].status != ChargingHourStatus.NoData)
+        assertTrue(timeline[9].status != ChargingHourStatus.NoData)
+    }
+
+    @Test
+    fun `an unrecorded overnight gap is not painted on the next day`() {
+        val snapshots = listOf(
+            snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0 (plug-in)
             snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 80), // 07:00 day 1 (unplug)
         )
 
@@ -99,18 +122,18 @@ class BatteryIntelligenceTest {
             nowMillis = 2 * DAY_MS + 12 * HOUR_MS,
         )
 
-        assertEquals(ChargingHourStatus.GoodCharging, timeline[0].status)
-        assertEquals(60f, timeline[0].goodMinutes, 0.01f)
-        assertEquals(ChargingHourStatus.GoodCharging, timeline[6].status)
-        assertEquals(60f, timeline[6].goodMinutes, 0.01f)
-        assertEquals(ChargingHourStatus.NoData, timeline[10].status)
+        // Nothing was recorded overnight, so the early hours must stay empty.
+        assertEquals(ChargingHourStatus.NoData, timeline[0].status)
+        assertEquals(ChargingHourStatus.NoData, timeline[6].status)
+        // The unplug sample still leaves a short marker in its own hour.
+        assertTrue(timeline[7].status != ChargingHourStatus.NoData)
     }
 
     @Test
-    fun `a charging session that spans midnight surfaces on the next day`() {
+    fun `a recent pre-midnight charge bridges into the next day`() {
         val snapshots = listOf(
-            snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0
-            snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 80), // 07:00 day 1 (unplug)
+            snapshotAt(2 * DAY_MS - 15 * 60_000L, plugged = true, level = 90), // 23:45 day 0
+            snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 100), // 07:00 day 1 (unplug)
         )
 
         val sessions = buildChargingSessions(
@@ -123,6 +146,23 @@ class BatteryIntelligenceTest {
         assertEquals(1, sessions.size)
         assertEquals(2 * DAY_MS, sessions[0].startMillis)
         assertEquals(2 * DAY_MS + 7 * HOUR_MS, sessions[0].endMillis)
+    }
+
+    @Test
+    fun `a stale pre-midnight charge does not fabricate a session`() {
+        val snapshots = listOf(
+            snapshotAt(DAY_MS + 23 * HOUR_MS, plugged = true, level = 50), // 23:00 day 0 (1h before midnight)
+            snapshotAt(2 * DAY_MS + 7 * HOUR_MS, plugged = false, level = 80), // 07:00 day 1 (unplug)
+        )
+
+        val sessions = buildChargingSessions(
+            history = snapshots,
+            dayStartMillis = 2 * DAY_MS,
+            timeZone = TimeZone.UTC,
+            nowMillis = 2 * DAY_MS + 12 * HOUR_MS,
+        )
+
+        assertTrue(sessions.isEmpty())
     }
 
     private fun snapshot(
