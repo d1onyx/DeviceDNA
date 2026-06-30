@@ -545,7 +545,7 @@ private fun HourlyChart(
                         strokeWidth = 1f,
                     )
                 }
-                listOf(0, 6, 12, 18, 24).forEach { hour ->
+                listOf(0, 3, 6, 9, 12, 15, 18, 21, 24).forEach { hour ->
                     val x = hour * hourWidth
                     drawLine(
                         color = dashedGridColor,
@@ -592,19 +592,27 @@ private fun HourlyChart(
                 Text("0", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
             }
         }
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(end = 58.dp, top = 8.dp),
         ) {
-            listOf("00", "06", "12", "18").forEach { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = labelColor.copy(alpha = 0.62f),
-                    modifier = Modifier.weight(1f),
-                )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                listOf("00", "03", "06", "09", "12", "15", "18", "21").forEach { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = labelColor.copy(alpha = 0.62f),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
+            Text(
+                text = "24",
+                style = MaterialTheme.typography.labelLarge,
+                color = labelColor.copy(alpha = 0.62f),
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
         }
     }
 }
