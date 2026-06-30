@@ -11,6 +11,29 @@ val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+val configuredSyncBaseUrl = (
+    localProperties.getProperty("syncBaseUrl")
+        ?: (project.findProperty("syncBaseUrl") as String?)
+    )
+    ?.trim()
+    ?.takeUnless { it.isBlank() }
+    ?.removeSuffix("/")
+
+val buildsReleaseArtifact = gradle.startParameter.taskNames.any { taskName ->
+    taskName.equals("assemble", ignoreCase = true) ||
+        taskName.equals("bundle", ignoreCase = true) ||
+        taskName.endsWith(":assemble", ignoreCase = true) ||
+        taskName.endsWith(":bundle", ignoreCase = true) ||
+        taskName.contains("Release", ignoreCase = true)
+}
+
+if (buildsReleaseArtifact && configuredSyncBaseUrl == null) {
+    error(
+        "Missing syncBaseUrl. Add syncBaseUrl=https://<worker>.<subdomain>.workers.dev " +
+            "to local.properties or pass -PsyncBaseUrl=... before building release artifacts.",
+    )
+}
+
 android {
     namespace = "com.devstdvad.devicedna"
     compileSdk = 36
@@ -23,11 +46,9 @@ android {
         versionName = "1.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Deployed Cloudflare Worker URL (set after `wrangler deploy`). No trailing slash.
+        // Deployed Cloudflare Worker URL. Release builds require an explicit value.
         // Override via local.properties -> syncBaseUrl, or a -PsyncBaseUrl Gradle property.
-        val syncBaseUrl = localProperties.getProperty("syncBaseUrl")
-            ?: (project.findProperty("syncBaseUrl") as String?)
-            ?: "https://devicedna-sync.workers.dev"
+        val syncBaseUrl = configuredSyncBaseUrl ?: "https://devicedna-sync.workers.dev"
         buildConfigField("String", "SYNC_BASE_URL", "\"$syncBaseUrl\"")
 
         val adMobAppId = localProperties.getProperty("adMobAppId")

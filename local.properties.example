@@ -6,11 +6,13 @@
 # header note.
 #Thu Jun 25 13:43:13 CEST 2026
 sdk.dir=
-signingKeystore=/home/denis/.android/debug-test2.keystore
+# Optional: local debug/release signing file.
+# signingKeystore=/absolute/path/to/your.keystore
 
 # cloudflare
 # ----------------------------------------------
-syncBaseUrl=
+# Required for release builds. Must not end with a slash.
+# syncBaseUrl=https://<worker-name>.<subdomain>.workers.dev
 
 # ads
 # ----------------------------------------------
