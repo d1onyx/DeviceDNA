@@ -3,6 +3,12 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { userSubscriptions, users, type UserSubscriptionRow } from "../db/schema";
 import type { AppBindings } from "../types";
+import {
+  mapGooglePlayStatus,
+  parseNullableDate,
+  verifyGooglePlaySubscription,
+  type GooglePlaySubscriptionPurchase,
+} from "../lib/google-play";
 
 const DEV_SUBSCRIPTION_DURATION_MS = 10 * 60 * 1000;
 
@@ -16,7 +22,7 @@ const allowedSubscriptionStatuses = new Set([
   "canceled",
 ]);
 
-type Db = ReturnType<typeof getDb>;
+export type Db = ReturnType<typeof getDb>;
 
 export interface SubscriptionView {
   premium: boolean;
@@ -131,46 +137,19 @@ subscriptionRoutes.post("/subscription/google-play/verify", async (c) => {
   if (purchase instanceof Response) {
     return purchase;
   }
-  const lineItem = (purchase.lineItems ?? []).find((item) => item.productId === productId);
-  if (!lineItem) {
-    return c.json({ error: "product_not_purchased" }, 400);
-  }
-
-  const expiresAt = parseNullableDate(lineItem.expiryTime);
-  if (expiresAt === undefined) {
-    return c.json({ error: "invalid_google_play_expiry" }, 502);
-  }
-
-  const now = new Date();
-  const status = mapGooglePlayStatus(purchase.subscriptionState, expiresAt, now);
   const db = getDb(c.env.DATABASE_URL);
+  const result = await upsertGooglePlaySubscription(db, {
+    userUid: claims.uid,
+    productId,
+    purchaseToken,
+    purchase,
+  });
 
-  await db
-    .insert(userSubscriptions)
-    .values({
-      userUid: claims.uid,
-      status,
-      provider: "google_play",
-      productId,
-      originalTransactionId: purchase.linkedPurchaseToken ?? null,
-      latestTransactionId: lineItem.latestSuccessfulOrderId ?? purchase.latestOrderId ?? null,
-      latestPurchaseToken: purchaseToken,
-      expiresAt,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: userSubscriptions.userUid,
-      set: {
-        status,
-        provider: "google_play",
-        productId,
-        originalTransactionId: purchase.linkedPurchaseToken ?? null,
-        latestTransactionId: lineItem.latestSuccessfulOrderId ?? purchase.latestOrderId ?? null,
-        latestPurchaseToken: purchaseToken,
-        expiresAt,
-        updatedAt: now,
-      },
-    });
+  if (!result.ok) {
+    return result.reason === "product_not_purchased"
+      ? c.json({ error: "product_not_purchased" }, 400)
+      : c.json({ error: "invalid_google_play_expiry" }, 502);
+  }
 
   return c.json(await getSubscriptionView(db, claims.uid));
 });
@@ -291,153 +270,82 @@ function isPremium(row: UserSubscriptionRow): boolean {
   return row.expiresAt === null || row.expiresAt.getTime() > Date.now();
 }
 
-function parseNullableDate(value: string | null | undefined): Date | null | undefined {
-  if (value === undefined || value === null) {
-    return null;
+export type UpsertGooglePlaySubscriptionResult =
+  | { ok: true }
+  | { ok: false; reason: "product_not_purchased" | "invalid_expiry" };
+
+/**
+ * Persists the authoritative Google Play subscription state for a user, derived from a verified
+ * `subscriptionsv2` purchase. Shared by the client-driven verify route and the RTDN webhook so
+ * both write identical rows. The line item for `productId` must be present, and its expiry must
+ * parse; otherwise the caller decides how to surface the failure.
+ */
+export async function upsertGooglePlaySubscription(
+  db: Db,
+  params: {
+    userUid: string;
+    productId: string;
+    purchaseToken: string;
+    purchase: GooglePlaySubscriptionPurchase;
+    now?: Date;
+  },
+): Promise<UpsertGooglePlaySubscriptionResult> {
+  const lineItem = (params.purchase.lineItems ?? []).find((item) => item.productId === params.productId);
+  if (!lineItem) {
+    return { ok: false, reason: "product_not_purchased" };
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
+  const expiresAt = parseNullableDate(lineItem.expiryTime);
+  if (expiresAt === undefined) {
+    return { ok: false, reason: "invalid_expiry" };
   }
 
-  return date;
-}
-
-interface VerifyGooglePlaySubscriptionParams {
-  packageName: string;
-  serviceAccountEmail: string;
-  privateKey: string;
-  purchaseToken: string;
-}
-
-interface GooglePlaySubscriptionPurchase {
-  subscriptionState?: string;
-  latestOrderId?: string;
-  linkedPurchaseToken?: string;
-  lineItems?: GooglePlaySubscriptionLineItem[];
-}
-
-interface GooglePlaySubscriptionLineItem {
-  productId?: string;
-  expiryTime?: string;
-  latestSuccessfulOrderId?: string;
-}
-
-async function verifyGooglePlaySubscription(
-  params: VerifyGooglePlaySubscriptionParams,
-): Promise<GooglePlaySubscriptionPurchase> {
-  const accessToken = await getGoogleAccessToken(params.serviceAccountEmail, params.privateKey);
-  const packageName = encodeURIComponent(params.packageName);
-  const purchaseToken = encodeURIComponent(params.purchaseToken);
-  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}/purchases/subscriptionsv2/tokens/${purchaseToken}`;
-
-  const res = await fetch(url, {
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Accept": "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`Google Play subscription verification failed: HTTP ${res.status} ${detail}`);
-  }
-
-  return await res.json() as GooglePlaySubscriptionPurchase;
-}
-
-async function getGoogleAccessToken(serviceAccountEmail: string, privateKey: string): Promise<string> {
-  const assertion = await createGoogleServiceAccountJwt(serviceAccountEmail, privateKey);
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion,
-    }),
-  });
-
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`Google OAuth token request failed: HTTP ${res.status} ${detail}`);
-  }
-
-  const data = await res.json() as { access_token?: string };
-  if (!data.access_token) {
-    throw new Error("Google OAuth token response did not include access_token.");
-  }
-
-  return data.access_token;
-}
-
-async function createGoogleServiceAccountJwt(serviceAccountEmail: string, privateKey: string): Promise<string> {
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: serviceAccountEmail,
-    scope: "https://www.googleapis.com/auth/androidpublisher",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: nowSeconds,
-    exp: nowSeconds + 3600,
+  const now = params.now ?? new Date();
+  const status = mapGooglePlayStatus(params.purchase.subscriptionState, expiresAt, now);
+  const values = {
+    userUid: params.userUid,
+    status,
+    provider: "google_play",
+    productId: params.productId,
+    originalTransactionId: params.purchase.linkedPurchaseToken ?? null,
+    latestTransactionId: lineItem.latestSuccessfulOrderId ?? params.purchase.latestOrderId ?? null,
+    latestPurchaseToken: params.purchaseToken,
+    expiresAt,
+    updatedAt: now,
   };
-  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(payload))}`;
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    pemToArrayBuffer(privateKey),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    new TextEncoder().encode(signingInput),
-  );
 
-  return `${signingInput}.${base64UrlEncode(signature)}`;
+  await db
+    .insert(userSubscriptions)
+    .values(values)
+    .onConflictDoUpdate({
+      target: userSubscriptions.userUid,
+      set: {
+        status: values.status,
+        provider: values.provider,
+        productId: values.productId,
+        originalTransactionId: values.originalTransactionId,
+        latestTransactionId: values.latestTransactionId,
+        latestPurchaseToken: values.latestPurchaseToken,
+        expiresAt: values.expiresAt,
+        updatedAt: values.updatedAt,
+      },
+    });
+
+  return { ok: true };
 }
 
-function mapGooglePlayStatus(subscriptionState: string | undefined, expiresAt: Date | null, now: Date): string {
-  if (expiresAt !== null && expiresAt.getTime() <= now.getTime()) {
-    return "expired";
-  }
+/**
+ * Finds the user that a Google Play purchase token belongs to, matching the token last persisted
+ * by purchase verification. Returns null when no user has verified this token yet (e.g. an RTDN
+ * arrives before the client has reported the purchase). An upgrade/downgrade mints a new token, so
+ * a notification for the new token may not match until the client re-verifies.
+ */
+export async function findUserUidByPurchaseToken(db: Db, purchaseToken: string): Promise<string | null> {
+  const rows = await db
+    .select({ userUid: userSubscriptions.userUid })
+    .from(userSubscriptions)
+    .where(eq(userSubscriptions.latestPurchaseToken, purchaseToken))
+    .limit(1);
 
-  switch (subscriptionState) {
-    case "SUBSCRIPTION_STATE_ACTIVE":
-      return "active";
-    case "SUBSCRIPTION_STATE_IN_GRACE_PERIOD":
-      return "grace_period";
-    case "SUBSCRIPTION_STATE_CANCELED":
-      return "canceled";
-    case "SUBSCRIPTION_STATE_EXPIRED":
-      return "expired";
-    default:
-      return "inactive";
-  }
-}
-
-function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const normalized = pem.replace(/\\n/g, "\n");
-  const base64 = normalized
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s/g, "");
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes.buffer;
-}
-
-function base64UrlEncode(input: string | ArrayBuffer): string {
-  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : new Uint8Array(input);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return rows[0]?.userUid ?? null;
 }

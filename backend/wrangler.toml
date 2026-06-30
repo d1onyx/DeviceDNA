@@ -35,6 +35,11 @@ id = "6a1cf461e6554ee99ee8b87ae4425d41"
 #   wrangler secret put GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
 #   wrangler secret put GOOGLE_PLAY_PRIVATE_KEY
 
+# Required for the Google Play RTDN webhook (cancellations/refunds/renewals propagate to Neon):
+#   wrangler secret put PLAY_RTDN_VERIFICATION_TOKEN
+# Then set the Pub/Sub push endpoint to:
+#   https://<worker-url>/play/notifications?token=<PLAY_RTDN_VERIFICATION_TOKEN>
+
 # Local/dev only: set DEV_SUBSCRIPTIONS_ENABLED="true" (in .dev.vars) to allow
 # POST /v1/subscription/dev/activate to grant a 10-minute Premium subscription.
 # Leave unset in production.

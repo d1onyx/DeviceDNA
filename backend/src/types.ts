@@ -11,6 +11,9 @@ export interface Env {
   GOOGLE_PLAY_PREMIUM_PRODUCT_ID?: string;
   GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string;
   GOOGLE_PLAY_PRIVATE_KEY?: string;
+  // Shared secret guarding the Google Play RTDN webhook (POST /play/notifications?token=...).
+  // Pub/Sub push cannot send headers, so the token travels in the query string.
+  PLAY_RTDN_VERIFICATION_TOKEN?: string;
   // When "true", enables POST /v1/subscription/dev/activate which grants a short
   // (10-minute) Premium subscription for local/dev testing. Must stay unset/false in prod.
   DEV_SUBSCRIPTIONS_ENABLED?: string;

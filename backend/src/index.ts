@@ -3,6 +3,7 @@ import { accountRegistry } from "./middleware/account-registry";
 import { firebaseAuth } from "./middleware/auth";
 import { firebaseAccountExists } from "./middleware/firebase-account";
 import { authRoutes } from "./routes/auth";
+import { playRtdnRoutes } from "./routes/play-rtdn";
 import { internalSubscriptionRoutes, subscriptionRoutes } from "./routes/subscriptions";
 import { syncRoutes } from "./routes/sync";
 import type { AppBindings } from "./types";
@@ -23,5 +24,7 @@ v1Routes.route("/", subscriptionRoutes);
 app.route("/auth", authRoutes);
 app.route("/v1", v1Routes);
 app.route("/internal", internalSubscriptionRoutes);
+// Google Play RTDN webhook (Pub/Sub push). Auth via ?token=PLAY_RTDN_VERIFICATION_TOKEN.
+app.route("/play", playRtdnRoutes);
 
 export default app;
