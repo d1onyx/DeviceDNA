@@ -64,10 +64,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
@@ -513,6 +516,7 @@ private fun HourlyChart(
     val goodColor = ChargingHourStatus.GoodCharging.chartColor()
     val poorColor = ChargingHourStatus.PoorCharging.chartColor()
     val dischargeColor = ChargingHourStatus.Discharging.chartColor()
+    val axisLabelArgb = labelColor.copy(alpha = 0.62f).toArgb()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -525,9 +529,10 @@ private fun HourlyChart(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
         ) {
+            Column(modifier = Modifier.weight(1f)) {
             Canvas(
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .height(160.dp),
             ) {
                 val chartWidth = size.width
@@ -580,6 +585,36 @@ private fun HourlyChart(
                     }
                 }
             }
+            // Hour labels drawn in the same width/coordinate space as the chart, centred on each
+            // 3-hour gridline (ends anchored inward) so they line up on any screen.
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .height(16.dp),
+            ) {
+                val hourWidth = size.width / 24f
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    color = axisLabelArgb
+                    textSize = 12.sp.toPx()
+                }
+                val baseline = -paint.ascent()
+                listOf(0, 3, 6, 9, 12, 15, 18, 21, 24).forEach { hour ->
+                    paint.textAlign = when (hour) {
+                        0 -> android.graphics.Paint.Align.LEFT
+                        24 -> android.graphics.Paint.Align.RIGHT
+                        else -> android.graphics.Paint.Align.CENTER
+                    }
+                    drawContext.canvas.nativeCanvas.drawText(
+                        hour.toString().padStart(2, '0'),
+                        hour * hourWidth,
+                        baseline,
+                        paint,
+                    )
+                }
+            }
+            }
             Column(
                 modifier = Modifier
                     .height(160.dp)
@@ -590,20 +625,6 @@ private fun HourlyChart(
                 Text("60 хв", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
                 Text("30 хв", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
                 Text("0", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 58.dp, top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            listOf("00", "03", "06", "09", "12", "15", "18", "21", "24").forEach { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = labelColor.copy(alpha = 0.62f),
-                )
             }
         }
     }
