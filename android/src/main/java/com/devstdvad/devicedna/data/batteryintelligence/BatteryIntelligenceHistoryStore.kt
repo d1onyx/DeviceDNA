@@ -47,14 +47,23 @@ class BatteryIntelligenceHistoryStore(
                 ?.let { encoded -> runCatching { json.decodeFromString<BatteryHistoryPayload>(encoded).snapshots }.getOrNull() }
                 .orEmpty()
                 .sortedBy { it.timestampMillis }
+            val retained = existing.discardFutureSnapshots(timestampMillis)
+            val removedFutureSnapshots = retained.size != existing.size
 
             val next = info.toHistorySnapshot(timestampMillis)
-            val last = existing.lastOrNull()
-            if (last != null && !last.shouldAppend(next)) return@edit
+            val last = retained.lastOrNull()
+            if (last != null && !last.shouldAppend(next)) {
+                if (removedFutureSnapshots) {
+                    prefs[SNAPSHOTS] = json.encodeToString(
+                        BatteryHistoryPayload(snapshots = retained.trimToRetention(timestampMillis)),
+                    )
+                }
+                return@edit
+            }
 
             prefs[SNAPSHOTS] = json.encodeToString(
                 BatteryHistoryPayload(
-                    snapshots = (existing + next).takeLast(MAX_SNAPSHOTS),
+                    snapshots = (retained + next).trimToRetention(next.timestampMillis),
                 ),
             )
         }
@@ -74,23 +83,25 @@ class BatteryIntelligenceHistoryStore(
                 ?.let { encoded -> runCatching { json.decodeFromString<BatteryHistoryPayload>(encoded).snapshots }.getOrNull() }
                 .orEmpty()
                 .sortedBy { it.timestampMillis }
+            val withoutClockFuture = existing.discardFutureSnapshots(timestampMillis)
 
             val retained = if (removeSnapshotsAfterMarker) {
-                existing.filter { it.timestampMillis <= timestampMillis }
+                withoutClockFuture.filter { it.timestampMillis <= timestampMillis }
             } else {
-                existing
+                withoutClockFuture
             }
+            val removedSnapshots = retained.size != existing.size
             val last = retained.lastOrNull()
             if (last == null) {
-                if (removeSnapshotsAfterMarker && existing.isNotEmpty()) {
+                if (removedSnapshots) {
                     prefs[SNAPSHOTS] = json.encodeToString(BatteryHistoryPayload())
                 }
                 return@edit
             }
             if (last.recordingPaused) {
-                if (removeSnapshotsAfterMarker && retained.size != existing.size) {
+                if (removedSnapshots) {
                     prefs[SNAPSHOTS] = json.encodeToString(
-                        BatteryHistoryPayload(snapshots = retained.takeLast(MAX_SNAPSHOTS)),
+                        BatteryHistoryPayload(snapshots = retained.trimToRetention(timestampMillis)),
                     )
                 }
                 return@edit
@@ -99,7 +110,7 @@ class BatteryIntelligenceHistoryStore(
             val marker = last.copy(timestampMillis = timestampMillis, recordingPaused = true)
             prefs[SNAPSHOTS] = json.encodeToString(
                 BatteryHistoryPayload(
-                    snapshots = (retained + marker).takeLast(MAX_SNAPSHOTS),
+                    snapshots = (retained + marker).trimToRetention(timestampMillis),
                 ),
             )
         }
@@ -107,8 +118,8 @@ class BatteryIntelligenceHistoryStore(
 
     /**
      * Merges externally imported snapshots into the stored history, de-duplicating by timestamp,
-     * keeping chronological order and the [MAX_SNAPSHOTS] cap. Bypasses the tracking toggle because
-     * importing is an explicit user action. Returns how many new snapshots were added.
+     * keeping chronological order and the retention cap. Bypasses the tracking toggle because importing
+     * is an explicit user action. Returns how many new snapshots were added.
      */
     suspend fun importSnapshots(imported: List<BatteryHistorySnapshot>): Int {
         if (imported.isEmpty()) return 0
@@ -128,11 +139,23 @@ class BatteryIntelligenceHistoryStore(
                 BatteryHistoryPayload(
                     snapshots = (existing + fresh)
                         .sortedBy { it.timestampMillis }
-                        .takeLast(MAX_SNAPSHOTS),
+                        .trimToRetention(),
                 ),
             )
         }
         return added
+    }
+
+    private fun List<BatteryHistorySnapshot>.discardFutureSnapshots(
+        timestampMillis: Long,
+    ): List<BatteryHistorySnapshot> = filter { it.timestampMillis <= timestampMillis }
+
+    private fun List<BatteryHistorySnapshot>.trimToRetention(
+        referenceTimestampMillis: Long = maxOfOrNull { it.timestampMillis } ?: System.currentTimeMillis(),
+    ): List<BatteryHistorySnapshot> {
+        val cutoffMillis = referenceTimestampMillis - HISTORY_RETENTION_MS
+        return filter { it.timestampMillis >= cutoffMillis }
+            .takeLast(MAX_SNAPSHOTS)
     }
 
     private fun BatteryHistorySnapshot.shouldAppend(next: BatteryHistorySnapshot): Boolean {
@@ -161,7 +184,8 @@ class BatteryIntelligenceHistoryStore(
     private companion object {
         val SNAPSHOTS = stringPreferencesKey("snapshots")
         val CHARGING_TRACKING_ENABLED = booleanPreferencesKey("charging_tracking_enabled")
-        const val MAX_SNAPSHOTS = 240
+        const val MAX_SNAPSHOTS = 20_000
         const val MIN_SNAPSHOT_INTERVAL_MS = 15L * 60L * 1000L
+        const val HISTORY_RETENTION_MS = 120L * 24L * 60L * 60L * 1000L
     }
 }
