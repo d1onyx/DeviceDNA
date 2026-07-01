@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  * [Intent.ACTION_POWER_CONNECTED] / [Intent.ACTION_POWER_DISCONNECTED] are exempt from the
  * Android 8+ implicit-broadcast restrictions (unlike `ACTION_BATTERY_CHANGED`), so they can be
  * declared in the manifest. We still gate them with the user's background monitoring setting before
- * delegating to [WidgetRefreshScheduler.refreshNow].
+ * recording the boundary and delegating to [WidgetRefreshScheduler.refreshNow].
  */
 class PowerConnectionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -37,6 +37,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
                 }.getOrDefault(false)
 
                 if (backgroundMonitoringEnabled) {
+                    runCatching { BatteryHistoryRecorder.recordBoundary(appContext) }
                     runCatching { WidgetRefreshScheduler.refreshNow(appContext) }
                 }
             } finally {

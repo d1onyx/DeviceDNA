@@ -34,6 +34,7 @@ import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.navigation.AppNavigation
 import com.devstdvad.devicedna.presentation.auth.AuthViewModel
+import com.devstdvad.devicedna.widget.BatteryMonitoringService
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -75,8 +76,10 @@ class MainActivity : ComponentActivity() {
             }
             LaunchedEffect(settings.backgroundMonitoring) {
                 if (settings.backgroundMonitoring) {
+                    BatteryMonitoringService.start(this@MainActivity)
                     WidgetRefreshScheduler.enqueuePeriodic(this@MainActivity)
                 } else {
+                    BatteryMonitoringService.stop(this@MainActivity)
                     WidgetRefreshScheduler.cancelPeriodic(this@MainActivity)
                 }
             }

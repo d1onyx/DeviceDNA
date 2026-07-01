@@ -276,6 +276,9 @@
     <string name="settings_alert_high_ram">High RAM usage</string>
     <string name="settings_alert_slow_charging">Slow charging</string>
     <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="notif_channel_battery_monitoring">Battery monitoring</string>
+    <string name="battery_monitoring_notif_title">Battery monitoring active</string>
+    <string name="battery_monitoring_notif_body">DeviceDNA is recording charging changes for Battery Intelligence.</string>
     <string name="alert_cpu_overheating_title">CPU is overheating</string>
     <string name="alert_cpu_overheating_body">Device temperature is high. Let it cool down to avoid throttling and battery stress.</string>
     <string name="alert_low_battery_title">Battery is low</string>
