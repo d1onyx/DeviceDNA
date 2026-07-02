@@ -52,8 +52,17 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>devicedna</string>
-				<!-- Google Sign-In callback: paste REVERSED_CLIENT_ID from GoogleService-Info.plist -->
-				<string>REVERSED_CLIENT_ID_PLACEHOLDER</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Google Sign-In callback. GIDSignIn.signIn(withPresenting:) crashes with an
+			     NSException at launch of the sign-in flow if this scheme isn't registered —
+			     value is REVERSED_CLIENT_ID from GoogleService-Info.plist. -->
+			<key>CFBundleURLName</key>
+			<string>com.devstdvad.devicedna.google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.871047083437-4rj58iqogjt6jv6tj3478bu15emk0fb9</string>
 			</array>
 		</dict>
 	</array>
