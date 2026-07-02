@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.batteryintelligence
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.domain.batteryintelligence.BatteryIntelligenceReport
@@ -15,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 data class BatteryAnalyticsExportState(
     val isExporting: Boolean = false,
@@ -52,7 +52,7 @@ class BatteryAnalyticsExportViewModel(
                 val rawSnapshots = historyStore.snapshots.first()
                 val strings = stringsFor(AppLanguage.En)
                 val adviceText = report.chargingAdvice.map { strings[it.adviceKey] }
-                val nowMillis = Clock.System.now().toEpochMilliseconds()
+                val nowMillis = currentTimeMillis()
                 val content = exporter.render(report, format, rawSnapshots, adviceText, nowMillis)
                 fileSharer.shareText(
                     fileName = exporter.fileName(nowMillis, format),

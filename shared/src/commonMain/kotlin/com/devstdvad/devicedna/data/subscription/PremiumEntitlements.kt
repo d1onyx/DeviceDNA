@@ -1,6 +1,6 @@
 package com.devstdvad.devicedna.data.subscription
 
-import kotlinx.datetime.Clock
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 
 data class PremiumEntitlements(
     val userId: String? = null,
@@ -16,10 +16,10 @@ data class PremiumEntitlements(
 
     fun hasFeature(
         feature: PremiumFeature,
-        nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+        nowMillis: Long = currentTimeMillis(),
     ): Boolean = feature in features && !isExpired(nowMillis)
 
-    fun isExpired(nowMillis: Long = Clock.System.now().toEpochMilliseconds()): Boolean =
+    fun isExpired(nowMillis: Long = currentTimeMillis()): Boolean =
         expiresAtMillis?.let { it <= nowMillis } ?: false
 
     companion object {

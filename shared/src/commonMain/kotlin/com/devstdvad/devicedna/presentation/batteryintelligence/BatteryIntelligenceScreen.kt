@@ -70,6 +70,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.AccentCard
@@ -240,7 +241,7 @@ fun BatteryIntelligenceScreen(
                 )
                 InfoRow(
                     label = stringRes("battery_intelligence_charge_rate"),
-                    value = report.chargeSpeed.percentPerHour?.let { "%.1f%%/h".format(it) } ?: stringRes("common_not_reported"),
+                    value = report.chargeSpeed.percentPerHour?.let { "${Formatters.oneDecimal(it)}%/h" } ?: stringRes("common_not_reported"),
                     copyable = false,
                 )
                 InfoRow(
@@ -1072,7 +1073,7 @@ private fun AdviceRow(number: Int, text: String) {
 
 @Composable
 private fun Float?.formatWatts(): String =
-    this?.let { "%.2f W".format(it) } ?: stringRes("common_not_reported")
+    this?.let { "${Formatters.twoDecimals(it)} W" } ?: stringRes("common_not_reported")
 
 @Composable
 private fun ChargingHourStatus.chartColor(): Color {

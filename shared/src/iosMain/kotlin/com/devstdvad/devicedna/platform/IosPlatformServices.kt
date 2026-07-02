@@ -23,6 +23,7 @@ import platform.UIKit.UINotificationFeedbackType
 import platform.UIKit.UISelectionFeedbackGenerator
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
+import platform.UIKit.popoverPresentationController
 import platform.UniformTypeIdentifiers.UTTypeJSON
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async

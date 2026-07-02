@@ -1,8 +1,8 @@
 package com.devstdvad.devicedna.presentation.common
 
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.data.settings.DataUnit
 import com.devstdvad.devicedna.data.settings.TemperatureUnit
-import java.util.Locale
 
 object SettingsFormatters {
 
@@ -15,7 +15,7 @@ object SettingsFormatters {
             TemperatureUnit.Celsius -> "C"
             TemperatureUnit.Fahrenheit -> "F"
         }
-        return String.format(Locale.US, "%.1f°%s", value, suffix)
+        return "${Formatters.oneDecimal(value)}°$suffix"
     }
 
     fun formatTemperatureWhole(celsius: Float, unit: TemperatureUnit): String {
@@ -27,7 +27,7 @@ object SettingsFormatters {
             TemperatureUnit.Celsius -> "C"
             TemperatureUnit.Fahrenheit -> "F"
         }
-        return String.format(Locale.US, "%.0f°%s", value, suffix)
+        return "${Formatters.noDecimals(value)}°$suffix"
     }
 
     fun formatBytes(bytes: Long, unit: DataUnit): String {
@@ -36,9 +36,9 @@ object SettingsFormatters {
         val labels = labels(unit)
         val value = bytes.toDouble()
         return when {
-            value >= base * base * base -> String.format(Locale.US, "%.1f %s", value / (base * base * base), labels[2])
-            value >= base * base -> String.format(Locale.US, "%.1f %s", value / (base * base), labels[1])
-            value >= base -> String.format(Locale.US, "%.1f %s", value / base, labels[0])
+            value >= base * base * base -> "${Formatters.oneDecimal(value / (base * base * base))} ${labels[2]}"
+            value >= base * base -> "${Formatters.oneDecimal(value / (base * base))} ${labels[1]}"
+            value >= base -> "${Formatters.oneDecimal(value / base)} ${labels[0]}"
             else -> "$bytes B"
         }
     }
@@ -49,9 +49,9 @@ object SettingsFormatters {
         val labels = shortLabels(unit)
         val value = bytes.toDouble()
         return when {
-            value >= base * base * base -> String.format(Locale.US, "%.1f%s", value / (base * base * base), labels[2])
-            value >= base * base -> String.format(Locale.US, "%.1f%s", value / (base * base), labels[1])
-            value >= base -> String.format(Locale.US, "%.0f%s", value / base, labels[0])
+            value >= base * base * base -> "${Formatters.oneDecimal(value / (base * base * base))}${labels[2]}"
+            value >= base * base -> "${Formatters.oneDecimal(value / (base * base))}${labels[1]}"
+            value >= base -> "${Formatters.noDecimals(value / base)}${labels[0]}"
             else -> "${bytes}B"
         }
     }

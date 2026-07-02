@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.AccentCard
@@ -93,7 +94,7 @@ fun BatteryScreen(
                         }
                         Spacer(Modifier.height(6.dp))
                         info.estimatedWatts?.let {
-                            Text("%.2f W".format(it), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                            Text("${Formatters.twoDecimals(it)} W", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                         }
                     }
                     Spacer(Modifier.width(16.dp))
@@ -127,7 +128,7 @@ fun BatteryScreen(
                 InfoRow("Temperature", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit), copyable = false)
                 InfoRow("Voltage", "${info.voltageMv} mV", copyable = false)
                 info.currentMa?.let { InfoRow("Current", "$it mA", copyable = false) }
-                info.estimatedWatts?.let { InfoRow("Power", "%.2f W".format(it), copyable = false) }
+                info.estimatedWatts?.let { InfoRow("Power", "${Formatters.twoDecimals(it)} W", copyable = false) }
                 InfoRow("Charge Time Remaining", formatChargeTime(info.chargeTimeRemainingMs), copyable = false)
                 info.capacityMah?.let { InfoRow("Current Capacity", "$it mAh", copyable = false) }
                 InfoRow(

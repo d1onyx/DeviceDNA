@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.data.export
 
 import com.devstdvad.devicedna.core.common.AppResult
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.domain.usecase.GetCpuInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
@@ -13,7 +14,7 @@ import com.devstdvad.devicedna.platform.FileSharer
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -222,7 +223,7 @@ class DiagnosticsExporter(
     }
 
     // ── Timestamps (kotlinx-datetime, no java.text) ─────────────────────────
-    private fun now() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    private fun now() = Instant.fromEpochMilliseconds(currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault())
     private fun p2(v: Int) = if (v < 10) "0$v" else "$v"
 
     private fun fileStamp(): String = now().run {

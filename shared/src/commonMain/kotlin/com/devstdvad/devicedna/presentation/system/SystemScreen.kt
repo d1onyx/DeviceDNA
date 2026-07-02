@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.AccentCard
 import com.devstdvad.devicedna.core.design.component.InfoRow
@@ -78,7 +79,7 @@ fun SystemScreen(
                                 InfoChip("${info.runningProcessCount} Processes")
                             }
                             if (info.totalRamGb > 0f) {
-                                InfoChip("%.1f GB RAM".format(info.totalRamGb))
+                                InfoChip("${Formatters.oneDecimal(info.totalRamGb)} GB RAM")
                             }
                             InfoChip(formatUptime(info.uptimeMillis))
                         }

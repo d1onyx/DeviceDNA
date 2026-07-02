@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.SectionCard
@@ -205,4 +206,4 @@ private fun formatDelta(value: Int): String =
 
 @Composable
 private fun Float?.formatWatts(): String =
-    this?.let { "%.2f W".format(it) } ?: stringRes("common_not_reported")
+    this?.let { "${Formatters.twoDecimals(it)} W" } ?: stringRes("common_not_reported")

@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.batteryintelligence
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 
 data class BatteryIntelligenceUiState(
@@ -57,7 +57,7 @@ class BatteryIntelligenceViewModel(
             val info = (batteryResult as? AppResult.Success)?.value
             Triple(entitlements, info, trackingEnabled)
         }.onEach { (entitlements, info, trackingEnabled) ->
-            val nowMillis = Clock.System.now().toEpochMilliseconds()
+            val nowMillis = currentTimeMillis()
             val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence, nowMillis)
             val expiredAtMillis = entitlements.expiresAtMillis?.takeIf { it <= nowMillis }
             when {

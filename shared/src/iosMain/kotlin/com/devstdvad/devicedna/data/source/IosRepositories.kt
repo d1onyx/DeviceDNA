@@ -74,14 +74,13 @@ import platform.Foundation.NSHomeDirectory
 import platform.Foundation.NSLocale
 import platform.Foundation.NSNumber
 import platform.Foundation.NSProcessInfo
-import platform.Foundation.NSProcessInfoThermalStateCritical
-import platform.Foundation.NSProcessInfoThermalStateFair
-import platform.Foundation.NSProcessInfoThermalStateNominal
-import platform.Foundation.NSProcessInfoThermalStateSerious
+import platform.Foundation.NSProcessInfoThermalState
 import platform.Foundation.NSTimeZone
 import platform.Foundation.currentLocale
 import platform.Foundation.localTimeZone
+import platform.Foundation.lowPowerModeEnabled
 import platform.Foundation.localeIdentifier
+import platform.Foundation.thermalState
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
 import platform.UIKit.UIScreen
@@ -91,14 +90,14 @@ import platform.darwin.integer_tVar
 import platform.darwin.mach_host_self
 import platform.darwin.mach_msg_type_number_tVar
 import platform.darwin.vm_statistics64_data_t
-import platform.posix.AF_INET
-import platform.posix.AF_INET6
-import platform.posix.NI_MAXHOST
-import platform.posix.NI_NUMERICHOST
-import platform.posix.freeifaddrs
-import platform.posix.getifaddrs
+import platform.darwin.AF_INET
+import platform.darwin.AF_INET6
+import platform.darwin.NI_MAXHOST
+import platform.darwin.NI_NUMERICHOST
+import platform.darwin.freeifaddrs
+import platform.darwin.getifaddrs
 import platform.posix.getnameinfo
-import platform.posix.ifaddrs
+import platform.darwin.ifaddrs
 import platform.posix.uname
 import platform.posix.utsname
 import kotlinx.cinterop.CPointerVar
@@ -203,7 +202,7 @@ class IosBatteryRepository : BatteryRepository {
     override suspend fun getBatterySnapshot(): AppResult<BatteryInfo> =
         runCatching { snapshot() }.fold(
             onSuccess = { AppResult.Success(it) },
-            onFailure = { AppResult.Error(AppError.Unknown) },
+            onFailure = { AppResult.Error(AppError.Unknown()) },
         )
 
     override fun observeBatteryInfo(): Flow<AppResult<BatteryInfo>> = flow {
@@ -252,7 +251,7 @@ class IosRamStorageRepository : RamRepository, StorageRepository {
     override suspend fun getRamSnapshot(): AppResult<RamInfo> =
         runCatching { ramSnapshot() }.fold(
             onSuccess = { AppResult.Success(it) },
-            onFailure = { AppResult.Error(AppError.Unknown) },
+            onFailure = { AppResult.Error(AppError.Unknown()) },
         )
 
     override fun observeRamInfo(): Flow<AppResult<RamInfo>> = flow {
@@ -307,7 +306,7 @@ class IosDeviceRepository : DeviceRepository {
         )
     }.fold(
         onSuccess = { AppResult.Success(it) },
-        onFailure = { AppResult.Error(AppError.Unknown) },
+        onFailure = { AppResult.Error(AppError.Unknown()) },
     )
 }
 
@@ -348,7 +347,7 @@ class IosSystemRepository : SystemRepository {
         )
     }.fold(
         onSuccess = { AppResult.Success(it) },
-        onFailure = { AppResult.Error(AppError.Unknown) },
+        onFailure = { AppResult.Error(AppError.Unknown()) },
     )
 }
 
@@ -410,7 +409,7 @@ class IosDisplayRepository : DisplayRepository {
         )
     }.fold(
         onSuccess = { AppResult.Success(it) },
-        onFailure = { AppResult.Error(AppError.Unknown) },
+        onFailure = { AppResult.Error(AppError.Unknown()) },
     )
 }
 
@@ -419,10 +418,10 @@ class IosDisplayRepository : DisplayRepository {
 class IosThermalRepository : ThermalRepository {
     private fun snapshot(): ThermalInfo {
         val name = when (NSProcessInfo.processInfo.thermalState) {
-            NSProcessInfoThermalStateNominal -> "Nominal"
-            NSProcessInfoThermalStateFair -> "Fair"
-            NSProcessInfoThermalStateSerious -> "Serious"
-            NSProcessInfoThermalStateCritical -> "Critical"
+            NSProcessInfoThermalState.NSProcessInfoThermalStateNominal -> "Nominal"
+            NSProcessInfoThermalState.NSProcessInfoThermalStateFair -> "Fair"
+            NSProcessInfoThermalState.NSProcessInfoThermalStateSerious -> "Serious"
+            NSProcessInfoThermalState.NSProcessInfoThermalStateCritical -> "Critical"
             else -> "Unknown"
         }
         // iOS exposes only a coarse system thermal state — surface it as a single zone
@@ -468,7 +467,7 @@ class IosSensorRepository : SensorRepository {
         SensorInfo(sensors = sensors)
     }.fold(
         onSuccess = { AppResult.Success(it) },
-        onFailure = { AppResult.Error(AppError.Unknown) },
+        onFailure = { AppResult.Error(AppError.Unknown()) },
     )
 }
 
@@ -511,7 +510,7 @@ class IosCameraRepository : CameraRepository {
         CameraInfo(cameras = cameras)
     }.fold(
         onSuccess = { AppResult.Success(it) },
-        onFailure = { AppResult.Error(AppError.Unknown) },
+        onFailure = { AppResult.Error(AppError.Unknown()) },
     )
 }
 
@@ -601,7 +600,7 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
     override suspend fun getNetworkInfo(): AppResult<NetworkInfo> =
         runCatching { buildInfo() }.fold(
             onSuccess = { AppResult.Success(it) },
-            onFailure = { AppResult.Error(AppError.Unknown) },
+            onFailure = { AppResult.Error(AppError.Unknown()) },
         )
 
     override fun observeNetworkInfo(): Flow<AppResult<NetworkInfo>> = flow {
@@ -633,5 +632,5 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
 
 class IosAppsRepository : AppsRepository {
     override suspend fun getAppList(): AppResult<AppListInfo> =
-        AppResult.Error(AppError.PlatformRestricted)
+        AppResult.Error(AppError.PlatformRestricted())
 }

@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devstdvad.devicedna.core.common.AppResult
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.ConnectionType
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
@@ -117,7 +118,7 @@ class TestsViewModel(
                         val cpu = result.value
                         add(test("Performance", "CPU topology", "${cpu.coreCount} cores, ${cpu.clusters.size} cluster(s)", cpu.coreCount > 0))
                         add(test("Performance", "CPU frequency", "${cpu.minFreqMhz}-${cpu.maxFreqMhz} MHz", cpu.maxFreqMhz > 0, warningWhenFalse = true))
-                        add(test("Performance", "CPU live load", cpu.usagePercent?.let { "%.1f%%".format(it) } ?: "Not reported", cpu.usagePercent != null, warningWhenFalse = true))
+                        add(test("Performance", "CPU live load", cpu.usagePercent?.let { "${Formatters.oneDecimal(it)}%" } ?: "Not reported", cpu.usagePercent != null, warningWhenFalse = true))
                         add(test("Performance", "GPU metadata", "${cpu.gpu.vendor} ${cpu.gpu.renderer}", cpu.gpu.renderer.isNotBlank(), warningWhenFalse = true))
                     }
                     is AppResult.Error -> add(errorTest("Performance", "CPU topology", result.cause.message))
@@ -127,7 +128,7 @@ class TestsViewModel(
                     is AppResult.Success -> {
                         val battery = result.value
                         add(test("Power", "Battery presence", "${battery.levelPercent}% ${battery.status}", battery.isPresent))
-                        add(qualityTest("Power", "Battery temperature", "%.1f°C".format(battery.temperatureCelsius), battery.temperatureCelsius < 38f, battery.temperatureCelsius < 45f))
+                        add(qualityTest("Power", "Battery temperature", "${Formatters.oneDecimal(battery.temperatureCelsius)}°C", battery.temperatureCelsius < 38f, battery.temperatureCelsius < 45f))
                         add(test("Power", "Battery voltage", "${battery.voltageMv} mV", battery.voltageMv > 0))
                         add(test("Power", "Battery health", battery.health.name, battery.health == BatteryHealth.Good, warningWhenFalse = true))
                     }
@@ -157,7 +158,7 @@ class TestsViewModel(
                     is AppResult.Success -> {
                         val display = result.value
                         add(test("Display", "Display metrics", "${display.widthPx} x ${display.heightPx}, ${display.densityDpi} dpi", display.widthPx > 0 && display.heightPx > 0))
-                        add(test("Display", "Refresh modes", display.supportedRefreshRates.joinToString(", ") { "%.0fHz".format(it) }, display.supportedRefreshRates.isNotEmpty()))
+                        add(test("Display", "Refresh modes", display.supportedRefreshRates.joinToString(", ") { "${Formatters.noDecimals(it)}Hz" }, display.supportedRefreshRates.isNotEmpty()))
                         add(test("Display", "HDR / wide color", (display.hdrCapabilities + listOfNotNull(if (display.isWideColorGamut) "Wide color" else null)).joinToString(", "), display.isHdr || display.isWideColorGamut, unavailableWhenFalse = true))
                     }
                     is AppResult.Error -> add(errorTest("Display", "Display metrics", result.cause.message))
@@ -178,7 +179,7 @@ class TestsViewModel(
                         val thermal = result.value
                         val hottest = thermal.zones.mapNotNull { it.temperatureCelsius }.maxOrNull()
                         add(test("Thermal", "Thermal zones", "${thermal.zones.size} zone(s)", thermal.zones.isNotEmpty()))
-                        add(qualityTest("Thermal", "Thermal readings", hottest?.let { "%.1f°C max".format(it) } ?: "No live temperature", hottest == null || hottest < 55f, hottest == null || hottest < 75f))
+                        add(qualityTest("Thermal", "Thermal readings", hottest?.let { "${Formatters.oneDecimal(it)}°C max" } ?: "No live temperature", hottest == null || hottest < 55f, hottest == null || hottest < 75f))
                         add(test("Thermal", "CPU thermal zone", "${thermal.zones.count { it.type == ThermalZoneType.Cpu }} CPU zone(s)", thermal.zones.any { it.type == ThermalZoneType.Cpu }, warningWhenFalse = true))
                     }
                     is AppResult.Error -> add(errorTest("Thermal", "Thermal zones", result.cause.message))
@@ -284,6 +285,6 @@ class TestsViewModel(
     private fun formatBytes(bytes: Long): String {
         if (bytes <= 0L) return "Not present"
         val gb = bytes / (1024f * 1024f * 1024f)
-        return if (gb >= 1f) "%.1f GB".format(gb) else "%.0f MB".format(bytes / (1024f * 1024f))
+        return if (gb >= 1f) "${Formatters.oneDecimal(gb)} GB" else "${Formatters.noDecimals(bytes / (1024f * 1024f))} MB"
     }
 }

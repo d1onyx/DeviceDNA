@@ -13,7 +13,7 @@ object Formatters {
     fun formatBytes(bytes: Long): String {
         if (bytes < 0) return "Unknown"
         val gb = bytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
-        if (gb >= 1.0) return "${formatDecimal1(gb)} GB"
+        if (gb >= 1.0) return "${oneDecimal(gb)} GB"
         val mb = bytes.toDouble() / (1024.0 * 1024.0)
         if (mb >= 1.0) return "${mb.toLong()} MB"
         val kb = bytes.toDouble() / 1024.0
@@ -23,7 +23,7 @@ object Formatters {
     fun formatBytesShort(bytes: Long): String {
         if (bytes < 0) return "?"
         val gb = bytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
-        if (gb >= 1.0) return "${formatDecimal1(gb)}G"
+        if (gb >= 1.0) return "${oneDecimal(gb)}G"
         val mb = bytes.toDouble() / (1024.0 * 1024.0)
         return "${mb.toLong()}M"
     }
@@ -40,7 +40,7 @@ object Formatters {
 
     fun formatFrequencyMhz(mhz: Int): String = when {
         mhz <= 0 -> "Unknown"
-        mhz >= 1000 -> "${formatDecimal2(mhz / 1000.0)} GHz"
+        mhz >= 1000 -> "${twoDecimals(mhz / 1000.0)} GHz"
         else -> "$mhz MHz"
     }
 
@@ -48,12 +48,24 @@ object Formatters {
 
     // ── Temperature ───────────────────────────────────────────────────────
 
-    fun formatCelsius(celsius: Float): String = "${formatDecimal1(celsius.toDouble())}°C"
+    fun formatCelsius(celsius: Float): String = "${oneDecimal(celsius)}°C"
 
     fun formatFahrenheit(celsius: Float): String {
         val f = celsius * 9.0 / 5.0 + 32.0
-        return "${formatDecimal1(f)}°F"
+        return "${oneDecimal(f)}°F"
     }
+
+    fun noDecimals(value: Float): String = noDecimals(value.toDouble())
+
+    fun noDecimals(value: Double): String = kotlin.math.round(value).toLong().toString()
+
+    fun oneDecimal(value: Float): String = oneDecimal(value.toDouble())
+
+    fun oneDecimal(value: Double): String = formatFixed(value, decimals = 1)
+
+    fun twoDecimals(value: Float): String = twoDecimals(value.toDouble())
+
+    fun twoDecimals(value: Double): String = formatFixed(value, decimals = 2)
 
     // ── Duration ──────────────────────────────────────────────────────────
 
@@ -68,20 +80,20 @@ object Formatters {
 
     // ── Internal helpers ──────────────────────────────────────────────────
 
-    private fun formatDecimal1(value: Double): String {
+    private fun formatFixed(value: Double, decimals: Int): String {
+        val scale = when (decimals) {
+            1 -> 10.0
+            2 -> 100.0
+            else -> 1.0
+        }
+        val rounded = kotlin.math.round(value * scale) / scale
+        if (decimals == 0) return rounded.toLong().toString()
         val sign = if (value < 0) "-" else ""
-        val abs = abs(value)
+        val abs = abs(rounded)
         val intPart = abs.toLong()
-        val fracPart = ((abs - intPart) * 10).toLong()
-        return "$sign$intPart.$fracPart"
-    }
-
-    private fun formatDecimal2(value: Double): String {
-        val sign = if (value < 0) "-" else ""
-        val abs = abs(value)
-        val intPart = abs.toLong()
-        val fracPart = ((abs - intPart) * 100).toLong()
-        val fracStr = if (fracPart < 10) "0$fracPart" else "$fracPart"
+        val fractionalScale = scale.toLong()
+        val fracPart = kotlin.math.round((abs - intPart) * scale).toLong()
+        val fracStr = fracPart.toString().padStart(fractionalScale.toString().length - 1, '0')
         return "$sign$intPart.$fracStr"
     }
 }

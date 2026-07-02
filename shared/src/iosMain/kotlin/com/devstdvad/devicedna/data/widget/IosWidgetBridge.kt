@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.data.widget
 
 import com.devstdvad.devicedna.core.common.getOrNull
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import com.devstdvad.devicedna.di.APP_GROUP_ID
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
@@ -10,16 +11,13 @@ import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import platform.Foundation.NSProcessInfo
-import platform.Foundation.NSProcessInfoThermalStateCritical
-import platform.Foundation.NSProcessInfoThermalStateFair
-import platform.Foundation.NSProcessInfoThermalStateNominal
-import platform.Foundation.NSProcessInfoThermalStateSerious
+import platform.Foundation.NSProcessInfoThermalState
 import platform.Foundation.NSUserDefaults
+import platform.Foundation.thermalState
 
 /**
  * Flat, Codable-friendly payload the Swift WidgetKit extension decodes from the App Group.
@@ -82,7 +80,7 @@ class IosWidgetBridge(
             health = health,
             thermalStatus = thermalStatusValue(),
             designCapacityMah = null,
-            nowMillis = Clock.System.now().toEpochMilliseconds(),
+            nowMillis = currentTimeMillis(),
         )
         publish(snapshot)
         return snapshot
@@ -110,10 +108,10 @@ class IosWidgetBridge(
     }
 
     private fun thermalStatusValue(): Int = when (NSProcessInfo.processInfo.thermalState) {
-        NSProcessInfoThermalStateNominal -> 0
-        NSProcessInfoThermalStateFair -> 1
-        NSProcessInfoThermalStateSerious -> 2
-        NSProcessInfoThermalStateCritical -> 3
+        NSProcessInfoThermalState.NSProcessInfoThermalStateNominal -> 0
+        NSProcessInfoThermalState.NSProcessInfoThermalStateFair -> 1
+        NSProcessInfoThermalState.NSProcessInfoThermalStateSerious -> 2
+        NSProcessInfoThermalState.NSProcessInfoThermalStateCritical -> 3
         else -> -1
     }
 

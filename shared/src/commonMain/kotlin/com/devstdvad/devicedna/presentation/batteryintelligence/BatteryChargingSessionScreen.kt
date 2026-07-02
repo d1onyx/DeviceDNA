@@ -37,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.InfoRow
@@ -46,11 +48,10 @@ import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.koinInject
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +76,7 @@ fun BatteryChargingSessionScreen(
     val lastCharging = chargingSnapshots.lastOrNull()
     val disconnected = sessionEndMillis != null
     val watts = chargingSnapshots.mapNotNull { it.estimatedWatts }.filter { it > 0f }
-    val zoneId = ZoneId.systemDefault()
+    val timeZone = TimeZone.currentSystemDefault()
 
     Column(
         modifier = Modifier
@@ -92,7 +93,7 @@ fun BatteryChargingSessionScreen(
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = sessionRangeLabel(sessionStartMillis, sessionEndMillis, zoneId),
+                        text = sessionRangeLabel(sessionStartMillis, sessionEndMillis, timeZone),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textMuted,
                     )
@@ -156,9 +157,9 @@ fun BatteryChargingSessionScreen(
 
             item {
                 SectionCard {
-                    InfoRow(stringRes("battery_session_started"), first?.formatTime(zoneId) ?: stringRes("common_not_reported"), copyable = false)
-                    InfoRow(stringRes("battery_session_ended"), sessionEndMillis?.formatTime(zoneId) ?: stringRes("battery_session_ongoing"), copyable = false)
-                    InfoRow(stringRes("battery_session_duration"), formatDuration((sessionEndMillis ?: System.currentTimeMillis()) - sessionStartMillis), copyable = false)
+                    InfoRow(stringRes("battery_session_started"), first?.formatTime(timeZone) ?: stringRes("common_not_reported"), copyable = false)
+                    InfoRow(stringRes("battery_session_ended"), sessionEndMillis?.formatTime(timeZone) ?: stringRes("battery_session_ongoing"), copyable = false)
+                    InfoRow(stringRes("battery_session_duration"), formatDuration((sessionEndMillis ?: currentTimeMillis()) - sessionStartMillis), copyable = false)
                     InfoRow(stringRes("battery_session_level"), if (first != null && lastCharging != null) "${first.levelPercent}% → ${lastCharging.levelPercent}% (${formatDelta(lastCharging.levelPercent - first.levelPercent)})" else stringRes("common_not_reported"), copyable = false)
                     InfoRow(stringRes("battery_intelligence_average_speed"), watts.averageOrNull().formatWatts(), copyable = false)
                     InfoRow(stringRes("battery_intelligence_peak_speed"), watts.maxOrNull().formatWatts(), copyable = false)
@@ -192,7 +193,7 @@ fun BatteryChargingSessionScreen(
                         )
                     } else {
                         sessionSnapshots.forEachIndexed { index, snapshot ->
-                            SessionChangeRow(snapshot = snapshot, settings = settings, zoneId = zoneId)
+                            SessionChangeRow(snapshot = snapshot, settings = settings, timeZone = timeZone)
                             if (index != sessionSnapshots.lastIndex) Spacer(Modifier.height(8.dp))
                         }
                     }
@@ -206,7 +207,7 @@ fun BatteryChargingSessionScreen(
 private fun SessionChangeRow(
     snapshot: BatteryHistorySnapshot,
     settings: UserSettings,
-    zoneId: ZoneId,
+    timeZone: TimeZone,
 ) {
     val colors = AppTheme.colors
     val charging = snapshot.isCharging || snapshot.isPlugged
@@ -236,7 +237,7 @@ private fun SessionChangeRow(
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = snapshot.formatTime(zoneId),
+                text = snapshot.formatTime(timeZone),
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textPrimary,
             )
@@ -258,15 +259,17 @@ private fun SessionChangeRow(
     }
 }
 
-private fun BatteryHistorySnapshot.formatTime(zoneId: ZoneId): String =
-    DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()).format(Instant.ofEpochMilli(timestampMillis).atZone(zoneId))
+private fun BatteryHistorySnapshot.formatTime(timeZone: TimeZone): String =
+    timestampMillis.formatTime(timeZone)
 
-private fun Long.formatTime(zoneId: ZoneId): String =
-    DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()).format(Instant.ofEpochMilli(this).atZone(zoneId))
+private fun Long.formatTime(timeZone: TimeZone): String {
+    val local = Instant.fromEpochMilliseconds(this).toLocalDateTime(timeZone)
+    return "${local.hour.twoDigits()}:${local.minute.twoDigits()}"
+}
 
-private fun sessionRangeLabel(startMillis: Long, endMillis: Long?, zoneId: ZoneId): String {
-    val date = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault()).format(Instant.ofEpochMilli(startMillis).atZone(zoneId))
-    return "$date ${startMillis.formatTime(zoneId)} - ${endMillis?.formatTime(zoneId) ?: "ongoing"}"
+private fun sessionRangeLabel(startMillis: Long, endMillis: Long?, timeZone: TimeZone): String {
+    val date = Instant.fromEpochMilliseconds(startMillis).toLocalDateTime(timeZone).date
+    return "${date.monthShortName()} ${date.dayOfMonth} ${startMillis.formatTime(timeZone)} - ${endMillis?.formatTime(timeZone) ?: "ongoing"}"
 }
 
 private fun formatDuration(millis: Long): String {
@@ -284,4 +287,10 @@ private fun List<Float>.averageOrNull(): Float? =
 
 @Composable
 private fun Float?.formatWatts(): String =
-    this?.let { "%.2f W".format(it) } ?: stringRes("common_not_reported")
+    this?.let { "${Formatters.twoDecimals(it)} W" } ?: stringRes("common_not_reported")
+
+private fun kotlinx.datetime.LocalDate.monthShortName(): String = MONTHS[monthNumber - 1]
+
+private fun Int.twoDigits(): String = if (this < 10) "0$this" else toString()
+
+private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")

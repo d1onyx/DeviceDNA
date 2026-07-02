@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.domain.health
 
 import com.devstdvad.devicedna.core.common.Formatters
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import com.devstdvad.devicedna.domain.model.BatteryStatus
@@ -20,7 +21,7 @@ import com.devstdvad.devicedna.domain.model.SystemInfo
 import com.devstdvad.devicedna.domain.model.ThermalInfo
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
 import com.devstdvad.devicedna.domain.repository.HealthRepository
-import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -228,7 +229,7 @@ class HealthAnalyzer : HealthRepository {
         if (system != null) {
             val monthsOld = runCatching {
                 val patchDate = LocalDate.parse(system.securityPatchLevel)
-                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val today = Instant.fromEpochMilliseconds(currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
                 val months = (today.year - patchDate.year) * 12L + (today.monthNumber - patchDate.monthNumber)
                 months.coerceAtLeast(0L)
             }.getOrNull()

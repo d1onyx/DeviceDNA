@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.AccentCard
 import com.devstdvad.devicedna.core.design.component.InfoRow
@@ -59,7 +60,7 @@ fun DisplayScreen(
                             color = colors.textPrimary,
                         )
                         Text(
-                            text = "${info.displayType} · %.1f\"".format(info.physicalSizeInches),
+                            text = "${info.displayType} · ${Formatters.oneDecimal(info.physicalSizeInches)}\"",
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.displayColor,
                         )
@@ -89,12 +90,12 @@ fun DisplayScreen(
                 Text("Specs", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 InfoRow("Resolution", "${info.widthPx} × ${info.heightPx} px", copyable = false)
                 InfoRow("Density", "${info.densityDpi} dpi (${info.densityBucket})", copyable = false)
-                InfoRow("Physical Size", "%.1f inches".format(info.physicalSizeInches), copyable = false)
+                InfoRow("Physical Size", "${Formatters.oneDecimal(info.physicalSizeInches)} inches", copyable = false)
                 InfoRow("Type", info.displayType, copyable = false)
                 InfoRow("Orientation", info.orientation, copyable = false)
                 InfoRow("Wide Color Gamut", if (info.isWideColorGamut) "Yes" else "No", copyable = false)
                 InfoRow("HDR", if (info.isHdr) "Supported" else "Not supported", copyable = false)
-                InfoRow("Font Scale", "%.2f×".format(info.fontScale), copyable = false, showDivider = false)
+                InfoRow("Font Scale", "${Formatters.twoDecimals(info.fontScale)}×", copyable = false, showDivider = false)
             }
         }
 

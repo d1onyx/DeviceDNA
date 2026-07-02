@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.design.AppTheme
 
 @Composable
@@ -50,7 +51,7 @@ fun ThermalTile(
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.textMuted, maxLines = 1)
         Spacer(Modifier.height(5.dp))
         Text(
-            text = if (tempCelsius != null) temperatureText ?: "%.1f°".format(tempCelsius) else "—",
+            text = if (tempCelsius != null) temperatureText ?: "${Formatters.oneDecimal(tempCelsius)}°" else "—",
             style = MaterialTheme.typography.headlineSmall,
             color = statusColor,
         )

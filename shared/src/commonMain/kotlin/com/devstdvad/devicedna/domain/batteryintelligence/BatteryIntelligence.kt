@@ -1,11 +1,11 @@
 package com.devstdvad.devicedna.domain.batteryintelligence
 
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistorySnapshot
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import com.devstdvad.devicedna.domain.model.BatteryStatus
 import com.devstdvad.devicedna.domain.model.ChargeSource
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -135,7 +135,7 @@ fun BatteryInfo.toBatteryIntelligenceReport(
     selectedDayStartMillis: Long,
     selectedHour: Int,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    nowMillis: Long = currentTimeMillis(),
 ): BatteryIntelligenceReport {
     val healthScore = estimateHealthScore()
     val degradationRiskPercent = (100 - healthScore).coerceIn(4, 92)
@@ -187,12 +187,12 @@ fun calculateAccumulatedChargePercent(history: List<BatteryHistorySnapshot>): In
 
 fun todayStartMillis(
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    nowMillis: Long = currentTimeMillis(),
 ): Long = today(timeZone, nowMillis).startMillis(timeZone)
 
 fun currentHour(
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    nowMillis: Long = currentTimeMillis(),
 ): Int = nowMillis.toLocalDateTime(timeZone).hour
 
 fun previousDayStartMillis(dayStartMillis: Long, timeZone: TimeZone): Long =
@@ -203,7 +203,7 @@ fun previousDayStartMillis(dayStartMillis: Long, timeZone: TimeZone): Long =
 fun nextDayStartMillis(
     dayStartMillis: Long,
     timeZone: TimeZone,
-    nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    nowMillis: Long = currentTimeMillis(),
 ): Long {
     val currentDate = dayStartMillis.toLocalDate(timeZone)
     val today = today(timeZone, nowMillis)
@@ -215,7 +215,7 @@ fun buildChargingSessions(
     history: List<BatteryHistorySnapshot>,
     dayStartMillis: Long? = null,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    nowMillis: Long = currentTimeMillis(),
 ): List<ChargingSessionSummary> {
     val scoped = if (dayStartMillis == null) {
         history.sortedBy { it.timestampMillis }
@@ -249,7 +249,7 @@ fun buildHourlyTimeline(
     history: List<BatteryHistorySnapshot>,
     dayStartMillis: Long,
     timeZone: TimeZone,
-    nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    nowMillis: Long = currentTimeMillis(),
 ): List<ChargingHourSlot> {
     val dayStart = dayStartMillis.toLocalDate(timeZone).startMillis(timeZone)
     val dayEnd = dayStartMillis.toLocalDate(timeZone)

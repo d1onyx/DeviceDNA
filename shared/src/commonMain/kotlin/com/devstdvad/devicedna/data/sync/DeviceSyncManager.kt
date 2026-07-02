@@ -1,9 +1,9 @@
 package com.devstdvad.devicedna.data.sync
 
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.sync.model.DeviceSyncPayload
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.datetime.Clock
 
 sealed interface SyncOutcome {
     data object NotSignedIn : SyncOutcome
@@ -31,7 +31,7 @@ class DeviceSyncManager(
     private val snapshotBuilder: DeviceSnapshotProvider,
     private val api: SyncApi,
     private val stateStore: SyncStateStore,
-    private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    private val now: () -> Long = { currentTimeMillis() },
 ) {
     suspend fun ensureAccountExists(): AccountCheckOutcome {
         if (authRepository.uid == null) return AccountCheckOutcome.NotSignedIn

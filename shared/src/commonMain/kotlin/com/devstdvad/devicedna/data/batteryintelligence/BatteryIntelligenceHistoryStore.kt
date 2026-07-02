@@ -1,8 +1,8 @@
 package com.devstdvad.devicedna.data.batteryintelligence
 
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import kotlinx.coroutines.flow.Flow
-import kotlinx.datetime.Clock
 
 /**
  * Persistent battery-history store, platform-agnostic. Implemented per platform:
@@ -18,11 +18,11 @@ interface BatteryIntelligenceHistoryStore {
 
     suspend fun record(
         info: BatteryInfo,
-        timestampMillis: Long = Clock.System.now().toEpochMilliseconds(),
+        timestampMillis: Long = currentTimeMillis(),
     )
 
     suspend fun markRecordingPaused(
-        timestampMillis: Long = Clock.System.now().toEpochMilliseconds(),
+        timestampMillis: Long = currentTimeMillis(),
         removeSnapshotsAfterMarker: Boolean = false,
     )
 

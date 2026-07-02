@@ -1,11 +1,11 @@
 package com.devstdvad.devicedna.data.subscription
 
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.sync.SyncApi
 import com.devstdvad.devicedna.data.sync.model.BackendSubscription
 import com.devstdvad.devicedna.data.sync.model.GooglePlaySubscriptionVerificationPayload
 import com.devstdvad.devicedna.data.sync.model.SubscriptionViewResponse
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 class BackendSubscriptionVerifier(
@@ -97,7 +97,7 @@ class BackendSubscriptionVerifier(
         PremiumEntitlements(
             userId = userId,
             features = PremiumFeature.entries.toSet(),
-            issuedAtMillis = Clock.System.now().toEpochMilliseconds(),
+            issuedAtMillis = currentTimeMillis(),
             expiresAtMillis = expiresAt?.let { Instant.parse(it).toEpochMilliseconds() },
             source = source,
             productId = productId,

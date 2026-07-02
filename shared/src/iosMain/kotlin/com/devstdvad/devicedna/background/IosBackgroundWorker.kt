@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.background
 
 import com.devstdvad.devicedna.core.common.getOrNull
 import com.devstdvad.devicedna.data.alerts.IosSmartAlertNotifier
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.data.widget.IosWidgetBridge
@@ -12,7 +13,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.datetime.Clock
 
 /**
  * The work a BGAppRefreshTask window executes — the iOS counterpart of Android's
@@ -36,7 +36,7 @@ class IosBackgroundWorker(
         scope.launch {
             val success = withTimeoutOrNull(20_000L) {
                 runCatching {
-                    val nowMillis = Clock.System.now().toEpochMilliseconds()
+                    val nowMillis = currentTimeMillis()
                     val settings = settingsStore.settings.first()
 
                     // 1. Battery-history sample (honours the tracking toggle inside the store).

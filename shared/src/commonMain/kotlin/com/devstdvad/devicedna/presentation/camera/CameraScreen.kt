@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.AccentCard
 import com.devstdvad.devicedna.core.design.component.InfoRow
@@ -96,7 +97,7 @@ private fun CameraCard(cam: CameraDetails, label: String) {
                 Text(label, style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = if (cam.megapixels > 0) "%.1f MP".format(cam.megapixels) else "Unknown MP",
+                    text = if (cam.megapixels > 0) "${Formatters.oneDecimal(cam.megapixels)} MP" else "Unknown MP",
                     style = MaterialTheme.typography.headlineSmall,
                     color = colors.cameraColor,
                 )
@@ -106,10 +107,10 @@ private fun CameraCard(cam: CameraDetails, label: String) {
                         SpecBadge("${cam.resolutionWidth}×${cam.resolutionHeight}")
                     }
                     if (cam.apertures.isNotEmpty()) {
-                        SpecBadge("f/${cam.apertures.first().let { "%.1f".format(it) }}")
+                        SpecBadge("f/${Formatters.oneDecimal(cam.apertures.first())}")
                     }
                     if (cam.focalLengths.isNotEmpty()) {
-                        SpecBadge("${cam.focalLengths.first().let { "%.0f".format(it) }}mm")
+                        SpecBadge("${Formatters.noDecimals(cam.focalLengths.first())}mm")
                     }
                 }
             }
@@ -129,10 +130,10 @@ private fun CameraCard(cam: CameraDetails, label: String) {
         }
 
         Spacer(Modifier.height(12.dp))
-        InfoRow("Megapixels", "%.1f MP".format(cam.megapixels), copyable = false)
+        InfoRow("Megapixels", "${Formatters.oneDecimal(cam.megapixels)} MP", copyable = false)
         InfoRow("Resolution", "${cam.resolutionWidth} × ${cam.resolutionHeight}", copyable = false)
-        if (cam.focalLengths.isNotEmpty()) InfoRow("Focal Length", cam.focalLengths.joinToString(", ") { "%.1f mm".format(it) }, copyable = false)
-        if (cam.apertures.isNotEmpty()) InfoRow("Aperture", cam.apertures.joinToString(", ") { "f/%.1f".format(it) }, copyable = false)
+        if (cam.focalLengths.isNotEmpty()) InfoRow("Focal Length", cam.focalLengths.joinToString(", ") { "${Formatters.oneDecimal(it)} mm" }, copyable = false)
+        if (cam.apertures.isNotEmpty()) InfoRow("Aperture", cam.apertures.joinToString(", ") { "f/${Formatters.oneDecimal(it)}" }, copyable = false)
         InfoRow("Flash", if (cam.hasFlash) "Yes" else "No", copyable = false)
         InfoRow("OIS", if (cam.hasOis) "Yes" else "No", copyable = false, showDivider = false)
     }

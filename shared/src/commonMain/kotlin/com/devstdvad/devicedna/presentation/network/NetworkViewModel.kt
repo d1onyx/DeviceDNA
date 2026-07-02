@@ -8,7 +8,6 @@ import com.devstdvad.devicedna.domain.model.NetworkInfo
 import com.devstdvad.devicedna.domain.usecase.GetConnectivityInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetNetworkInfoUseCase
 import kotlinx.coroutines.async
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,9 +15,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 
 data class NetworkState(
     val isLoading: Boolean = true,
@@ -34,6 +34,12 @@ class NetworkViewModel(
     private val getNetwork: GetNetworkInfoUseCase,
     private val getConnectivity: GetConnectivityInfoUseCase,
 ) : ViewModel() {
+    private val publicIpClient = HttpClient {
+        install(HttpTimeout) {
+            requestTimeoutMillis = 4_000
+            connectTimeoutMillis = 4_000
+        }
+    }
     private val _state = MutableStateFlow(NetworkState())
     val state: StateFlow<NetworkState> = _state.asStateFlow()
 
@@ -60,20 +66,10 @@ class NetworkViewModel(
     private fun loadPublicIp() {
         viewModelScope.launch {
             _state.update { it.copy(publicIpLoading = true, publicIpError = null) }
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    val connection = (URL(PUBLIC_IP_URL).openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 4_000
-                        readTimeout = 4_000
-                    }
-                    try {
-                        connection.inputStream.bufferedReader().use { it.readText().trim() }
-                            .takeIf { it.isNotBlank() }
-                            ?: error("Public IP response was empty")
-                    } finally {
-                        connection.disconnect()
-                    }
-                }
+            val result = runCatching {
+                publicIpClient.get(PUBLIC_IP_URL).bodyAsText().trim()
+                    .takeIf { it.isNotBlank() }
+                    ?: error("Public IP response was empty")
             }
             _state.update {
                 result.fold(
@@ -88,6 +84,11 @@ class NetworkViewModel(
                 )
             }
         }
+    }
+
+    override fun onCleared() {
+        publicIpClient.close()
+        super.onCleared()
     }
 
     private companion object {

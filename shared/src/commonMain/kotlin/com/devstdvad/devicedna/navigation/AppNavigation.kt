@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -371,8 +372,8 @@ fun AppNavigation(
                         navArgument(NavRoutes.SESSION_END_ARG) { type = NavType.LongType },
                     ),
                 ) { entry ->
-                    val startMillis = entry.arguments?.getLong(NavRoutes.SESSION_START_ARG) ?: 0L
-                    val rawEndMillis = entry.arguments?.getLong(NavRoutes.SESSION_END_ARG) ?: -1L
+                    val startMillis = entry.longArgument(NavRoutes.SESSION_START_ARG)
+                    val rawEndMillis = entry.longArgument(NavRoutes.SESSION_END_ARG, defaultValue = -1L)
                     BatteryChargingSessionScreen(
                         sessionStartMillis = startMillis,
                         sessionEndMillis = rawEndMillis.takeIf { it >= 0L },
@@ -387,7 +388,7 @@ fun AppNavigation(
                         navArgument(NavRoutes.DAY_START_ARG) { type = NavType.LongType },
                     ),
                 ) { entry ->
-                    val dayStartMillis = entry.arguments?.getLong(NavRoutes.DAY_START_ARG) ?: 0L
+                    val dayStartMillis = entry.longArgument(NavRoutes.DAY_START_ARG)
                     BatteryChargingPeriodsScreen(
                         dayStartMillis = dayStartMillis,
                         settings = settings,
@@ -404,6 +405,9 @@ fun AppNavigation(
         }
     }
 }
+
+private fun NavBackStackEntry.longArgument(key: String, defaultValue: Long = 0L): Long =
+    arguments?.let { NavType.LongType.get(it, key) } ?: defaultValue
 
 @Composable
 private fun FloatingPillNavBar(
