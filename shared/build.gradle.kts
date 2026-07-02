@@ -29,6 +29,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "shared"
             isStatic = true
+            export(libs.jetbrains.lifecycle.viewmodel.compose)
         }
     }
 
@@ -53,7 +54,7 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.compose.components.ui.tooling.preview)
             implementation(libs.compose.material.icons.extended)
-            implementation(libs.jetbrains.lifecycle.viewmodel.compose)
+            api(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.jetbrains.navigation.compose)
             // Koin Multiplatform for shared ViewModels + koinViewModel() in commonMain
             api(libs.koin.core)
