@@ -90,12 +90,12 @@ import platform.darwin.integer_tVar
 import platform.darwin.mach_host_self
 import platform.darwin.mach_msg_type_number_tVar
 import platform.darwin.vm_statistics64_data_t
-import platform.darwin.AF_INET
-import platform.darwin.AF_INET6
-import platform.darwin.NI_MAXHOST
-import platform.darwin.NI_NUMERICHOST
 import platform.darwin.freeifaddrs
 import platform.darwin.getifaddrs
+import platform.posix.AF_INET
+import platform.posix.AF_INET6
+import platform.posix.NI_MAXHOST
+import platform.posix.NI_NUMERICHOST
 import platform.posix.getnameinfo
 import platform.darwin.ifaddrs
 import platform.posix.uname
