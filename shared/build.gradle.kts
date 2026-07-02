@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.compose)
 }
 
 kotlin {
@@ -38,6 +39,31 @@ kotlin {
             api(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+
+            // Compose Multiplatform UI (shared @Composable screens).
+            // Applied via explicit coordinates (not the org.jetbrains.compose plugin) because
+            // that plugin's Android integration is incompatible with AGP 9.x's
+            // com.android.kotlin.multiplatform.library variant API. The compose-compiler
+            // plugin (kotlin.compose) still handles @Composable compilation.
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.components.ui.tooling.preview)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.jetbrains.lifecycle.viewmodel.compose)
+            implementation(libs.jetbrains.navigation.compose)
+            // Koin Multiplatform for shared ViewModels + koinViewModel() in commonMain
+            api(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+        }
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

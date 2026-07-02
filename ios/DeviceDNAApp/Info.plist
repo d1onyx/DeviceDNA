@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- ── Identity (Xcode substitutes build settings) ─────────────────── -->
+	<key>CFBundleDisplayName</key>
+	<string>DeviceDNA</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>UILaunchScreen</key>
+	<dict/>
+
+	<!-- ── Deep links: widgets and notifications open devicedna://open/<route> ── -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.devstdvad.devicedna.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>devicedna</string>
+				<!-- Google Sign-In callback: paste REVERSED_CLIENT_ID from GoogleService-Info.plist -->
+				<string>REVERSED_CLIENT_ID_PLACEHOLDER</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- ── Background refresh (battery history, widgets, smart alerts) ─── -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.devstdvad.devicedna.refresh</string>
+	</array>
+
+	<!-- ── AdMob ─────────────────────────────────────────────────────────
+	     Test application id — replace with the production GADApplicationIdentifier
+	     from the AdMob console before submitting. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+
+	<!-- ATT: shown by UMP only when consent requires tracking. Reviewers check that
+	     this string honestly explains the purpose. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Your data will be used to deliver personalized ads and to measure advertising performance.</string>
+
+	<!-- SKAdNetwork: privacy-preserving ad attribution without IDFA (Google's list;
+	     the full current set ships with the Google Mobile Ads SDK documentation). -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>4fzdc2evr5.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>2fnua5tdw4.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>ydx93a7ass.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>p78axxw29g.skadnetwork</string>
+		</dict>
+	</array>
+
+	<!-- ── Usage descriptions ────────────────────────────────────────────
+	     The app never captures photos/video or motion data; it only reads hardware
+	     capability metadata. The strings still ship because the frameworks are linked
+	     (AVFoundation camera enumeration, CoreMotion availability checks) and honest
+	     descriptions preempt ITMS-90683 upload rejections. -->
+	<key>NSCameraUsageDescription</key>
+	<string>DeviceDNA reads camera hardware specifications (lens count, flash, stabilization) for the diagnostics report. It never captures photos or video.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>DeviceDNA checks which motion sensors (accelerometer, gyroscope, barometer, pedometer) are present for the diagnostics report. It never records motion data.</string>
+
+	<!-- ── Export compliance: HTTPS only (exempt) — skips the encryption questionnaire. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
+</plist>

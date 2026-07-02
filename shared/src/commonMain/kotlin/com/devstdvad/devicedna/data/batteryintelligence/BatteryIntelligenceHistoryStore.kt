@@ -1,0 +1,31 @@
+package com.devstdvad.devicedna.data.batteryintelligence
+
+import com.devstdvad.devicedna.domain.model.BatteryInfo
+import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.Clock
+
+/**
+ * Persistent battery-history store, platform-agnostic. Implemented per platform:
+ *   • Android → AndroidBatteryIntelligenceHistoryStore (DataStore)
+ *   • iOS     → NSUserDefaults/file-backed, later
+ * Shared ViewModels observe [snapshots] and feed them into the shared BatteryIntelligence analytics.
+ */
+interface BatteryIntelligenceHistoryStore {
+    val snapshots: Flow<List<BatteryHistorySnapshot>>
+    val chargingTrackingEnabled: Flow<Boolean>
+
+    suspend fun setChargingTrackingEnabled(value: Boolean)
+
+    suspend fun record(
+        info: BatteryInfo,
+        timestampMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    )
+
+    suspend fun markRecordingPaused(
+        timestampMillis: Long = Clock.System.now().toEpochMilliseconds(),
+        removeSnapshotsAfterMarker: Boolean = false,
+    )
+
+    /** Merge imported snapshots (dedup by timestamp), returning how many were added. */
+    suspend fun importSnapshots(imported: List<BatteryHistorySnapshot>): Int
+}

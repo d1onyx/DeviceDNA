@@ -3,7 +3,7 @@ package com.devstdvad.devicedna.widget
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.devstdvad.devicedna.data.settings.SettingsStore
+import com.devstdvad.devicedna.data.settings.AndroidSettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,7 +33,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val backgroundMonitoringEnabled = runCatching {
-                    SettingsStore(appContext).settings.first().backgroundMonitoring
+                    AndroidSettingsStore(appContext).settings.first().backgroundMonitoring
                 }.getOrDefault(false)
 
                 if (backgroundMonitoringEnabled) {

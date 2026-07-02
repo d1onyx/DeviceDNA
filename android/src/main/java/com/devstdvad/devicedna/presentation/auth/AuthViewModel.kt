@@ -12,18 +12,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class AuthUiState(
-    val user: AuthUser? = null,
-    val isConfigured: Boolean = false,
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    // True until Firebase reports the first auth state — avoids flashing the
-    // sign-in screen while the session is still being restored.
-    val isInitializing: Boolean = true,
-) {
-    val isSignedIn: Boolean get() = user != null
-}
-
 class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private val isLoading = MutableStateFlow(false)

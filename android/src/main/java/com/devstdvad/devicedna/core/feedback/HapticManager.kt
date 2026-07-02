@@ -6,7 +6,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
-class HapticManager(context: Context) {
+class AndroidHapticManager(context: Context) : HapticManager {
 
     private val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         context.getSystemService(VibratorManager::class.java)?.defaultVibrator
@@ -15,11 +15,11 @@ class HapticManager(context: Context) {
         context.getSystemService(Vibrator::class.java)
     }
 
-    fun navTap() = oneShot(6L, 60)
-    fun toggle() = oneShot(10L, 90)
-    fun light() = oneShot(5L, 50)
-    fun confirm() = waveform(longArrayOf(0, 8, 60, 12), intArrayOf(0, 100, 0, 70))
-    fun error() = waveform(longArrayOf(0, 15, 80, 15), intArrayOf(0, 200, 0, 180))
+    override fun navTap() = oneShot(6L, 60)
+    override fun toggle() = oneShot(10L, 90)
+    override fun light() = oneShot(5L, 50)
+    override fun confirm() = waveform(longArrayOf(0, 8, 60, 12), intArrayOf(0, 100, 0, 70))
+    override fun error() = waveform(longArrayOf(0, 15, 80, 15), intArrayOf(0, 200, 0, 180))
 
     private fun oneShot(ms: Long, amplitude: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

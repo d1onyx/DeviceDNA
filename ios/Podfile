@@ -2,8 +2,17 @@ platform :ios, '16.0'
 
 target 'DeviceDNAApp' do
   use_frameworks!
+
+  # Auth
   pod 'FirebaseCore'
   pod 'FirebaseAuth'
   pod 'GoogleSignIn'
-  pod 'GoogleSignInSwift'
+
+  # Ads (AdMob + consent management for EEA/UK + ATT)
+  pod 'Google-Mobile-Ads-SDK'
+  pod 'GoogleUserMessagingPlatform'
 end
+
+# The DeviceDNAWidgets extension target uses only system frameworks (WidgetKit/SwiftUI) —
+# no pods required. The shared Kotlin framework is embedded via the
+# `embedAndSignAppleFrameworkForXcode` Run Script build phase, not CocoaPods.

@@ -88,6 +88,12 @@ class MainActivity : ComponentActivity() {
                 LocalConfiguration provides localizedConfiguration,
             ) {
                 AppTheme(darkTheme = darkTheme) {
+                    val interstitialManager = com.devstdvad.devicedna.ads.rememberInterstitialAdManager(
+                        adUnitId = BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID,
+                    )
+                    val interstitial = remember(interstitialManager) {
+                        com.devstdvad.devicedna.ads.AndroidInterstitialAds(interstitialManager)
+                    }
                     AppNavigation(
                         settings = settings,
                         authState = authState,
@@ -101,6 +107,20 @@ class MainActivity : ComponentActivity() {
                         },
                         onOnboardingComplete = {
                             scope.launch { settingsStore.setOnboardingComplete(true) }
+                        },
+                        interstitial = interstitial,
+                        topBanner = { enabled ->
+                            com.devstdvad.devicedna.ads.AdMobTopBanner(
+                                adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID,
+                                enabled = enabled,
+                            )
+                        },
+                        widgetsContent = { onBack, onSubscribe, padding ->
+                            com.devstdvad.devicedna.presentation.widgets.WidgetsScreen(
+                                onBackClick = onBack,
+                                onSubscribeClick = onSubscribe,
+                                contentPadding = padding,
+                            )
                         },
                     )
                 }

@@ -1,0 +1,73 @@
+# XcodeGen spec — generates DeviceDNAApp.xcodeproj reproducibly (locally and on CI).
+#   brew install xcodegen && cd ios && xcodegen generate && pod install
+# The Kotlin Multiplatform framework is compiled by the pre-build script phase below;
+# CocoaPods only supplies Firebase/GoogleSignIn/AdMob.
+
+name: DeviceDNAApp
+
+options:
+  bundleIdPrefix: com.devstdvad
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1"
+
+targets:
+  DeviceDNAApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: DeviceDNAApp
+        excludes:
+          - "Info.plist"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.devstdvad.devicedna
+        INFOPLIST_FILE: DeviceDNAApp/Info.plist
+        CODE_SIGN_ENTITLEMENTS: DeviceDNAApp/DeviceDNAApp.entitlements
+        # Kotlin Multiplatform framework produced by :shared:embedAndSignAppleFrameworkForXcode
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "shared"
+    preBuildScripts:
+      - name: Build Kotlin shared framework
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode
+        basedOnDependencyAnalysis: false
+    dependencies:
+      - target: DeviceDNAWidgets
+        embed: true
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
+
+  DeviceDNAWidgets:
+    type: app-extension
+    platform: iOS
+    # containerBackground(for:) in the widget views requires iOS 17.
+    deploymentTarget: "17.0"
+    sources:
+      - path: DeviceDNAWidgets
+    info:
+      path: DeviceDNAWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: DeviceDNA Widgets
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.devstdvad.devicedna.widgets
+        CODE_SIGN_ENTITLEMENTS: DeviceDNAWidgets/DeviceDNAWidgets.entitlements
+        SKIP_INSTALL: true

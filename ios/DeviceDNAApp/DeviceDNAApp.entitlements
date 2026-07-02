@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Shared container: battery history + widget snapshot (app ↔ widget ↔ BGTask). -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.devstdvad.devicedna</string>
+	</array>
+	<!-- In-App Purchase capability is implicit; Sign in with Apple NOT required because
+	     the only login is Google via Firebase… NOTE: Apple guideline 4.8 DOES require
+	     "Sign in with Apple" (or an equivalent privacy-focused login) when third-party
+	     login is offered. See the review checklist in ios/README — either add Sign in
+	     with Apple through Firebase (recommended) or make login optional. -->
+</dict>
+</plist>

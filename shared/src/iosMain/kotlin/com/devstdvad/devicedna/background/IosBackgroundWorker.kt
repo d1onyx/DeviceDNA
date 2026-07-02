@@ -1,0 +1,57 @@
+package com.devstdvad.devicedna.background
+
+import com.devstdvad.devicedna.core.common.getOrNull
+import com.devstdvad.devicedna.data.alerts.IosSmartAlertNotifier
+import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
+import com.devstdvad.devicedna.data.settings.SettingsStore
+import com.devstdvad.devicedna.data.widget.IosWidgetBridge
+import com.devstdvad.devicedna.domain.repository.BatteryRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.datetime.Clock
+
+/**
+ * The work a BGAppRefreshTask window executes — the iOS counterpart of Android's
+ * WidgetRefreshWorker: record a battery-history sample, refresh the widget snapshot,
+ * evaluate smart alerts. Task *registration/scheduling* stays in Swift (BGTaskScheduler
+ * must be registered before didFinishLaunching returns); Swift calls [run] and completes
+ * the BGTask from [onDone].
+ *
+ * The whole pass is capped well under the ~30s budget iOS grants a refresh task.
+ */
+class IosBackgroundWorker(
+    private val batteryRepository: BatteryRepository,
+    private val historyStore: BatteryIntelligenceHistoryStore,
+    private val settingsStore: SettingsStore,
+    private val widgetBridge: IosWidgetBridge,
+    private val alertNotifier: IosSmartAlertNotifier,
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    fun run(onDone: (Boolean) -> Unit) {
+        scope.launch {
+            val success = withTimeoutOrNull(20_000L) {
+                runCatching {
+                    val nowMillis = Clock.System.now().toEpochMilliseconds()
+                    val settings = settingsStore.settings.first()
+
+                    // 1. Battery-history sample (honours the tracking toggle inside the store).
+                    batteryRepository.getBatterySnapshot().getOrNull()?.let { battery ->
+                        historyStore.record(battery, nowMillis)
+                    }
+
+                    // 2. Widget snapshot + WidgetKit timeline reload.
+                    val snapshot = widgetBridge.refresh()
+
+                    // 3. Smart alerts on the fresh metrics.
+                    alertNotifier.evaluateAndNotify(snapshot, settings, nowMillis)
+                }.isSuccess
+            } ?: false
+            onDone(success)
+        }
+    }
+}

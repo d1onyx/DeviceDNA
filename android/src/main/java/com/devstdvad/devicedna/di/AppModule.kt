@@ -18,7 +18,6 @@ import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
 import com.devstdvad.devicedna.data.widget.WidgetSystemProbe
 import com.devstdvad.devicedna.presentation.auth.AuthViewModel
 import com.devstdvad.devicedna.presentation.sync.SyncViewModel
-import com.devstdvad.devicedna.data.export.ExportManager
 import com.devstdvad.devicedna.data.repository.AppsRepositoryImpl
 import com.devstdvad.devicedna.data.repository.BatteryRepositoryImpl
 import com.devstdvad.devicedna.data.repository.CameraRepositoryImpl
@@ -82,7 +81,6 @@ import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
 import com.devstdvad.devicedna.presentation.apps.AppsViewModel
-import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryAnalyticsExportManager
 import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryAnalyticsExportViewModel
 import com.devstdvad.devicedna.presentation.batteryintelligence.BatteryIntelligenceViewModel
 import com.devstdvad.devicedna.presentation.battery.BatteryViewModel
@@ -100,6 +98,7 @@ import com.devstdvad.devicedna.presentation.system.SystemViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsViewModel
 import com.devstdvad.devicedna.presentation.thermal.ThermalViewModel
 import org.koin.android.ext.koin.androidContext
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -107,15 +106,26 @@ val appModule = module {
 
     // Auth
     single { AuthRepository(androidContext()) }
+    single<com.devstdvad.devicedna.data.auth.AuthGateway> { get<AuthRepository>() }
     viewModelOf(::AuthViewModel)
 
     // Feedback
-    single { HapticManager(androidContext()) }
-    single { SoundManager() }
+    single<HapticManager> { com.devstdvad.devicedna.core.feedback.AndroidHapticManager(androidContext()) }
+    single<SoundManager> { com.devstdvad.devicedna.core.feedback.AndroidSoundManager() }
 
     // Export
-    single { ExportManager(androidContext(), get(), get(), get(), get(), get(), get(), get()) }
-    single { BatteryAnalyticsExportManager(androidContext()) }
+    single<com.devstdvad.devicedna.platform.FileSharer> {
+        com.devstdvad.devicedna.data.export.AndroidFileSharer(androidContext())
+    }
+    single {
+        com.devstdvad.devicedna.data.export.DiagnosticsExporter(
+            get(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
+    single { com.devstdvad.devicedna.presentation.batteryintelligence.BatteryAnalyticsExporter() }
+    single<com.devstdvad.devicedna.platform.FileImporter> {
+        com.devstdvad.devicedna.data.export.AndroidFileImporter(androidContext(), get())
+    }
 
     // Data sources
     single { AndroidDeviceDataSource(androidContext()) }
@@ -129,9 +139,9 @@ val appModule = module {
     single { AndroidThermalDataSource() }
     single { AndroidSensorDataSource(androidContext()) }
     single { AndroidAppsDataSource(androidContext()) }
-    single { SettingsStore(androidContext()) }
+    single<SettingsStore> { com.devstdvad.devicedna.data.settings.AndroidSettingsStore(androidContext()) }
     single { SubscriptionStore(androidContext()) }
-    single { BatteryIntelligenceHistoryStore(androidContext()) }
+    single<BatteryIntelligenceHistoryStore> { com.devstdvad.devicedna.data.batteryintelligence.AndroidBatteryIntelligenceHistoryStore(androidContext()) }
 
     // Repositories
     single<DeviceRepository> { DeviceRepositoryImpl(get()) }
@@ -168,8 +178,8 @@ val appModule = module {
     // Sync (Cloudflare Worker)
     single { createSyncHttpClient() }
     single { SyncApi(get(), BuildConfig.SYNC_BASE_URL) }
-    single { SyncStateStore(androidContext()) }
-    single {
+    single<SyncStateStore> { com.devstdvad.devicedna.data.sync.AndroidSyncStateStore(androidContext()) }
+    single<com.devstdvad.devicedna.data.sync.DeviceSnapshotProvider> {
         DeviceSnapshotBuilder(
             get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(),
@@ -232,5 +242,5 @@ val appModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::ExportViewModel)
     viewModelOf(::SyncViewModel)
-    viewModelOf(::SubscriptionViewModel)
+    viewModel { SubscriptionViewModel(get(), com.devstdvad.devicedna.BuildConfig.USE_REAL_BILLING) }
 }

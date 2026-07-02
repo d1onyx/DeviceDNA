@@ -5,7 +5,7 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.content.res.Resources
 import com.devstdvad.devicedna.R
-import com.devstdvad.devicedna.data.settings.SettingsStore
+import com.devstdvad.devicedna.data.settings.AndroidSettingsStore
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryStatus
 import kotlinx.coroutines.flow.first
@@ -21,7 +21,7 @@ import java.util.Locale
  * the top of `provideGlance` and use the result for all `getString` / formatting calls.
  */
 suspend fun localizedWidgetContext(context: Context): Context {
-    val language = runCatching { SettingsStore(context).settings.first().appLanguage }.getOrDefault("")
+    val language = runCatching { AndroidSettingsStore(context).settings.first().appLanguage }.getOrDefault("")
     return context.withLanguage(language)
 }
 

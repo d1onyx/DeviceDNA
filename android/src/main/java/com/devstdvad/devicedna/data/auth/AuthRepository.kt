@@ -20,14 +20,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-data class AuthUser(
-    val uid: String,
-    val displayName: String,
-    val email: String,
-    val photoUrl: String?,
-)
-
-class AuthRepository(private val context: Context) {
+class AuthRepository(private val context: Context) : AuthGateway {
 
     private val webClientId: String
         get() = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
@@ -35,13 +28,13 @@ class AuthRepository(private val context: Context) {
             ?.let(context::getString)
             .orEmpty()
 
-    val isConfigured: Boolean
+    override val isConfigured: Boolean
         get() = FirebaseApp.getApps(context).isNotEmpty() && webClientId.isNotBlank()
 
     private val firebaseAuth: FirebaseAuth?
         get() = if (isConfigured) FirebaseAuth.getInstance() else null
 
-    val currentUser: Flow<AuthUser?> = callbackFlow {
+    override val currentUser: Flow<AuthUser?> = callbackFlow {
         val auth = firebaseAuth
         if (auth == null) {
             trySend(null)
@@ -57,11 +50,11 @@ class AuthRepository(private val context: Context) {
     }
 
     /** Current user's Firebase UID, or null if not signed in. */
-    val uid: String?
+    override val uid: String?
         get() = firebaseAuth?.currentUser?.uid
 
     /** Fresh Firebase ID token for authorizing backend requests. */
-    suspend fun getIdToken(): String? {
+    override suspend fun getIdToken(): String? {
         val user = firebaseAuth?.currentUser ?: return null
         return user.getIdToken(false).await().token
     }
@@ -90,7 +83,7 @@ class AuthRepository(private val context: Context) {
         auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
     }
 
-    suspend fun signOut() {
+    override suspend fun signOut() {
         firebaseAuth?.signOut()
         GoogleSignIn.getClient(
             context,
@@ -98,7 +91,7 @@ class AuthRepository(private val context: Context) {
         ).signOut().await()
     }
 
-    suspend fun clearLocalSession(removeGoogleAccount: Boolean = false) {
+    override suspend fun clearLocalSession(removeGoogleAccount: Boolean) {
         firebaseAuth?.signOut()
         if (removeGoogleAccount) {
             withTimeoutOrNull(3_000L) {
