@@ -29,16 +29,16 @@ final class AdsHost: NSObject {
     /// Runs the UMP consent flow, then starts the Google Mobile Ads SDK. Safe to call
     /// once from didFinishLaunching; presentation happens after the first frame.
     func startWhenReady() {
-        let parameters = UMPRequestParameters()
-        parameters.tagForUnderAgeOfConsent = false
+        let parameters = RequestParameters()
+        parameters.isTaggedForUnderAgeOfConsent = false
 
-        UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(with: parameters) { [weak self] _ in
+        ConsentInformation.shared.requestConsentInfoUpdate(with: parameters) { [weak self] _ in
             DispatchQueue.main.async {
                 guard let presenter = Self.topViewController() else {
                     self?.startAdsSdk()
                     return
                 }
-                UMPConsentForm.loadAndPresentIfRequired(from: presenter) { _ in
+                ConsentForm.loadAndPresentIfRequired(from: presenter) { _ in
                     self?.requestTrackingAuthorizationIfNeeded {
                         self?.startAdsSdk()
                     }
