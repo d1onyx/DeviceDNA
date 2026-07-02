@@ -65,6 +65,19 @@ jobs:
         working-directory: ios
         run: pod install
 
+      - name: Create iOS simulator
+        run: |
+          set -euo pipefail
+          RUNTIME_ID="$(xcrun simctl list runtimes --json | jq -r '[.runtimes[] | select(.isAvailable and (.identifier | contains("SimRuntime.iOS-"))) | .identifier] | last')"
+          DEVICE_TYPE_ID="$(xcrun simctl list devicetypes --json | jq -r '[.devicetypes[] | select(.name == "iPhone 16") | .identifier] | first')"
+          if [ "$RUNTIME_ID" = "null" ] || [ "$DEVICE_TYPE_ID" = "null" ]; then
+            xcrun simctl list runtimes
+            xcrun simctl list devicetypes
+            exit 1
+          fi
+          SIMULATOR_UDID="$(xcrun simctl create "DeviceDNA CI iPhone" "$DEVICE_TYPE_ID" "$RUNTIME_ID")"
+          echo "SIMULATOR_UDID=$SIMULATOR_UDID" >> "$GITHUB_ENV"
+
       # ── Stage 3: build the app for the simulator (no signing needed) ──
       - name: Build app for iOS Simulator
         working-directory: ios
@@ -74,7 +87,7 @@ jobs:
             -workspace DeviceDNAApp.xcworkspace \
             -scheme DeviceDNAApp \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -86,16 +99,16 @@ jobs:
           APP_PATH="ios/build/DerivedData/Build/Products/Debug-iphonesimulator/DeviceDNAApp.app"
           mkdir -p screenshots
 
-          xcrun simctl boot "iPhone 16" || true
-          xcrun simctl bootstatus "iPhone 16" -b
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
 
-          xcrun simctl install booted "$APP_PATH"
-          xcrun simctl launch booted com.devstdvad.devicedna
+          xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
+          xcrun simctl launch "$SIMULATOR_UDID" com.devstdvad.devicedna
 
           sleep 15
-          xcrun simctl io booted screenshot screenshots/01-first-frame.png
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/01-first-frame.png
           sleep 10
-          xcrun simctl io booted screenshot screenshots/02-settled.png
+          xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/02-settled.png
 
       - name: Upload screenshots
         if: always()
