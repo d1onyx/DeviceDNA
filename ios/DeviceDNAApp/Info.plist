@@ -36,6 +36,13 @@
 	<key>UILaunchScreen</key>
 	<dict/>
 
+	<!-- ── Compose Multiplatform requirement ─────────────────────────────
+	     Without this, ComposeUIViewController's PlistSanityCheck deliberately crashes
+	     the app at launch (abort() from terminateWithUnhandledException) so ProMotion
+	     (120Hz) devices don't silently get throttled animations. ── -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+
 	<!-- ── Deep links: widgets and notifications open devicedna://open/<route> ── -->
 	<key>CFBundleURLTypes</key>
 	<array>
