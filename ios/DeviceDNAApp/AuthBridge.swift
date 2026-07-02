@@ -15,7 +15,7 @@ final class AuthBridge {
     /// Kotlin gateway registered in Koin. Closures run on whatever thread Firebase calls
     /// back on; the gateway marshals state through a StateFlow, which is thread-safe.
     private(set) lazy var gateway = IosAuthGateway(
-        isConfiguredProvider: { FirebaseApp.app() != nil },
+        configured: FirebaseApp.app() != nil,
         uidProvider: { Auth.auth().currentUser?.uid },
         tokenFetcher: { done in
             guard let user = Auth.auth().currentUser else { done(nil); return }

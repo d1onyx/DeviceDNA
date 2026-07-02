@@ -13,7 +13,7 @@ import kotlin.coroutines.resume
  *
  * Swift wiring (see ios/DeviceDNAApp/AuthBridge.swift):
  *   let gateway = IosAuthGateway(
- *       isConfiguredProvider: { FirebaseApp.app() != nil },
+ *       configured: FirebaseApp.app() != nil,
  *       uidProvider: { Auth.auth().currentUser?.uid },
  *       tokenFetcher: { done in Auth.auth().currentUser?.getIDToken { t, _ in done(t) } ?? done(nil) },
  *       signOutAction: { done in try? Auth.auth().signOut(); GIDSignIn.sharedInstance.signOut(); done() },
@@ -21,7 +21,7 @@ import kotlin.coroutines.resume
  *   )
  */
 class IosAuthGateway(
-    private val isConfiguredProvider: () -> Boolean,
+    private val configured: Boolean,
     private val uidProvider: () -> String?,
     private val tokenFetcher: (onResult: (String?) -> Unit) -> Unit,
     private val signOutAction: (onDone: () -> Unit) -> Unit,
@@ -52,7 +52,7 @@ class IosAuthGateway(
         initializingFlow.value = false
     }
 
-    override val isConfigured: Boolean get() = isConfiguredProvider()
+    override val isConfigured: Boolean get() = configured
 
     override val uid: String? get() = uidProvider()
 

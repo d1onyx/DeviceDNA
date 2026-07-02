@@ -22,7 +22,7 @@ final class AdsHost: NSObject {
     static let interstitialAdUnitId = "ca-app-pub-3940256099942544/4411468910"
 
     private var started = false
-    private var interstitialAd: GADInterstitialAd?
+    private var interstitialAd: InterstitialAd?
 
     // MARK: - Startup: consent → ATT → SDK
 
@@ -60,7 +60,8 @@ final class AdsHost: NSObject {
     private func startAdsSdk() {
         guard !started else { return }
         started = true
-        GADMobileAds.sharedInstance().start { [weak self] _ in
+        Task { @MainActor [weak self] in
+            _ = await MobileAds.shared.start()
             self?.loadInterstitial()
         }
     }
@@ -68,11 +69,11 @@ final class AdsHost: NSObject {
     // MARK: - Banner (factory consumed by the Compose UIKitView slot)
 
     func makeBannerView() -> UIView {
-        let banner = GADBannerView(adSize: GADAdSizeBanner)
+        let banner = BannerView(adSize: AdSizeBanner)
         banner.adUnitID = Self.bannerAdUnitId
         banner.rootViewController = Self.topViewController()
         if started {
-            banner.load(GADRequest())
+            banner.load(Request())
         }
         return banner
     }
@@ -97,12 +98,18 @@ final class AdsHost: NSObject {
     private var onInterstitialDismissed: (() -> Void)?
 
     private func loadInterstitial() {
-        GADInterstitialAd.load(
-            withAdUnitID: Self.interstitialAdUnitId,
-            request: GADRequest()
-        ) { [weak self] ad, _ in
-            ad?.fullScreenContentDelegate = self
-            self?.interstitialAd = ad
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let ad = try await InterstitialAd.load(
+                    with: Self.interstitialAdUnitId,
+                    request: Request()
+                )
+                ad.fullScreenContentDelegate = self
+                self.interstitialAd = ad
+            } catch {
+                self.interstitialAd = nil
+            }
         }
     }
 
@@ -111,7 +118,7 @@ final class AdsHost: NSObject {
         interstitialAd = nil
         onInterstitialDismissed = onDismissed
         onShowing()
-        ad.present(fromRootViewController: presenter)
+        ad.present(from: presenter)
     }
 
     private static func topViewController() -> UIViewController? {
@@ -123,16 +130,16 @@ final class AdsHost: NSObject {
     }
 }
 
-// MARK: - GADFullScreenContentDelegate
+// MARK: - FullScreenContentDelegate
 
-extension AdsHost: GADFullScreenContentDelegate {
-    func adDidDismissFullScreenContent(_ ad: GADFullScreenPresentingAd) {
+extension AdsHost: FullScreenContentDelegate {
+    func adDidDismissFullScreenContent(_ ad: FullScreenPresentingAd) {
         onInterstitialDismissed?()
         onInterstitialDismissed = nil
         loadInterstitial()   // preload the next one
     }
 
-    func ad(_ ad: GADFullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
+    func ad(_ ad: FullScreenPresentingAd, didFailToPresentFullScreenContentWithError error: Error) {
         onInterstitialDismissed?()
         onInterstitialDismissed = nil
         loadInterstitial()
