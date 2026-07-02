@@ -31,11 +31,11 @@ import com.devstdvad.devicedna.core.design.component.AccentCard
 import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun SystemScreen(
-    viewModel: SystemViewModel = koinViewModel(),
+    viewModel: SystemViewModel = resolveViewModel(SystemViewModel::class),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()

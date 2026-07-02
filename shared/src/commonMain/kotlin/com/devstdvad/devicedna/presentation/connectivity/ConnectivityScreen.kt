@@ -16,11 +16,11 @@ import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.network.NetworkViewModel
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun ConnectivityScreen(
-    viewModel: NetworkViewModel = koinViewModel(),
+    viewModel: NetworkViewModel = resolveViewModel(NetworkViewModel::class),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()

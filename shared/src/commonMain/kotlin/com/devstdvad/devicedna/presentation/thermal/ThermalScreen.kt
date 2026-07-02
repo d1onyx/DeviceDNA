@@ -22,11 +22,11 @@ import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun ThermalScreen(
-    viewModel: ThermalViewModel = koinViewModel(),
+    viewModel: ThermalViewModel = resolveViewModel(ThermalViewModel::class),
     settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {

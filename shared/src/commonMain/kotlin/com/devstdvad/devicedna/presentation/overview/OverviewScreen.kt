@@ -56,12 +56,12 @@ import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverviewScreen(
-    viewModel: OverviewViewModel = koinViewModel(),
+    viewModel: OverviewViewModel = resolveViewModel(OverviewViewModel::class),
     settings: UserSettings = UserSettings(),
     onSettingsClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),

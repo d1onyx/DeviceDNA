@@ -26,11 +26,11 @@ import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun DeviceScreen(
-    viewModel: DeviceViewModel = koinViewModel(),
+    viewModel: DeviceViewModel = resolveViewModel(DeviceViewModel::class),
     settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {

@@ -35,11 +35,11 @@ import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.AppDetails
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun AppsScreen(
-    viewModel: AppsViewModel = koinViewModel(),
+    viewModel: AppsViewModel = resolveViewModel(AppsViewModel::class),
     settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {

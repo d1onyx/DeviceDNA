@@ -90,12 +90,12 @@ import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
 import com.devstdvad.devicedna.domain.batteryintelligence.estimateCapacityRetentionPercent
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun BatteryIntelligenceScreen(
-    viewModel: BatteryIntelligenceViewModel = koinViewModel(),
-    exportViewModel: BatteryAnalyticsExportViewModel = koinViewModel(),
+    viewModel: BatteryIntelligenceViewModel = resolveViewModel(BatteryIntelligenceViewModel::class),
+    exportViewModel: BatteryAnalyticsExportViewModel = resolveViewModel(BatteryAnalyticsExportViewModel::class),
     settings: UserSettings = UserSettings(),
     onSubscribeClick: () -> Unit = {},
     onChargingSessionClick: (ChargingSessionSummary) -> Unit = {},

@@ -86,7 +86,7 @@ import com.devstdvad.devicedna.presentation.sync.SyncViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsScreen
 import com.devstdvad.devicedna.resources.stringRes
 import org.koin.compose.koinInject
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 /**
  * Shared Compose Multiplatform app shell: auth gate → account check → onboarding → main scaffold
@@ -118,7 +118,7 @@ fun AppNavigation(
         return
     }
 
-    val syncViewModel = koinViewModel<SyncViewModel>()
+    val syncViewModel = resolveViewModel(SyncViewModel::class)
     val syncState by syncViewModel.state.collectAsState()
 
     LaunchedEffect(authState.user?.uid) {

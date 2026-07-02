@@ -35,11 +35,11 @@ import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.domain.model.CameraDetails
 import com.devstdvad.devicedna.domain.model.CameraFacing
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun CameraScreen(
-    viewModel: CameraViewModel = koinViewModel(),
+    viewModel: CameraViewModel = resolveViewModel(CameraViewModel::class),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()

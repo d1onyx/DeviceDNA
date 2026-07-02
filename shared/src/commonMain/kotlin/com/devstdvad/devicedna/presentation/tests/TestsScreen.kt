@@ -54,11 +54,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.SectionCard
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun TestsScreen(
-    viewModel: TestsViewModel = koinViewModel(),
+    viewModel: TestsViewModel = resolveViewModel(TestsViewModel::class),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()

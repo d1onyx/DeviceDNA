@@ -32,11 +32,11 @@ import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryStatus
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun BatteryScreen(
-    viewModel: BatteryViewModel = koinViewModel(),
+    viewModel: BatteryViewModel = resolveViewModel(BatteryViewModel::class),
     settings: UserSettings = UserSettings(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {

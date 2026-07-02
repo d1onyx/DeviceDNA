@@ -57,12 +57,12 @@ import com.devstdvad.devicedna.core.design.component.ErrorBanner
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.design.component.StatusPill
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionScreen(
-    viewModel: SubscriptionViewModel = koinViewModel(),
+    viewModel: SubscriptionViewModel = resolveViewModel(SubscriptionViewModel::class),
     onBackClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
 ) {

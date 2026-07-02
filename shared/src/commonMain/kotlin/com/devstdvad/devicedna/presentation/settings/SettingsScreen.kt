@@ -83,13 +83,13 @@ import com.devstdvad.devicedna.data.settings.TemperatureUnit
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlements
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 import org.koin.compose.koinInject
 
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = koinViewModel(),
-    exportViewModel: ExportViewModel = koinViewModel(),
+    viewModel: SettingsViewModel = resolveViewModel(SettingsViewModel::class),
+    exportViewModel: ExportViewModel = resolveViewModel(ExportViewModel::class),
     subscriptionRepository: SubscriptionRepository = koinInject(),
     onSubscriptionClick: () -> Unit = {},
     onWidgetsClick: () -> Unit = {},

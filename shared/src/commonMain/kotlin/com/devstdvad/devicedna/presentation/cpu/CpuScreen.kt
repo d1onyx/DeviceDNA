@@ -26,11 +26,11 @@ import com.devstdvad.devicedna.core.design.component.GaugeRing
 import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
-import org.koin.compose.viewmodel.koinViewModel
+import com.devstdvad.devicedna.di.resolveViewModel
 
 @Composable
 fun CpuScreen(
-    viewModel: CpuViewModel = koinViewModel(),
+    viewModel: CpuViewModel = resolveViewModel(CpuViewModel::class),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
