@@ -86,9 +86,9 @@ final class StoreKitBilling {
         let store = KoinBridge.shared.entitlementsStore()
         if let transaction = await activeTransaction() {
             let outcome = Self.outcome(from: transaction)
-            store.save(entitlements: IosBillingGatewayKt.toEntitlements(outcome)) { _ in }
+            try? await store.save(entitlements: gateway.toEntitlements(outcome: outcome))
         } else {
-            store.clear { _ in }
+            try? await store.clear()
         }
     }
 

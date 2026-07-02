@@ -37,6 +37,9 @@ class IosBillingGateway(
     override suspend fun restorePurchases(): SubscriptionPurchaseResult =
         await(restoreAction).toPurchaseResult(defaultError = "No active subscription found.")
 
+    /** Swift-visible mapper for StoreKit entitlement cache updates. */
+    fun toEntitlements(outcome: StoreKitOutcome): PremiumEntitlements = outcome.toEntitlements()
+
     private suspend fun await(
         action: (onResult: (StoreKitOutcome) -> Unit) -> Unit,
     ): StoreKitOutcome = suspendCancellableCoroutine { cont ->
