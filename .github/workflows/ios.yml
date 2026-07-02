@@ -1,8 +1,12 @@
 # iOS build + simulator smoke-run for the Compose Multiplatform app.
 #
 # Produces artifacts you can inspect from any OS:
-#   • screenshots/  — the app actually running in the iOS Simulator
-#   • DeviceDNAApp.app.zip — the built simulator bundle
+#   • screenshots/               — the app actually running in the iOS Simulator
+#   • DeviceDNAApp.app.zip       — the built simulator bundle
+#   • DeviceDNAApp-unsigned.ipa  — UNSIGNED real-device build (arm64), for sideloading
+#     tools that do their own signing (AltStore/AltServer, Sideloadly). Not installable
+#     as-is — iOS enforces code-signature verification at install/launch time on real
+#     devices, so whatever re-signs this IPA must apply a real signature first.
 #
 # NOTE: macOS runner minutes bill at 10x on private repos. The first runs are the
 # feedback loop for fixing Kotlin/Native interop in shared/src/iosMain (written ahead
@@ -130,3 +134,48 @@ jobs:
         with:
           name: DeviceDNAApp-simulator
           path: DeviceDNAApp.app.zip
+
+      # ── Stage 5: Kotlin/Native for the real-device target. Simulator (arm64 sim ABI)
+      #    and device (arm64 device ABI) are compiled independently by Kotlin/Native, so
+      #    this can surface errors the simulator compile didn't (isolate before the
+      #    slower archive step, same reasoning as Stage 1). ──
+      - name: Compile Kotlin shared framework (iOS device arm64)
+        run: ./gradlew :shared:compileKotlinIosArm64 --console=plain
+
+      # ── Stage 6: archive an UNSIGNED build for a real device (no Apple Developer
+      #    account needed). AD_HOC/CODE_SIGNING flags disable every signing step so the
+      #    archive step doesn't fail for lack of a team/certificate; the resulting .app
+      #    has no signature at all and must be (re-)signed by whatever installs it. ──
+      - name: Archive unsigned app for a real iOS device
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace DeviceDNAApp.xcworkspace \
+            -scheme DeviceDNAApp \
+            -configuration Debug \
+            -destination "generic/platform=iOS" \
+            -archivePath build/DeviceDNAApp.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            archive
+
+      - name: Package unsigned .ipa
+        if: success()
+        run: |
+          set -euo pipefail
+          ARCHIVE_APP="ios/build/DeviceDNAApp.xcarchive/Products/Applications/DeviceDNAApp.app"
+          PAYLOAD_DIR="$RUNNER_TEMP/Payload"
+          mkdir -p "$PAYLOAD_DIR"
+          cp -R "$ARCHIVE_APP" "$PAYLOAD_DIR/"
+          (cd "$RUNNER_TEMP" && zip -r -y "$GITHUB_WORKSPACE/DeviceDNAApp-unsigned.ipa" Payload)
+
+      - name: Upload unsigned .ipa
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeviceDNAApp-unsigned-ipa
+          path: DeviceDNAApp-unsigned.ipa
