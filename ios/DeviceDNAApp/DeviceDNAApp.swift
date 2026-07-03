@@ -111,14 +111,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
 enum AppConfig {
     /// Cloudflare Worker sync backend (no trailing slash), injected via the
-    /// SYNC_BASE_URL build setting (ios/Config.xcconfig, overridable per-machine via
-    /// a gitignored ios/Local.xcconfig) into Info.plist. Must match Android's
-    /// `syncBaseUrl` (local.properties / -PsyncBaseUrl, see android/build.gradle.kts).
+    /// SYNC_BASE_URL build setting (ios/project.yml) into Info.plist. Must match
+    /// Android's `syncBaseUrl` (local.properties / -PsyncBaseUrl, see
+    /// android/build.gradle.kts).
     static let syncBaseUrl: String = {
         guard let url = Bundle.main.object(forInfoDictionaryKey: "SyncBaseUrl") as? String,
               !url.isEmpty
         else {
-            fatalError("Missing SyncBaseUrl in Info.plist — check SYNC_BASE_URL in ios/Config.xcconfig")
+            fatalError("Missing SyncBaseUrl in Info.plist — check SYNC_BASE_URL in ios/project.yml")
         }
         return url
     }()

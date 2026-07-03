@@ -5,13 +5,6 @@
 
 name: DeviceDNAApp
 
-# Adds Config.xcconfig to the project's file tree so it has a parent group. Without this,
-# a configFiles-referenced xcconfig is only wired into build settings, not the project
-# navigator — xcodeproj (and CocoaPods' `pod install`, which loads the .xcodeproj to compute
-# per-target Swift versions) then fails with "Consistency issue: no parent for object".
-fileGroups:
-  - Config.xcconfig
-
 options:
   bundleIdPrefix: com.devstdvad
   deploymentTarget:
@@ -44,14 +37,19 @@ targets:
       # fix was written, since the code path was simply never reached at runtime.
       - path: DeviceDNAApp/GoogleService-Info.plist
         buildPhase: resources
-    configFiles:
-      Debug: Config.xcconfig
-      Release: Config.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.devstdvad.devicedna
         INFOPLIST_FILE: DeviceDNAApp/Info.plist
         CODE_SIGN_ENTITLEMENTS: DeviceDNAApp/DeviceDNAApp.entitlements
+        # Cloudflare Worker sync backend (no trailing slash), read by Info.plist's
+        # SyncBaseUrl key via $(SYNC_BASE_URL) substitution — see DeviceDNAApp.swift's
+        # AppConfig.syncBaseUrl. Must match Android's `syncBaseUrl` (local.properties /
+        # -PsyncBaseUrl, see android/build.gradle.kts). Deliberately a plain build
+        # setting rather than a separate xcconfig via `configFiles:` — that approach
+        # replaced the target's CocoaPods-managed base xcconfig wholesale, breaking
+        # PODS_ROOT and every Pods embed-frameworks/resources file list.
+        SYNC_BASE_URL: https://devicedna-sync.ravehent.workers.dev
         # Kotlin Multiplatform framework produced by :shared:embedAndSignAppleFrameworkForXcode
         FRAMEWORK_SEARCH_PATHS:
           - "$(inherited)"
