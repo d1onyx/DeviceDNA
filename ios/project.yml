@@ -27,7 +27,8 @@ settings:
     IOS_ADMOB_APP_ID: ca-app-pub-3940256099942544~1458002511
     IOS_ADMOB_BANNER_AD_UNIT_ID: ca-app-pub-3940256099942544/2934735716
     IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID: ca-app-pub-3940256099942544/4411468910
-    SYNC_BASE_URL: https://example.invalid
+    # Must match Android's syncBaseUrl (local.properties) — same Cloudflare Worker backend.
+    SYNC_BASE_URL: https://devicedna-sync.ravehent.workers.dev
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
