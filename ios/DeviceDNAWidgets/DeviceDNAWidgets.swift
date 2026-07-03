@@ -135,7 +135,7 @@ struct StatusWidgetView: View {
     }
 }
 
-private func widgetURL(for payload: WidgetPayload, route: String) -> URL? {
+private func widgetDestinationURL(for payload: WidgetPayload, route: String) -> URL? {
     widgetDeepLink(payload.isPremium ? route : "subscription")
 }
 
@@ -177,7 +177,7 @@ struct BatteryWidgetView: View {
             }
         }
         .padding(2)
-        .widgetURL(widgetURL(for: p, route: "hardware/battery"))
+        .widgetURL(widgetDestinationURL(for: p, route: "hardware/battery"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 }
@@ -236,7 +236,7 @@ struct HealthWidgetView: View {
             }
         }
         .padding(2)
-        .widgetURL(widgetURL(for: p, route: "system"))
+        .widgetURL(widgetDestinationURL(for: p, route: "system"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 }
@@ -282,7 +282,7 @@ struct MemoryWidgetView: View {
             }
         }
         .padding(2)
-        .widgetURL(widgetURL(for: p, route: "dashboard"))
+        .widgetURL(widgetDestinationURL(for: p, route: "dashboard"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 
