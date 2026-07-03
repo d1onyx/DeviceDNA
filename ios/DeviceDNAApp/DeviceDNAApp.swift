@@ -182,17 +182,17 @@ enum AppConfig {
     }()
 
     private static func string(_ key: String) -> String? {
-        (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
+        let trimmed = (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .flatMap { value in
-                if value.isEmpty ||
-                    value.hasPrefix("$(") ||
-                    value.contains("YOUR_") ||
-                    value.contains("xxxxxxxx") {
-                    return nil
-                }
-                return value
+        return trimmed.flatMap { value in
+            if value.isEmpty ||
+                value.hasPrefix("$(") ||
+                value.contains("YOUR_") ||
+                value.contains("xxxxxxxx") {
+                return nil
             }
+            return value
+        }
     }
 }
 
