@@ -23,6 +23,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             FirebaseApp.configure()
         }
 
+        // 1b. GIDSignIn needs its own `configuration` set explicitly before the first
+        //     signIn(withPresenting:) call — it does NOT infer the client ID from Firebase
+        //     automatically. Missing this raises an NSException from GIDSignIn's own
+        //     precondition check (same crash signature as a missing URL scheme).
+        if let clientID = FirebaseApp.app()?.options.clientID {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        }
+
         // 2. Koin — must be up before the first Compose frame resolves ViewModels.
         KoinBridge.shared.start(deps: IosAppDependencies(
             authGateway: AuthBridge.shared.gateway,
