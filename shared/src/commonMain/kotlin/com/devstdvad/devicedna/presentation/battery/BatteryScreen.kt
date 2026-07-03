@@ -33,6 +33,8 @@ import com.devstdvad.devicedna.domain.model.BatteryStatus
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.platform.PlatformInfo
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun BatteryScreen(
@@ -42,14 +44,15 @@ fun BatteryScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
+    val isIos = PlatformInfo.isIos
 
     if (state.isLoading && state.info == null) { LoadingScreen(); return }
     val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not read battery"); return }
 
     val isCharging = info.status == BatteryStatus.Charging || info.status == BatteryStatus.Full
     val batteryStatus = when {
-        info.temperatureCelsius >= 45f -> MetricStatus.Critical
-        info.health != BatteryHealth.Good -> MetricStatus.Warning
+        !isIos && info.temperatureCelsius >= 45f -> MetricStatus.Critical
+        !isIos && info.health != BatteryHealth.Good -> MetricStatus.Warning
         info.levelPercent <= 15 -> MetricStatus.Warning
         else -> MetricStatus.Normal
     }
@@ -88,9 +91,14 @@ fun BatteryScreen(
                         StatusPill(batteryStatus, info.status.name)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            StatChip("Temp", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit))
-                            StatChip("Voltage", "${info.voltageMv} mV")
-                            info.currentMa?.let { StatChip("Current", "$it mA") }
+                            if (isIos) {
+                                StatChip("Source", info.source.name)
+                                StatChip("Power Saver", if (info.isPowerSaveMode) "On" else "Off")
+                            } else {
+                                StatChip("Temp", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit))
+                                StatChip("Voltage", "${info.voltageMv} mV")
+                                info.currentMa?.let { StatChip("Current", "$it mA") }
+                            }
                         }
                         Spacer(Modifier.height(6.dp))
                         info.estimatedWatts?.let {
@@ -125,18 +133,31 @@ fun BatteryScreen(
         item {
             AccentCard(accentColor = batteryAccent) {
                 Text("Measurements", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Temperature", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit), copyable = false)
-                InfoRow("Voltage", "${info.voltageMv} mV", copyable = false)
-                info.currentMa?.let { InfoRow("Current", "$it mA", copyable = false) }
-                info.estimatedWatts?.let { InfoRow("Power", "${Formatters.twoDecimals(it)} W", copyable = false) }
-                InfoRow("Charge Time Remaining", formatChargeTime(info.chargeTimeRemainingMs), copyable = false)
-                info.capacityMah?.let { InfoRow("Current Capacity", "$it mAh", copyable = false) }
-                InfoRow(
-                    label = "Charge Cycles",
-                    value = info.chargeCycles?.toString() ?: "N/A (Android 14+)",
-                    copyable = false,
-                    showDivider = false,
-                )
+                if (isIos) {
+                    // iOS never exposes battery temperature, voltage, capacity or cycle count to apps.
+                    InfoRow("Temperature", stringRes("common_unavailable_ios"), copyable = false)
+                    InfoRow("Voltage", stringRes("common_unavailable_ios"), copyable = false)
+                    InfoRow("Capacity", stringRes("common_unavailable_ios"), copyable = false)
+                    InfoRow(
+                        label = "Charge Cycles",
+                        value = stringRes("common_unavailable_ios"),
+                        copyable = false,
+                        showDivider = false,
+                    )
+                } else {
+                    InfoRow("Temperature", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit), copyable = false)
+                    InfoRow("Voltage", "${info.voltageMv} mV", copyable = false)
+                    info.currentMa?.let { InfoRow("Current", "$it mA", copyable = false) }
+                    info.estimatedWatts?.let { InfoRow("Power", "${Formatters.twoDecimals(it)} W", copyable = false) }
+                    InfoRow("Charge Time Remaining", formatChargeTime(info.chargeTimeRemainingMs), copyable = false)
+                    info.capacityMah?.let { InfoRow("Current Capacity", "$it mAh", copyable = false) }
+                    InfoRow(
+                        label = "Charge Cycles",
+                        value = info.chargeCycles?.toString() ?: "N/A (Android 14+)",
+                        copyable = false,
+                        showDivider = false,
+                    )
+                }
             }
         }
     }

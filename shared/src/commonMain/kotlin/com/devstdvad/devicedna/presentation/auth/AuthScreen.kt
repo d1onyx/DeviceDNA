@@ -63,6 +63,9 @@ fun AuthScreen(
     onGoogleSignIn: () -> Unit,
     modifier: Modifier = Modifier,
     requirePrivacyConsent: Boolean = true,
+    onAppleSignIn: () -> Unit = {},
+    // Apple Sign-In is offered only where it is natively available (iOS).
+    showAppleSignIn: Boolean = false,
 ) {
     val colors = AppTheme.colors
     var privacyAccepted by rememberSaveable(requirePrivacyConsent) { mutableStateOf(!requirePrivacyConsent) }
@@ -147,27 +150,38 @@ fun AuthScreen(
                 }
             }
 
-            Button(
-                onClick = onGoogleSignIn,
-                enabled = privacyAccepted && !state.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.textPrimary,
-                    contentColor = colors.background,
-                    disabledContainerColor = colors.surfaceHover,
-                    disabledContentColor = colors.textMuted,
-                ),
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = colors.textMuted)
-                } else {
-                    GoogleMark()
-                    Spacer(Modifier.size(10.dp))
-                    Text(stringRes("auth_google"), style = MaterialTheme.typography.titleMedium)
+            if (showAppleSignIn) {
+                // iOS: Google + Apple side by side.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ProviderButton(
+                        onClick = onGoogleSignIn,
+                        enabled = privacyAccepted && !state.isLoading,
+                        loading = state.isLoading,
+                        modifier = Modifier.weight(1f),
+                        mark = { GoogleMark() },
+                        label = "Google",
+                    )
+                    ProviderButton(
+                        onClick = onAppleSignIn,
+                        enabled = privacyAccepted && !state.isLoading,
+                        loading = false,
+                        modifier = Modifier.weight(1f),
+                        mark = { AppleMark() },
+                        label = "Apple",
+                    )
                 }
+            } else {
+                ProviderButton(
+                    onClick = onGoogleSignIn,
+                    enabled = privacyAccepted && !state.isLoading,
+                    loading = state.isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    mark = { GoogleMark() },
+                    label = stringRes("auth_google"),
+                )
             }
             Spacer(Modifier.height(12.dp))
             Text(
@@ -310,11 +324,11 @@ private fun HeroConsole() {
     val colors = AppTheme.colors
     Box(
         modifier = Modifier
-            .size(250.dp)
-            .clip(RoundedCornerShape(30.dp))
+            .size(168.dp)
+            .clip(RoundedCornerShape(24.dp))
             .background(colors.surfaceElevated)
-            .border(1.dp, colors.border, RoundedCornerShape(30.dp))
-            .padding(18.dp),
+            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+            .padding(14.dp),
     ) {
         Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -324,7 +338,7 @@ private fun HeroConsole() {
             }
             Box(
                 modifier = Modifier
-                    .size(112.dp)
+                    .size(76.dp)
                     .clip(CircleShape)
                     .background(colors.surfaceHover)
                     .border(1.dp, colors.border, CircleShape)
@@ -333,15 +347,15 @@ private fun HeroConsole() {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(colors.accent),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Outlined.Fingerprint, contentDescription = null, tint = colors.background, modifier = Modifier.size(38.dp))
+                    Icon(Icons.Outlined.Fingerprint, contentDescription = null, tint = colors.background, modifier = Modifier.size(26.dp))
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SignalBar(0.92f)
                 SignalBar(0.64f)
                 SignalBar(0.78f)
@@ -354,14 +368,14 @@ private fun HeroConsole() {
 private fun PulseDot(color: Color) {
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(28.dp)
             .clip(CircleShape)
             .background(color.copy(alpha = 0.14f)),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(13.dp)
+                .size(9.dp)
                 .clip(CircleShape)
                 .background(color),
         )
@@ -419,6 +433,54 @@ private fun AuthValue(icon: ImageVector, label: String, modifier: Modifier = Mod
     ) {
         Icon(icon, contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, textAlign = TextAlign.Center, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun ProviderButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    loading: Boolean,
+    modifier: Modifier = Modifier,
+    mark: @Composable () -> Unit,
+    label: String,
+) {
+    val colors = AppTheme.colors
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(54.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colors.textPrimary,
+            contentColor = colors.background,
+            disabledContainerColor = colors.surfaceHover,
+            disabledContentColor = colors.textMuted,
+        ),
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        if (loading) {
+            CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = colors.textMuted)
+        } else {
+            mark()
+            Spacer(Modifier.size(10.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun AppleMark() {
+    val colors = AppTheme.colors
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(Color.White),
+        contentAlignment = Alignment.Center,
+    ) {
+        // U+F8FF is Apple's private-use logo glyph; it renders on Apple platforms (iOS),
+        // which is the only place this button is shown.
+        Text("\uF8FF", color = Color.Black, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 

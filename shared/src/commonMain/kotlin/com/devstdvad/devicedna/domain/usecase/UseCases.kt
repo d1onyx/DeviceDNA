@@ -68,6 +68,7 @@ class GetConnectivityInfoUseCase(private val repo: ConnectivityRepository) {
 
 class GetDisplayInfoUseCase(private val repo: DisplayRepository) {
     suspend operator fun invoke(): AppResult<DisplayInfo> = repo.getDisplayInfo()
+    fun observe(): Flow<AppResult<DisplayInfo>> = repo.observeDisplayInfo()
 }
 
 class GetCameraInfoUseCase(private val repo: CameraRepository) {

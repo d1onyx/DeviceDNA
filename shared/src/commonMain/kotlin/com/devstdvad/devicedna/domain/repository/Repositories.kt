@@ -15,7 +15,9 @@ import com.devstdvad.devicedna.domain.model.SensorInfo
 import com.devstdvad.devicedna.domain.model.StorageInfo
 import com.devstdvad.devicedna.domain.model.SystemInfo
 import com.devstdvad.devicedna.domain.model.ThermalInfo
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 interface DeviceRepository {
     suspend fun getDeviceInfo(): AppResult<DeviceInfo>
@@ -55,6 +57,18 @@ interface ConnectivityRepository {
 
 interface DisplayRepository {
     suspend fun getDisplayInfo(): AppResult<DisplayInfo>
+
+    /**
+     * Live display info. The default re-reads [getDisplayInfo] on a short poll so runtime
+     * changes (e.g. brightness) are reflected without a platform-specific observer. Platforms
+     * may override with a notification-based implementation.
+     */
+    fun observeDisplayInfo(): Flow<AppResult<DisplayInfo>> = flow {
+        while (true) {
+            emit(getDisplayInfo())
+            delay(1_500)
+        }
+    }
 }
 
 interface CameraRepository {

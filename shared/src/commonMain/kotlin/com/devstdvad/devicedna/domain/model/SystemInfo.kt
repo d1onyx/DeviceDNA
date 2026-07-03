@@ -30,4 +30,5 @@ data class SystemInfo(
     val appVersionCode: Long = 0L,
     val packageName: String = "",
     val isInstalledFromKnownStore: Boolean = false,
+    val isPowerSaveMode: Boolean = false,
 )

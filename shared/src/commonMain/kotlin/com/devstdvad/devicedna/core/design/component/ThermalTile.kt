@@ -29,9 +29,18 @@ fun ThermalTile(
     tempCelsius: Float?,
     modifier: Modifier = Modifier,
     temperatureText: String? = null,
+    // When no numeric temperature is available (e.g. iOS exposes only a coarse thermal
+    // state), pass the state name here so the tile shows it instead of a bare "—".
+    stateName: String? = null,
 ) {
     val colors = AppTheme.colors
     val (statusColor, statusText, fraction) = when {
+        tempCelsius == null && stateName != null -> when (stateName.lowercase()) {
+            "critical" -> Triple(colors.critical, "Thermal state", 1f)
+            "serious" -> Triple(colors.thermalColor, "Thermal state", 0.7f)
+            "fair" -> Triple(colors.warning, "Thermal state", 0.45f)
+            else -> Triple(colors.sensorsColor, "Thermal state", 0.2f) // Nominal
+        }
         tempCelsius == null -> Triple(colors.textMuted, "N/A", 0f)
         tempCelsius >= 70f -> Triple(colors.critical, "Critical", minOf(tempCelsius / 100f, 1f))
         tempCelsius >= 55f -> Triple(colors.critical.copy(alpha = 0.7f), "Very Hot", tempCelsius / 100f)
@@ -51,7 +60,11 @@ fun ThermalTile(
         Text(label, style = MaterialTheme.typography.labelMedium, color = colors.textMuted, maxLines = 1)
         Spacer(Modifier.height(5.dp))
         Text(
-            text = if (tempCelsius != null) temperatureText ?: "${Formatters.oneDecimal(tempCelsius)}°" else "—",
+            text = when {
+                tempCelsius != null -> temperatureText ?: "${Formatters.oneDecimal(tempCelsius)}°"
+                stateName != null -> stateName
+                else -> "—"
+            },
             style = MaterialTheme.typography.headlineSmall,
             color = statusColor,
         )

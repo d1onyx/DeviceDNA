@@ -125,11 +125,15 @@ private fun SensorItem(sensor: SensorDetails) {
                 Text(sensor.name, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text("${sensor.typeName} · ${sensor.vendor}", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
-                Text(
-                    "Power: ${sensor.powerMa} mA · Max: ${sensor.maxRange} · Res: ${sensor.resolution}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.textMuted,
-                )
+                // Power/range/resolution are not exposed on every platform (e.g. iOS CoreMotion);
+                // only show the metrics line when the OS actually reports them.
+                if (sensor.powerMa != 0f || sensor.maxRange != 0f || sensor.resolution != 0f) {
+                    Text(
+                        "Power: ${sensor.powerMa} mA · Max: ${sensor.maxRange} · Res: ${sensor.resolution}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.textMuted,
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (sensor.isWakeUp) {

@@ -22,6 +22,7 @@ import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.di.KoinBridge
 import com.devstdvad.devicedna.navigation.DeepLinkHolder
 import com.devstdvad.devicedna.presentation.auth.AuthUiState
+import com.devstdvad.devicedna.presentation.widgets.IosWidgetsScreen
 import com.devstdvad.devicedna.resources.AppLanguage
 import kotlinx.coroutines.launch
 import platform.UIKit.UIView
@@ -41,6 +42,7 @@ import platform.UIKit.UIViewController
  */
 fun MainViewController(
     onGoogleSignIn: (forceAccountPicker: Boolean) -> Unit,
+    onAppleSignIn: () -> Unit = {},
     interstitial: InterstitialAds = NoOpInterstitialAds,
     bannerViewFactory: (() -> UIView)? = null,
 ): UIViewController = ComposeUIViewController {
@@ -72,6 +74,8 @@ fun MainViewController(
         settings = settings,
         authState = authState,
         onGoogleSignIn = onGoogleSignIn,
+        onAppleSignIn = onAppleSignIn,
+        showAppleSignIn = true,
         onOnboardingComplete = {
             scope.launch { settingsStore.setOnboardingComplete(true) }
         },
@@ -91,8 +95,10 @@ fun MainViewController(
                 )
             }
         },
-        // iOS home-screen widgets are managed from the Home Screen itself (WidgetKit),
-        // so the in-app widgets screen slot stays empty on iOS.
-        widgetsContent = { _, _, _ -> },
+        // In-app widgets screen: lists the available WidgetKit widgets with add
+        // instructions and a Premium gate (iOS cannot pin widgets programmatically).
+        widgetsContent = { onBack, onSubscribe, padding ->
+            IosWidgetsScreen(onBackClick = onBack, onSubscribeClick = onSubscribe, contentPadding = padding)
+        },
     )
 }

@@ -32,6 +32,8 @@ fun App(
     interstitial: InterstitialAds = NoOpInterstitialAds,
     topBanner: @Composable (enabled: Boolean) -> Unit = {},
     widgetsContent: @Composable (onBack: () -> Unit, onSubscribe: () -> Unit, padding: PaddingValues) -> Unit = { _, _, _ -> },
+    onAppleSignIn: () -> Unit = {},
+    showAppleSignIn: Boolean = false,
 ) {
     AppTheme(darkTheme = darkTheme, language = language) {
         AppNavigation(
@@ -44,6 +46,8 @@ fun App(
             interstitial = interstitial,
             topBanner = topBanner,
             widgetsContent = widgetsContent,
+            onAppleSignIn = onAppleSignIn,
+            showAppleSignIn = showAppleSignIn,
         )
     }
 }

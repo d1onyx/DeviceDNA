@@ -107,6 +107,8 @@ fun AppNavigation(
     interstitial: InterstitialAds = NoOpInterstitialAds,
     topBanner: @Composable (enabled: Boolean) -> Unit = {},
     widgetsContent: @Composable (onBack: () -> Unit, onSubscribe: () -> Unit, padding: PaddingValues) -> Unit = { _, _, _ -> },
+    onAppleSignIn: () -> Unit = {},
+    showAppleSignIn: Boolean = false,
 ) {
     if (authState.isInitializing) {
         Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.background)) { LoadingScreen() }
@@ -114,7 +116,12 @@ fun AppNavigation(
     }
 
     if (!authState.isSignedIn) {
-        AuthScreen(state = authState, onGoogleSignIn = { onGoogleSignIn(false) })
+        AuthScreen(
+            state = authState,
+            onGoogleSignIn = { onGoogleSignIn(false) },
+            onAppleSignIn = onAppleSignIn,
+            showAppleSignIn = showAppleSignIn,
+        )
         return
     }
 
@@ -149,6 +156,8 @@ fun AppNavigation(
             state = authState.copy(user = null, isLoading = false, errorMessage = accountError),
             onGoogleSignIn = { onGoogleSignIn(true) },
             requirePrivacyConsent = false,
+            onAppleSignIn = onAppleSignIn,
+            showAppleSignIn = showAppleSignIn,
         )
         return
     }

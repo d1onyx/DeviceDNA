@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Android
+import androidx.compose.material.icons.outlined.PhoneIphone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +33,7 @@ import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.platform.PlatformInfo
 
 @Composable
 fun SystemScreen(
@@ -40,6 +42,7 @@ fun SystemScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
+    val isIos = PlatformInfo.isIos
 
     if (state.isLoading) { LoadingScreen(); return }
     val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not load system info"); return }
@@ -64,12 +67,12 @@ fun SystemScreen(
                 ) {
                     androidx.compose.foundation.layout.Column {
                         Text(
-                            text = "Android ${info.androidVersion}",
+                            text = if (isIos) info.androidVersion else "Android ${info.androidVersion}",
                             style = MaterialTheme.typography.displaySmall,
                             color = colors.textPrimary,
                         )
                         Text(
-                            text = "API ${info.apiLevel} · ${info.releaseName}",
+                            text = if (isIos) "Build ${info.buildNumber}" else "API ${info.apiLevel} · ${info.releaseName}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.deviceColor,
                         )
@@ -90,7 +93,7 @@ fun SystemScreen(
                             .border(1.dp, colors.deviceColor.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Outlined.Android, null, tint = colors.deviceColor, modifier = Modifier.size(28.dp))
+                        Icon(if (isIos) Icons.Outlined.PhoneIphone else Icons.Outlined.Android, null, tint = colors.deviceColor, modifier = Modifier.size(28.dp))
                     }
                 }
             }
@@ -98,11 +101,13 @@ fun SystemScreen(
 
         item {
             SectionCard {
-                Text("Android", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                Text(if (isIos) "Operating System" else "Android", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 InfoRow("Version", info.androidVersion)
-                InfoRow("API Level", info.apiLevel.toString())
-                InfoRow("Codename", info.releaseName)
-                InfoRow("Security Patch", info.securityPatchLevel)
+                if (!isIos) {
+                    InfoRow("API Level", info.apiLevel.toString())
+                    InfoRow("Codename", info.releaseName)
+                    InfoRow("Security Patch", info.securityPatchLevel)
+                }
                 InfoRow("Build Number", info.buildNumber)
                 InfoRow("Build Type", info.buildType, showDivider = false)
             }
@@ -112,22 +117,35 @@ fun SystemScreen(
             AccentCard(accentColor = colors.cpuColor) {
                 Text("Runtime", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 InfoRow("Kernel", info.kernelVersion)
-                InfoRow("Java VM", info.javaVm)
-                InfoRow("OpenGL ES", info.openGlVersion)
-                if (info.glEsVersion.isNotBlank() && info.glEsVersion != "3.2") {
-                    InfoRow("GL ES Version", info.glEsVersion)
+                if (isIos) {
+                    InfoRow("Graphics", info.openGlVersion)
+                    InfoRow("Low Power Mode", if (info.isPowerSaveMode) "On" else "Off")
+                    InfoRow("Uptime", formatUptime(info.uptimeMillis), showDivider = false)
+                } else {
+                    InfoRow("Java VM", info.javaVm)
+                    InfoRow("OpenGL ES", info.openGlVersion)
+                    if (info.glEsVersion.isNotBlank() && info.glEsVersion != "3.2") {
+                        InfoRow("GL ES Version", info.glEsVersion)
+                    }
+                    InfoRow("Baseband", info.baseband)
+                    InfoRow("Bootloader", info.bootloader)
+                    InfoRow("Uptime", formatUptime(info.uptimeMillis), showDivider = false)
                 }
-                InfoRow("Baseband", info.baseband)
-                InfoRow("Bootloader", info.bootloader)
-                InfoRow("Uptime", formatUptime(info.uptimeMillis), showDivider = false)
             }
         }
 
         item {
             SectionCard {
                 Text("Security", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("SELinux", info.seLinuxStatus.ifBlank { "Enforcing" }, copyable = false)
-                InfoRow("Encrypted", if (info.isEncrypted) "Yes" else "No", copyable = false, showDivider = false)
+                if (!isIos) {
+                    InfoRow("SELinux", info.seLinuxStatus.ifBlank { "Enforcing" }, copyable = false)
+                }
+                InfoRow(
+                    label = if (isIos) "Data Protection" else "Encrypted",
+                    value = if (info.isEncrypted) (if (isIos) "Enabled" else "Yes") else "No",
+                    copyable = false,
+                    showDivider = false,
+                )
             }
         }
 
@@ -137,14 +155,16 @@ fun SystemScreen(
                 InfoRow("Package", info.packageName)
                 InfoRow("Version", "${info.appVersionName} (${info.appVersionCode})", copyable = false)
                 InfoRow("Installer", info.installerPackageName ?: "Unknown")
-                InfoRow("Known Store", if (info.isInstalledFromKnownStore) "Yes" else "No", copyable = false)
-                InfoRow("Debuggable App", if (info.isAppDebuggable) "Yes" else "No", copyable = false)
-                InfoRow(
-                    label = "Signing SHA-256",
-                    value = info.signingCertificateSha256 ?: "Unavailable",
-                    copyable = info.signingCertificateSha256 != null,
-                    showDivider = false,
-                )
+                InfoRow("Known Store", if (info.isInstalledFromKnownStore) "Yes" else "No", copyable = false, showDivider = isIos)
+                if (!isIos) {
+                    InfoRow("Debuggable App", if (info.isAppDebuggable) "Yes" else "No", copyable = false)
+                    InfoRow(
+                        label = "Signing SHA-256",
+                        value = info.signingCertificateSha256 ?: "Unavailable",
+                        copyable = info.signingCertificateSha256 != null,
+                        showDivider = false,
+                    )
+                }
             }
         }
 

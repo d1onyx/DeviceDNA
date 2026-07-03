@@ -8,6 +8,7 @@ import com.devstdvad.devicedna.domain.usecase.GetDisplayInfoUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -17,10 +18,13 @@ class DisplayViewModel(private val getDisplay: GetDisplayInfoUseCase) : ViewMode
     private val _state = MutableStateFlow(DisplayState())
     val state: StateFlow<DisplayState> = _state.asStateFlow()
     init {
+        // Observe so runtime brightness changes are reflected live.
         viewModelScope.launch {
-            when (val r = getDisplay()) {
-                is AppResult.Success -> _state.update { it.copy(info = r.value, isLoading = false) }
-                is AppResult.Error -> _state.update { it.copy(error = r.cause.message, isLoading = false) }
+            getDisplay.observe().collect { r ->
+                when (r) {
+                    is AppResult.Success -> _state.update { it.copy(info = r.value, isLoading = false) }
+                    is AppResult.Error -> _state.update { it.copy(error = r.cause.message, isLoading = false) }
+                }
             }
         }
     }

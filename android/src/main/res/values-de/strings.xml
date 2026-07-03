@@ -55,12 +55,14 @@
 
     <string name="auth_badge_ready">Firebase bereit</string>
     <string name="auth_badge_setup">Setup nötig</string>
-    <string name="auth_title">Sichere Geräteintelligenz beginnt mit Google.</string>
+    <string name="auth_title">Sichere Geräteintelligenz beginnt hier.</string>
     <string name="auth_subtitle">Melde dich an, um ein vertrauenswürdiges DeviceDNA-Profil zu nutzen, während Hardwarediagnosen lokal und unter deiner Kontrolle bleiben.</string>
     <string name="auth_value_private">Privat per Standard</string>
     <string name="auth_value_sync">Firebase Auth</string>
     <string name="auth_value_device">Geräteprofil</string>
     <string name="auth_google">Mit Google fortfahren</string>
+    <string name="auth_apple">Mit Apple fortfahren</string>
+    <string name="common_unavailable_ios">Auf iOS nicht verfügbar</string>
     <string name="auth_terms">Wenn du fortfährst, nutzt du Firebase Authentication für die Identität. Angemeldeter Sync kann Gerätediagnosen an das DeviceDNA-Backend hochladen.</string>
     <string name="auth_privacy_accept_prefix">Ich habe die folgende Richtlinie gelesen und akzeptiere sie:</string>
     <string name="auth_privacy_link">Datenschutzrichtlinie</string>
