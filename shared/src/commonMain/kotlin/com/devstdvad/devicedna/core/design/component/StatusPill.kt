@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun StatusPill(
@@ -21,12 +22,12 @@ fun StatusPill(
 ) {
     val colors = AppTheme.colors
     val (bg, fg, text) = when (status) {
-        MetricStatus.Normal -> Triple(colors.success.copy(alpha = 0.15f), colors.success, label ?: "Normal")
-        MetricStatus.Warning -> Triple(colors.warning.copy(alpha = 0.15f), colors.warning, label ?: "Warning")
-        MetricStatus.Critical -> Triple(colors.critical.copy(alpha = 0.15f), colors.critical, label ?: "Critical")
-        MetricStatus.PermissionRequired -> Triple(colors.accent.copy(alpha = 0.15f), colors.accent, label ?: "Permission")
-        MetricStatus.Unavailable -> Triple(colors.border, colors.textMuted, label ?: "Unavailable")
-        MetricStatus.Unknown -> Triple(colors.border, colors.textMuted, label ?: "Unknown")
+        MetricStatus.Normal -> Triple(colors.success.copy(alpha = 0.15f), colors.success, label ?: stringRes("component_status_normal"))
+        MetricStatus.Warning -> Triple(colors.warning.copy(alpha = 0.15f), colors.warning, label ?: stringRes("component_status_warning"))
+        MetricStatus.Critical -> Triple(colors.critical.copy(alpha = 0.15f), colors.critical, label ?: stringRes("component_status_critical"))
+        MetricStatus.PermissionRequired -> Triple(colors.accent.copy(alpha = 0.15f), colors.accent, label ?: stringRes("component_status_permission"))
+        MetricStatus.Unavailable -> Triple(colors.border, colors.textMuted, label ?: stringRes("common_unavailable"))
+        MetricStatus.Unknown -> Triple(colors.border, colors.textMuted, label ?: stringRes("common_unknown"))
     }
     Text(
         text = text,

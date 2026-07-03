@@ -21,7 +21,8 @@ struct WidgetPayload: Codable {
 }
 
 enum WidgetStore {
-    static let appGroupId = "group.com.devstdvad.devicedna"
+    static let appGroupId = widgetConfig("AppGroupId") ?? ""
+    static let deepLinkScheme = widgetConfig("DeepLinkScheme") ?? "devicedna"
     static let payloadKey = "widget_snapshot_v1"
 
     static func load() -> WidgetPayload {
@@ -32,6 +33,21 @@ enum WidgetStore {
         else { return WidgetPayload() }
         return payload
     }
+}
+
+private func widgetConfig(_ key: String) -> String? {
+    (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .flatMap { value in
+            if value.isEmpty || value.hasPrefix("$(") || value.contains("YOUR_") {
+                return nil
+            }
+            return value
+        }
+}
+
+private func widgetDeepLink(_ route: String) -> URL? {
+    URL(string: "\(WidgetStore.deepLinkScheme)://open/\(route)")
 }
 
 // MARK: - Timeline
@@ -115,7 +131,7 @@ struct BatteryWidgetView: View {
                 .foregroundStyle(WidgetPalette.textMuted)
         }
         .padding(2)
-        .widgetURL(URL(string: "devicedna://open/hardware/battery"))
+        .widgetURL(widgetDeepLink("hardware/battery"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 }
@@ -166,7 +182,7 @@ struct HealthWidgetView: View {
             }
         }
         .padding(2)
-        .widgetURL(URL(string: "devicedna://open/dashboard"))
+        .widgetURL(widgetDeepLink("system"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 }
@@ -204,7 +220,7 @@ struct MemoryWidgetView: View {
             )
         }
         .padding(2)
-        .widgetURL(URL(string: "devicedna://open/system"))
+        .widgetURL(widgetDeepLink("dashboard"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 

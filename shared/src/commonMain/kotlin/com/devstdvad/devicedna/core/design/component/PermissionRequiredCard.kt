@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun PermissionRequiredCard(
@@ -51,7 +52,7 @@ fun PermissionRequiredCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Permission Required",
+                    text = stringRes("component_permission_required_title"),
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.textPrimary,
                 )
@@ -69,7 +70,7 @@ fun PermissionRequiredCard(
                     colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
                 ) {
                     Text(
-                        text = "Grant $permissionName",
+                        text = stringRes("component_grant_permission", permissionName),
                         color = colors.background,
                     )
                 }

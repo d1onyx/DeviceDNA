@@ -271,6 +271,9 @@
     <string name="settings_alert_high_ram">Высокая загрузка RAM</string>
     <string name="settings_alert_slow_charging">Медленная зарядка</string>
     <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="notif_channel_battery_monitoring">Мониторинг батареи</string>
+    <string name="battery_monitoring_notif_title">Мониторинг батареи активен</string>
+    <string name="battery_monitoring_notif_body">DeviceDNA записывает изменения зарядки для Battery Intelligence.</string>
     <string name="alert_cpu_overheating_title">CPU перегревается</string>
     <string name="alert_cpu_overheating_body">Температура устройства высокая. Дайте ему остыть, чтобы избежать троттлинга и нагрузки на батарею.</string>
     <string name="alert_low_battery_title">Низкий заряд батареи</string>

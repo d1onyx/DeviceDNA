@@ -48,10 +48,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.devstdvad.devicedna.deeplink</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).deeplink</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>devicedna</string>
+				<string>$(IOS_DEEP_LINK_SCHEME)</string>
 			</array>
 		</dict>
 		<dict>
@@ -59,10 +59,10 @@
 			     NSException at launch of the sign-in flow if this scheme isn't registered —
 			     value is REVERSED_CLIENT_ID from GoogleService-Info.plist. -->
 			<key>CFBundleURLName</key>
-			<string>com.devstdvad.devicedna.google</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.871047083437-4rj58iqogjt6jv6tj3478bu15emk0fb9</string>
+				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
 	</array>
@@ -74,14 +74,14 @@
 	</array>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.devstdvad.devicedna.refresh</string>
+		<string>$(IOS_BACKGROUND_TASK_ID)</string>
 	</array>
 
 	<!-- ── AdMob ─────────────────────────────────────────────────────────
 	     Test application id — replace with the production GADApplicationIdentifier
 	     from the AdMob console before submitting. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>$(IOS_ADMOB_APP_ID)</string>
 
 	<!-- ATT: shown by UMP only when consent requires tracking. Reviewers check that
 	     this string honestly explains the purpose. -->
@@ -131,5 +131,17 @@
 	<!-- ── Sync backend base URL, injected from Config.xcconfig (SYNC_BASE_URL) ─── -->
 	<key>SyncBaseUrl</key>
 	<string>$(SYNC_BASE_URL)</string>
+	<key>AppGroupId</key>
+	<string>$(IOS_APP_GROUP_ID)</string>
+	<key>BackgroundTaskId</key>
+	<string>$(IOS_BACKGROUND_TASK_ID)</string>
+	<key>DeepLinkScheme</key>
+	<string>$(IOS_DEEP_LINK_SCHEME)</string>
+	<key>StoreKitPremiumProductId</key>
+	<string>$(IOS_STOREKIT_PREMIUM_PRODUCT_ID)</string>
+	<key>AdMobBannerAdUnitId</key>
+	<string>$(IOS_ADMOB_BANNER_AD_UNIT_ID)</string>
+	<key>AdMobInterstitialAdUnitId</key>
+	<string>$(IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID)</string>
 </dict>
 </plist>

@@ -11,12 +11,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Public (non-secret) variables
 [vars]
-# [MIGRATE] MUST match the app's Firebase project_id (android/google-services.json).
-# Otherwise ID token verification will fail.
-FIREBASE_PROJECT_ID = "YOUR_FIREBASE_PROJECT_ID"
 PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"
-GOOGLE_PLAY_PACKAGE_NAME = "com.devstdvad.devicedna"
-GOOGLE_PLAY_PREMIUM_PRODUCT_ID = "devicedna_premium"
 
 # [MIGRATE] KV namespace for caching Google's public keys (JWKS).
 # The id is obtained via:  wrangler kv namespace create PUBLIC_JWK_CACHE_KV
@@ -27,6 +22,13 @@ id = "REPLACE_AFTER_wrangler_kv_namespace_create"
 
 # [MIGRATE] The DATABASE_URL (Neon) secret is set separately, NOT here:
 #   wrangler secret put DATABASE_URL
+#
+# Account/store-specific values are set as Worker secrets by setup-cloudflare.*
+# from environment variables or ../local.properties:
+#   FIREBASE_PROJECT_ID
+#   FIREBASE_WEB_API_KEY
+#   GOOGLE_PLAY_PACKAGE_NAME
+#   GOOGLE_PLAY_PREMIUM_PRODUCT_ID
 
 # Optional: set when using /internal subscription upserts:
 #   wrangler secret put INTERNAL_API_KEY

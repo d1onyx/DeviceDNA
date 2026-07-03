@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun TestsScreen(
@@ -86,7 +87,7 @@ fun TestsScreen(
     ) {
         item {
             SectionCard {
-                Text("Hardware Diagnostics", style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
+                Text(stringRes("tests_title"), style = MaterialTheme.typography.headlineSmall, color = colors.textPrimary)
                 Spacer(Modifier.height(4.dp))
                 Text(state.summary, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
                 Spacer(Modifier.height(16.dp))
@@ -101,10 +102,10 @@ fun TestsScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    TestCounter("Passed", passedCount.toString(), colors.success, Modifier.weight(1f))
-                    TestCounter("Warnings", warningCount.toString(), colors.warning, Modifier.weight(1f))
-                    TestCounter("Failed", failedCount.toString(), colors.critical, Modifier.weight(1f))
-                    TestCounter("N/A", unavailableCount.toString(), colors.textMuted, Modifier.weight(1f))
+                    TestCounter(stringRes("tests_counter_passed"), passedCount.toString(), colors.success, Modifier.weight(1f))
+                    TestCounter(stringRes("tests_counter_warnings"), warningCount.toString(), colors.warning, Modifier.weight(1f))
+                    TestCounter(stringRes("tests_counter_failed"), failedCount.toString(), colors.critical, Modifier.weight(1f))
+                    TestCounter(stringRes("tests_counter_na"), unavailableCount.toString(), colors.textMuted, Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(14.dp))
                 Button(
@@ -115,7 +116,7 @@ fun TestsScreen(
                 ) {
                     Icon(Icons.Outlined.Refresh, contentDescription = null, tint = colors.background, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.size(8.dp))
-                    Text(if (state.isRunning) "Running checks" else "Run hardware checks", color = colors.background)
+                    Text(if (state.isRunning) stringRes("tests_button_running") else stringRes("tests_button_run"), color = colors.background)
                 }
             }
         }

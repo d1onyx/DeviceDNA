@@ -416,7 +416,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 exportState.errorMessage?.let { error ->
                     Text(
-                        text = error,
+                        text = error.ifEmpty { stringRes("export_failed_fallback") },
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.critical,
                         modifier = Modifier.padding(bottom = 8.dp),

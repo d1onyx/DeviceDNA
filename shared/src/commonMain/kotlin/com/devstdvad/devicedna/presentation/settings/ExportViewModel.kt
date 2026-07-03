@@ -29,7 +29,10 @@ class ExportViewModel(private val exporter: DiagnosticsExporter) : ViewModel() {
             _state.value = ExportState(isExporting = true)
             runCatching { exporter.export(format) }.fold(
                 onSuccess = { _state.value = ExportState() },
-                onFailure = { e -> _state.value = ExportState(errorMessage = e.message ?: "Export failed") },
+                // No localized fallback here — a plain ViewModel can't call stringRes(); an
+                // empty (non-null) string is a sentinel meaning "failed, no message", and the
+                // screen supplies the localized fallback text when rendering it.
+                onFailure = { e -> _state.value = ExportState(errorMessage = e.message?.takeIf { it.isNotBlank() } ?: "") },
             )
         }
     }

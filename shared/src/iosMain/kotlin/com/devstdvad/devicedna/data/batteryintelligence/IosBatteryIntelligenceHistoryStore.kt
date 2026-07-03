@@ -1,6 +1,5 @@
 package com.devstdvad.devicedna.data.batteryintelligence
 
-import com.devstdvad.devicedna.di.APP_GROUP_ID
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +16,8 @@ import kotlin.math.abs
  * DataStore implementation's retention/dedup rules 1:1.
  */
 class IosBatteryIntelligenceHistoryStore(
-    private val defaults: NSUserDefaults = NSUserDefaults(suiteName = APP_GROUP_ID) ?: NSUserDefaults.standardUserDefaults,
+    appGroupId: String,
+    private val defaults: NSUserDefaults = NSUserDefaults(suiteName = appGroupId) ?: NSUserDefaults.standardUserDefaults,
 ) : BatteryIntelligenceHistoryStore {
 
     private val json = Json {

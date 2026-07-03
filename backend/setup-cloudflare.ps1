@@ -15,16 +15,48 @@ $PSNativeCommandUseErrorActionPreference = $false
 Set-Location -LiteralPath $PSScriptRoot
 
 $Wt = "wrangler.toml"
+$RootProperties = Join-Path (Split-Path -Parent $PSScriptRoot) "local.properties"
+
+function Get-LocalProperty {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    if (-not (Test-Path -LiteralPath $RootProperties)) { return "" }
+    foreach ($line in Get-Content -LiteralPath $RootProperties) {
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith("#") -or -not $trimmed.Contains("=")) { continue }
+        $parts = $trimmed.Split("=", 2)
+        if ($parts[0].Trim() -eq $Name) { return $parts[1].Trim() }
+    }
+    return ""
+}
+
+function Set-EnvFromProperty {
+    param(
+        [Parameter(Mandatory = $true)][string]$EnvName,
+        [Parameter(Mandatory = $true)][string]$PropertyName,
+        [string]$FallbackPropertyName = ""
+    )
+
+    if (-not [string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable($EnvName))) { return }
+    $value = Get-LocalProperty -Name $PropertyName
+    if ([string]::IsNullOrWhiteSpace($value) -and -not [string]::IsNullOrWhiteSpace($FallbackPropertyName)) {
+        $value = Get-LocalProperty -Name $FallbackPropertyName
+    }
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+        [Environment]::SetEnvironmentVariable($EnvName, $value, "Process")
+    }
+}
+
+Set-EnvFromProperty -EnvName "FIREBASE_PROJECT_ID" -PropertyName "firebaseProjectId"
+Set-EnvFromProperty -EnvName "FIREBASE_WEB_API_KEY" -PropertyName "firebaseWebApiKey"
+Set-EnvFromProperty -EnvName "DATABASE_URL" -PropertyName "databaseUrl"
+Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PACKAGE_NAME" -PropertyName "googlePlayPackageName" -FallbackPropertyName "androidApplicationId"
+Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PREMIUM_PRODUCT_ID" -PropertyName "googlePlayPremiumProductId" -FallbackPropertyName "premiumSubProductId"
 
 # 0) Login check
 & npx wrangler whoami *> $null
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Log in first:  npx wrangler login"
-    exit 1
-}
-
-if (Select-String -Path $Wt -Pattern "YOUR_FIREBASE_PROJECT_ID" -Quiet) {
-    Write-Error "Set FIREBASE_PROJECT_ID in $Wt before deploying."
     exit 1
 }
 
@@ -74,11 +106,14 @@ function Set-WorkerSecret {
 }
 
 # 2) Required production secrets.
+Set-WorkerSecret -Name "FIREBASE_PROJECT_ID"
 Set-WorkerSecret -Name "DATABASE_URL"
 Set-WorkerSecret -Name "FIREBASE_WEB_API_KEY"
 
-# 3) Optional production secrets. Set them as environment variables when needed.
+# 3) Optional production secrets. Set them as environment variables or in ../local.properties.
 Set-WorkerSecret -Name "INTERNAL_API_KEY" -Optional
+Set-WorkerSecret -Name "GOOGLE_PLAY_PACKAGE_NAME" -Optional
+Set-WorkerSecret -Name "GOOGLE_PLAY_PREMIUM_PRODUCT_ID" -Optional
 Set-WorkerSecret -Name "GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL" -Optional
 Set-WorkerSecret -Name "GOOGLE_PLAY_PRIVATE_KEY" -Optional
 Set-WorkerSecret -Name "PLAY_RTDN_VERIFICATION_TOKEN" -Optional

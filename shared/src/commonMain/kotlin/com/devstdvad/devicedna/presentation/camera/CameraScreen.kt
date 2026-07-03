@@ -36,6 +36,7 @@ import com.devstdvad.devicedna.domain.model.CameraDetails
 import com.devstdvad.devicedna.domain.model.CameraFacing
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun CameraScreen(
@@ -46,7 +47,7 @@ fun CameraScreen(
     val colors = AppTheme.colors
 
     if (state.isLoading) { LoadingScreen(); return }
-    val info = state.info ?: run { LoadingScreen(message = state.error ?: "No camera info available"); return }
+    val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("camera_load_error")); return }
 
     val backCameras = info.cameras.filter { it.facing == CameraFacing.Back }
 
@@ -62,7 +63,7 @@ fun CameraScreen(
     ) {
         item {
             Text(
-                text = "${info.cameras.size} Camera${if (info.cameras.size != 1) "s" else ""}",
+                text = stringRes("camera_count", info.cameras.size),
                 style = MaterialTheme.typography.displaySmall,
                 color = colors.textPrimary,
             )
@@ -71,10 +72,10 @@ fun CameraScreen(
         info.cameras.forEach { cam ->
             item {
                 val label = when (cam.facing) {
-                    CameraFacing.Back -> if (backCameras.size > 1) "Rear ${backCameras.indexOf(cam) + 1}" else "Rear Camera"
-                    CameraFacing.Front -> "Front Camera"
-                    CameraFacing.External -> "External Camera"
-                    CameraFacing.Unknown -> "Camera ${cam.id}"
+                    CameraFacing.Back -> if (backCameras.size > 1) stringRes("camera_label_rear_indexed", backCameras.indexOf(cam) + 1) else stringRes("camera_label_rear")
+                    CameraFacing.Front -> stringRes("camera_label_front")
+                    CameraFacing.External -> stringRes("camera_label_external")
+                    CameraFacing.Unknown -> stringRes("camera_label_unknown", cam.id)
                 }
                 CameraCard(cam, label)
             }
@@ -97,7 +98,7 @@ private fun CameraCard(cam: CameraDetails, label: String) {
                 Text(label, style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = if (cam.megapixels > 0) "${Formatters.oneDecimal(cam.megapixels)} MP" else "Unknown MP",
+                    text = if (cam.megapixels > 0) "${Formatters.oneDecimal(cam.megapixels)} MP" else stringRes("camera_value_unknown_mp"),
                     style = MaterialTheme.typography.headlineSmall,
                     color = colors.cameraColor,
                 )
@@ -130,12 +131,12 @@ private fun CameraCard(cam: CameraDetails, label: String) {
         }
 
         Spacer(Modifier.height(12.dp))
-        InfoRow("Megapixels", "${Formatters.oneDecimal(cam.megapixels)} MP", copyable = false)
-        InfoRow("Resolution", "${cam.resolutionWidth} × ${cam.resolutionHeight}", copyable = false)
-        if (cam.focalLengths.isNotEmpty()) InfoRow("Focal Length", cam.focalLengths.joinToString(", ") { "${Formatters.oneDecimal(it)} mm" }, copyable = false)
-        if (cam.apertures.isNotEmpty()) InfoRow("Aperture", cam.apertures.joinToString(", ") { "f/${Formatters.oneDecimal(it)}" }, copyable = false)
-        InfoRow("Flash", if (cam.hasFlash) "Yes" else "No", copyable = false)
-        InfoRow("OIS", if (cam.hasOis) "Yes" else "No", copyable = false, showDivider = false)
+        InfoRow(stringRes("camera_field_megapixels"), "${Formatters.oneDecimal(cam.megapixels)} MP", copyable = false)
+        InfoRow(stringRes("display_field_resolution"), "${cam.resolutionWidth} × ${cam.resolutionHeight}", copyable = false)
+        if (cam.focalLengths.isNotEmpty()) InfoRow(stringRes("camera_field_focal_length"), cam.focalLengths.joinToString(", ") { "${Formatters.oneDecimal(it)} mm" }, copyable = false)
+        if (cam.apertures.isNotEmpty()) InfoRow(stringRes("camera_field_aperture"), cam.apertures.joinToString(", ") { "f/${Formatters.oneDecimal(it)}" }, copyable = false)
+        InfoRow(stringRes("camera_field_flash"), if (cam.hasFlash) stringRes("common_yes") else stringRes("common_no"), copyable = false)
+        InfoRow(stringRes("camera_field_ois"), if (cam.hasOis) stringRes("common_yes") else stringRes("common_no"), copyable = false, showDivider = false)
     }
 }
 

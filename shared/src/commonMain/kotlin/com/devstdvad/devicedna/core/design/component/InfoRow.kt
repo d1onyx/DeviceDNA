@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.resources.stringRes
 
 @Suppress("DEPRECATION")
 @Composable
@@ -81,7 +82,7 @@ fun InfoRow(
                     ) {
                         Icon(
                             imageVector = if (revealed) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                            contentDescription = if (revealed) "Hide" else "Reveal",
+                            contentDescription = if (revealed) stringRes("component_hide") else stringRes("component_reveal"),
                             tint = colors.textMuted,
                             modifier = Modifier.size(16.dp),
                         )
@@ -94,7 +95,7 @@ fun InfoRow(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = "Copy",
+                            contentDescription = stringRes("component_copy"),
                             tint = colors.textMuted,
                             modifier = Modifier.size(14.dp),
                         )

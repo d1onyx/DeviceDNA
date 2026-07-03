@@ -34,6 +34,7 @@ import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.domain.model.SensorDetails
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun SensorsScreen(
@@ -67,13 +68,13 @@ fun SensorsScreen(
                         style = MaterialTheme.typography.displaySmall,
                         color = colors.sensorsColor,
                     )
-                    Text("Sensors detected", style = MaterialTheme.typography.bodyMedium, color = colors.textMuted)
+                    Text(stringRes("sensors_detected_label"), style = MaterialTheme.typography.bodyMedium, color = colors.textMuted)
                 }
                 val wakeUpCount = state.info?.sensors?.count { it.isWakeUp } ?: 0
                 if (wakeUpCount > 0) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text("$wakeUpCount", style = MaterialTheme.typography.displaySmall, color = colors.accent)
-                        Text("Wake-up sensors", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                        Text(stringRes("sensors_wakeup_label"), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                     }
                 }
             }
@@ -83,7 +84,7 @@ fun SensorsScreen(
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::onQuery,
-                placeholder = { Text("Search sensors…", color = colors.textMuted) },
+                placeholder = { Text(stringRes("sensors_search_placeholder"), color = colors.textMuted) },
                 leadingIcon = { Icon(Icons.Outlined.Search, null, tint = colors.textMuted) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
@@ -129,7 +130,7 @@ private fun SensorItem(sensor: SensorDetails) {
                 // only show the metrics line when the OS actually reports them.
                 if (sensor.powerMa != 0f || sensor.maxRange != 0f || sensor.resolution != 0f) {
                     Text(
-                        "Power: ${sensor.powerMa} mA · Max: ${sensor.maxRange} · Res: ${sensor.resolution}",
+                        stringRes("sensors_metrics_line", sensor.powerMa, sensor.maxRange, sensor.resolution),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.textMuted,
                     )
@@ -138,7 +139,7 @@ private fun SensorItem(sensor: SensorDetails) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 if (sensor.isWakeUp) {
                     Text(
-                        "Wake-up",
+                        stringRes("sensors_chip_wakeup"),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.sensorsColor,
                         modifier = Modifier
@@ -149,7 +150,7 @@ private fun SensorItem(sensor: SensorDetails) {
                 }
                 if (sensor.isDynamic) {
                     Text(
-                        "Dynamic",
+                        stringRes("sensors_chip_dynamic"),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.accent,
                         modifier = Modifier

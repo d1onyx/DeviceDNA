@@ -25,6 +25,7 @@ import com.devstdvad.devicedna.core.design.component.LiveBar
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun DisplayScreen(
@@ -35,7 +36,7 @@ fun DisplayScreen(
     val colors = AppTheme.colors
 
     if (state.isLoading) { LoadingScreen(); return }
-    val info = state.info ?: run { LoadingScreen(message = state.error ?: "Unavailable"); return }
+    val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("common_unavailable")); return }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -60,24 +61,24 @@ fun DisplayScreen(
                             color = colors.textPrimary,
                         )
                         Text(
-                            text = "${info.displayType} · ${Formatters.oneDecimal(info.physicalSizeInches)}\"",
+                            text = stringRes("display_hero_type_size", info.displayType, Formatters.oneDecimal(info.physicalSizeInches)),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.displayColor,
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "${info.refreshRateHz.toInt()} Hz",
+                            text = stringRes("display_value_hz", info.refreshRateHz.toInt()),
                             style = MaterialTheme.typography.displayMedium,
                             color = colors.displayColor,
                         )
-                        Text("Refresh Rate", style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+                        Text(stringRes("display_field_refresh_rate"), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                     }
                 }
                 if (info.supportedRefreshRates.size > 1) {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Supported: ${info.supportedRefreshRates.joinToString(", ") { "${it.toInt()} Hz" }}",
+                        text = stringRes("display_supported_rates", info.supportedRefreshRates.joinToString(", ") { "${it.toInt()} Hz" }),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textMuted,
                     )
@@ -87,35 +88,35 @@ fun DisplayScreen(
 
         item {
             SectionCard {
-                Text("Specs", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Resolution", "${info.widthPx} × ${info.heightPx} px", copyable = false)
-                InfoRow("Density", "${info.densityDpi} dpi (${info.densityBucket})", copyable = false)
-                InfoRow("Physical Size", "${Formatters.oneDecimal(info.physicalSizeInches)} inches", copyable = false)
-                InfoRow("Type", info.displayType, copyable = false)
-                InfoRow("Orientation", info.orientation, copyable = false)
-                InfoRow("Wide Color Gamut", if (info.isWideColorGamut) "Yes" else "No", copyable = false)
-                InfoRow("HDR", if (info.isHdr) "Supported" else "Not supported", copyable = false)
-                InfoRow("Font Scale", "${Formatters.twoDecimals(info.fontScale)}×", copyable = false, showDivider = false)
+                Text(stringRes("display_section_specs"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("display_field_resolution"), stringRes("display_value_resolution_px", info.widthPx, info.heightPx), copyable = false)
+                InfoRow(stringRes("display_field_density"), stringRes("display_value_density", info.densityDpi, info.densityBucket), copyable = false)
+                InfoRow(stringRes("display_field_physical_size"), stringRes("display_value_inches", Formatters.oneDecimal(info.physicalSizeInches)), copyable = false)
+                InfoRow(stringRes("network_field_type"), info.displayType, copyable = false)
+                InfoRow(stringRes("display_field_orientation"), info.orientation, copyable = false)
+                InfoRow(stringRes("display_field_wide_color_gamut"), if (info.isWideColorGamut) stringRes("common_yes") else stringRes("common_no"), copyable = false)
+                InfoRow(stringRes("display_field_hdr"), if (info.isHdr) stringRes("connectivity_value_supported") else stringRes("connectivity_value_not_supported"), copyable = false)
+                InfoRow(stringRes("display_field_font_scale"), stringRes("display_value_multiplier", Formatters.twoDecimals(info.fontScale)), copyable = false, showDivider = false)
             }
         }
 
         item {
             AccentCard(accentColor = colors.displayColor) {
-                Text("Brightness", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                Text(stringRes("display_section_brightness"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Level", style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                    Text(stringRes("display_field_level"), style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
                     Text("${(info.brightnessLevel * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium, color = colors.textPrimary)
                 }
                 Spacer(Modifier.height(6.dp))
                 LiveBar(fraction = info.brightnessLevel, accentColor = colors.displayColor)
                 Spacer(Modifier.height(8.dp))
                 InfoRow(
-                    label = "Adaptive Brightness",
-                    value = if (info.isAdaptiveBrightness) "Enabled" else "Disabled",
+                    label = stringRes("display_field_adaptive_brightness"),
+                    value = if (info.isAdaptiveBrightness) stringRes("common_enabled") else stringRes("common_disabled"),
                     copyable = false,
                     showDivider = false,
                 )

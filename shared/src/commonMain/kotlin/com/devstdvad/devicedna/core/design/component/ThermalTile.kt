@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.common.Formatters
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun ThermalTile(
@@ -36,17 +37,17 @@ fun ThermalTile(
     val colors = AppTheme.colors
     val (statusColor, statusText, fraction) = when {
         tempCelsius == null && stateName != null -> when (stateName.lowercase()) {
-            "critical" -> Triple(colors.critical, "Thermal state", 1f)
-            "serious" -> Triple(colors.thermalColor, "Thermal state", 0.7f)
-            "fair" -> Triple(colors.warning, "Thermal state", 0.45f)
-            else -> Triple(colors.sensorsColor, "Thermal state", 0.2f) // Nominal
+            "critical" -> Triple(colors.critical, stringRes("component_thermal_state_label"), 1f)
+            "serious" -> Triple(colors.thermalColor, stringRes("component_thermal_state_label"), 0.7f)
+            "fair" -> Triple(colors.warning, stringRes("component_thermal_state_label"), 0.45f)
+            else -> Triple(colors.sensorsColor, stringRes("component_thermal_state_label"), 0.2f) // Nominal
         }
-        tempCelsius == null -> Triple(colors.textMuted, "N/A", 0f)
-        tempCelsius >= 70f -> Triple(colors.critical, "Critical", minOf(tempCelsius / 100f, 1f))
-        tempCelsius >= 55f -> Triple(colors.critical.copy(alpha = 0.7f), "Very Hot", tempCelsius / 100f)
-        tempCelsius >= 42f -> Triple(colors.thermalColor, "Hot", tempCelsius / 100f)
-        tempCelsius >= 35f -> Triple(colors.warning, "Warm", tempCelsius / 100f)
-        else -> Triple(colors.sensorsColor, "Normal", tempCelsius / 100f)
+        tempCelsius == null -> Triple(colors.textMuted, stringRes("common_na"), 0f)
+        tempCelsius >= 70f -> Triple(colors.critical, stringRes("component_status_critical"), minOf(tempCelsius / 100f, 1f))
+        tempCelsius >= 55f -> Triple(colors.critical.copy(alpha = 0.7f), stringRes("component_thermal_very_hot"), tempCelsius / 100f)
+        tempCelsius >= 42f -> Triple(colors.thermalColor, stringRes("component_thermal_hot"), tempCelsius / 100f)
+        tempCelsius >= 35f -> Triple(colors.warning, stringRes("component_thermal_warm"), tempCelsius / 100f)
+        else -> Triple(colors.sensorsColor, stringRes("component_status_normal"), tempCelsius / 100f)
     }
     val animFraction by animateFloatAsState(targetValue = fraction, animationSpec = tween(700), label = "thermal")
 

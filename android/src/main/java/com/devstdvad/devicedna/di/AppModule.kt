@@ -119,6 +119,7 @@ val appModule = module {
     }
     single {
         com.devstdvad.devicedna.data.export.DiagnosticsExporter(
+            get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(),
         )
     }

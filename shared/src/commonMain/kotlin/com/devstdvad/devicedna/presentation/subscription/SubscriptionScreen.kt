@@ -260,7 +260,7 @@ fun SubscriptionScreen(
                         Spacer(Modifier.height(10.dp))
                     }
                     ErrorBanner(
-                        message = state.errorMessage,
+                        message = state.errorMessage?.ifEmpty { stringRes("subscription_operation_failed") },
                         onDismiss = viewModel::dismissError,
                     )
 

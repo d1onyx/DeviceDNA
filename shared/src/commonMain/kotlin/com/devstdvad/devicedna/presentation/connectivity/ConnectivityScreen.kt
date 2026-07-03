@@ -17,6 +17,7 @@ import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.network.NetworkViewModel
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun ConnectivityScreen(
@@ -27,7 +28,7 @@ fun ConnectivityScreen(
     val colors = AppTheme.colors
 
     if (state.isLoading) {
-        LoadingScreen("Reading radio capabilities...")
+        LoadingScreen(stringRes("connectivity_loading"))
         return
     }
 
@@ -44,37 +45,38 @@ fun ConnectivityScreen(
         state.connectivity?.let { conn ->
             item {
                 SectionCard {
-                    Text("Wi-Fi", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                    InfoRow("Wi-Fi hardware", supported(conn.hasWifi))
-                    InfoRow("Wi-Fi Direct", supported(conn.hasWifiDirect))
-                    InfoRow("5 GHz band", supported(conn.hasWifi5Ghz))
-                    InfoRow("6 GHz band", supported(conn.hasWifi6Ghz))
+                    Text(stringRes("network_type_wifi"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    InfoRow(stringRes("connectivity_field_wifi_hardware"), supported(conn.hasWifi))
+                    InfoRow(stringRes("connectivity_field_wifi_direct"), supported(conn.hasWifiDirect))
+                    InfoRow(stringRes("connectivity_field_5ghz"), supported(conn.hasWifi5Ghz))
+                    InfoRow(stringRes("connectivity_field_6ghz"), supported(conn.hasWifi6Ghz))
                     InfoRow(
-                        label = "Standards",
-                        value = conn.wifiStandards.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "Restricted by platform",
+                        label = stringRes("connectivity_field_standards"),
+                        value = conn.wifiStandards.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: stringRes("connectivity_value_restricted"),
                         showDivider = false,
                     )
                 }
             }
             item {
                 SectionCard {
-                    Text("Personal Area", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                    InfoRow("Bluetooth", supported(conn.hasBluetooth))
-                    InfoRow("Bluetooth LE", supported(conn.hasBluetoothLe))
-                    InfoRow("Bluetooth version", conn.bluetoothVersion ?: "Restricted by platform")
-                    InfoRow("NFC", supported(conn.hasNfc))
-                    InfoRow("UWB", supported(conn.hasUwb), showDivider = false)
+                    Text(stringRes("connectivity_section_personal_area"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    InfoRow(stringRes("connectivity_field_bluetooth"), supported(conn.hasBluetooth))
+                    InfoRow(stringRes("connectivity_field_bluetooth_le"), supported(conn.hasBluetoothLe))
+                    InfoRow(stringRes("connectivity_field_bluetooth_version"), conn.bluetoothVersion ?: stringRes("connectivity_value_restricted"))
+                    InfoRow(stringRes("connectivity_field_nfc"), supported(conn.hasNfc))
+                    InfoRow(stringRes("connectivity_field_uwb"), supported(conn.hasUwb), showDivider = false)
                 }
             }
             item {
                 SectionCard {
-                    Text("Mobile", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                    InfoRow("eSIM", supported(conn.hasEsim))
-                    InfoRow("Cellular detail", "Available only with carrier/runtime permission", showDivider = false)
+                    Text(stringRes("connectivity_section_mobile"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    InfoRow(stringRes("connectivity_field_esim"), supported(conn.hasEsim))
+                    InfoRow(stringRes("connectivity_field_cellular_detail"), stringRes("connectivity_value_cellular_detail"), showDivider = false)
                 }
             }
         }
     }
 }
 
-private fun supported(value: Boolean): String = if (value) "Supported" else "Not supported"
+@Composable
+private fun supported(value: Boolean): String = if (value) stringRes("connectivity_value_supported") else stringRes("connectivity_value_not_supported")

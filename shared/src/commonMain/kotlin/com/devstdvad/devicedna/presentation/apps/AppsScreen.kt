@@ -40,6 +40,7 @@ import com.devstdvad.devicedna.domain.model.AppDetails
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
 import com.devstdvad.devicedna.platform.PlatformInfo
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun AppsScreen(
@@ -71,7 +72,7 @@ fun AppsScreen(
     ) {
         item {
             state.info?.let {
-                Text("${it.userCount} User · ${it.systemCount} System Apps", style = MaterialTheme.typography.displaySmall, color = colors.textPrimary)
+                Text(stringRes("apps_count_summary", it.userCount, it.systemCount), style = MaterialTheme.typography.displaySmall, color = colors.textPrimary)
             }
         }
         item {
@@ -79,7 +80,7 @@ fun AppsScreen(
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = viewModel::onQuery,
-                    placeholder = { Text("Search apps…", color = colors.textMuted) },
+                    placeholder = { Text(stringRes("apps_search_placeholder"), color = colors.textMuted) },
                     leadingIcon = { Icon(Icons.Outlined.Search, null, tint = colors.textMuted) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
@@ -95,7 +96,7 @@ fun AppsScreen(
                 FilterChip(
                     selected = state.showSystem,
                     onClick = viewModel::toggleSystem,
-                    label = { Text("Show system apps") },
+                    label = { Text(stringRes("apps_show_system_toggle")) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = colors.accent.copy(alpha = 0.15f),
                         selectedLabelColor = colors.accent,
@@ -136,16 +137,15 @@ private fun AppsUnavailable(contentPadding: PaddingValues) {
                 modifier = Modifier.size(48.dp),
             )
             Text(
-                text = "App inventory unavailable",
+                text = stringRes("apps_unavailable_title"),
                 style = MaterialTheme.typography.titleLarge,
                 color = colors.textPrimary,
             )
             Text(
                 text = if (isIos) {
-                    "iOS sandboxing prevents apps from listing other installed apps. " +
-                        "Apple does not provide a public API for this, so DeviceDNA cannot enumerate them here."
+                    stringRes("apps_unavailable_ios_body")
                 } else {
-                    "The installed-app inventory could not be read on this device."
+                    stringRes("apps_unavailable_generic_body")
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textMuted,

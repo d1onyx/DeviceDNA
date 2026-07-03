@@ -3,7 +3,6 @@ package com.devstdvad.devicedna.data.widget
 import com.devstdvad.devicedna.core.common.getOrNull
 import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
-import com.devstdvad.devicedna.di.APP_GROUP_ID
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetHealthScoreUseCase
 import com.devstdvad.devicedna.domain.usecase.GetStorageInfoUseCase
@@ -56,7 +55,8 @@ class IosWidgetBridge(
     private val getHealth: GetHealthScoreUseCase,
     private val entitlementsStore: PremiumEntitlementsStore,
     private val reloadWidgetTimelines: () -> Unit,
-    private val defaults: NSUserDefaults = NSUserDefaults(suiteName = APP_GROUP_ID) ?: NSUserDefaults.standardUserDefaults,
+    appGroupId: String,
+    private val defaults: NSUserDefaults = NSUserDefaults(suiteName = appGroupId) ?: NSUserDefaults.standardUserDefaults,
 ) {
     private val json = Json { encodeDefaults = true }
 

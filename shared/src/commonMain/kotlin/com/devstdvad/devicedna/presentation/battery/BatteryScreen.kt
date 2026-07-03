@@ -47,7 +47,7 @@ fun BatteryScreen(
     val isIos = PlatformInfo.isIos
 
     if (state.isLoading && state.info == null) { LoadingScreen(); return }
-    val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not read battery"); return }
+    val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("battery_load_error")); return }
 
     val isCharging = info.status == BatteryStatus.Charging || info.status == BatteryStatus.Full
     val batteryStatus = when {
@@ -92,17 +92,17 @@ fun BatteryScreen(
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (isIos) {
-                                StatChip("Source", info.source.name)
-                                StatChip("Power Saver", if (info.isPowerSaveMode) "On" else "Off")
+                                StatChip(stringRes("battery_field_source"), info.source.name)
+                                StatChip(stringRes("battery_field_power_saver"), if (info.isPowerSaveMode) stringRes("common_on") else stringRes("common_off"))
                             } else {
-                                StatChip("Temp", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit))
-                                StatChip("Voltage", "${info.voltageMv} mV")
-                                info.currentMa?.let { StatChip("Current", "$it mA") }
+                                StatChip(stringRes("battery_field_temp_short"), SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit))
+                                StatChip(stringRes("battery_field_voltage"), stringRes("battery_value_mv", info.voltageMv))
+                                info.currentMa?.let { StatChip(stringRes("battery_field_current"), stringRes("battery_value_ma", it)) }
                             }
                         }
                         Spacer(Modifier.height(6.dp))
                         info.estimatedWatts?.let {
-                            Text("${Formatters.twoDecimals(it)} W", style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
+                            Text(stringRes("battery_value_watts", Formatters.twoDecimals(it)), style = MaterialTheme.typography.bodySmall, color = colors.textMuted)
                         }
                     }
                     Spacer(Modifier.width(16.dp))
@@ -120,40 +120,40 @@ fun BatteryScreen(
         // Status details
         item {
             SectionCard {
-                Text("Status", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Charging Status", info.status.name, copyable = false)
-                InfoRow("Power Source", info.source.name, copyable = false)
-                InfoRow("Health", info.health.name, copyable = false)
-                InfoRow("Power Saver", if (info.isPowerSaveMode) "Enabled" else "Disabled", copyable = false)
-                InfoRow("Technology", info.technology, copyable = false, showDivider = false)
+                Text(stringRes("battery_section_status"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("battery_field_charging_status"), info.status.name, copyable = false)
+                InfoRow(stringRes("battery_field_power_source"), info.source.name, copyable = false)
+                InfoRow(stringRes("battery_field_health"), info.health.name, copyable = false)
+                InfoRow(stringRes("battery_field_power_saver"), if (info.isPowerSaveMode) stringRes("common_enabled") else stringRes("common_disabled"), copyable = false)
+                InfoRow(stringRes("battery_field_technology"), info.technology, copyable = false, showDivider = false)
             }
         }
 
         // Measurements
         item {
             AccentCard(accentColor = batteryAccent) {
-                Text("Measurements", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                Text(stringRes("battery_section_measurements"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 if (isIos) {
                     // iOS never exposes battery temperature, voltage, capacity or cycle count to apps.
-                    InfoRow("Temperature", stringRes("common_unavailable_ios"), copyable = false)
-                    InfoRow("Voltage", stringRes("common_unavailable_ios"), copyable = false)
-                    InfoRow("Capacity", stringRes("common_unavailable_ios"), copyable = false)
+                    InfoRow(stringRes("battery_field_temperature"), stringRes("common_unavailable_ios"), copyable = false)
+                    InfoRow(stringRes("battery_field_voltage"), stringRes("common_unavailable_ios"), copyable = false)
+                    InfoRow(stringRes("battery_field_capacity"), stringRes("common_unavailable_ios"), copyable = false)
                     InfoRow(
-                        label = "Charge Cycles",
+                        label = stringRes("battery_field_charge_cycles"),
                         value = stringRes("common_unavailable_ios"),
                         copyable = false,
                         showDivider = false,
                     )
                 } else {
-                    InfoRow("Temperature", SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit), copyable = false)
-                    InfoRow("Voltage", "${info.voltageMv} mV", copyable = false)
-                    info.currentMa?.let { InfoRow("Current", "$it mA", copyable = false) }
-                    info.estimatedWatts?.let { InfoRow("Power", "${Formatters.twoDecimals(it)} W", copyable = false) }
-                    InfoRow("Charge Time Remaining", formatChargeTime(info.chargeTimeRemainingMs), copyable = false)
-                    info.capacityMah?.let { InfoRow("Current Capacity", "$it mAh", copyable = false) }
+                    InfoRow(stringRes("battery_field_temperature"), SettingsFormatters.formatTemperature(info.temperatureCelsius, settings.temperatureUnit), copyable = false)
+                    InfoRow(stringRes("battery_field_voltage"), stringRes("battery_value_mv", info.voltageMv), copyable = false)
+                    info.currentMa?.let { InfoRow(stringRes("battery_field_current"), stringRes("battery_value_ma", it), copyable = false) }
+                    info.estimatedWatts?.let { InfoRow(stringRes("battery_field_power"), stringRes("battery_value_watts", Formatters.twoDecimals(it)), copyable = false) }
+                    InfoRow(stringRes("battery_field_charge_time_remaining"), formatChargeTime(info.chargeTimeRemainingMs), copyable = false)
+                    info.capacityMah?.let { InfoRow(stringRes("battery_field_current_capacity"), stringRes("battery_value_mah", it), copyable = false) }
                     InfoRow(
-                        label = "Charge Cycles",
-                        value = info.chargeCycles?.toString() ?: "N/A (Android 14+)",
+                        label = stringRes("battery_field_charge_cycles"),
+                        value = info.chargeCycles?.toString() ?: stringRes("battery_value_na_android14"),
                         copyable = false,
                         showDivider = false,
                     )
@@ -172,9 +172,10 @@ private fun StatChip(label: String, value: String) {
     }
 }
 
+@Composable
 private fun formatChargeTime(millis: Long?): String {
-    if (millis == null || millis <= 0L) return "Not reported"
+    if (millis == null || millis <= 0L) return stringRes("common_not_reported")
     val totalMinutes = millis / 60_000L
     val hours = totalMinutes / 60L; val minutes = totalMinutes % 60L
-    return if (hours > 0L) "${hours}h ${minutes}m" else "${minutes}m"
+    return if (hours > 0L) stringRes("battery_charge_time_hm", hours, minutes) else stringRes("battery_charge_time_m", minutes)
 }

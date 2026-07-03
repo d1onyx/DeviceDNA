@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.resources.AppLanguage
 import com.devstdvad.devicedna.data.settings.AppThemeMode
 import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.data.settings.UserSettings
@@ -87,7 +88,7 @@ class MainActivity : ComponentActivity() {
                 LocalContext provides localizedContext,
                 LocalConfiguration provides localizedConfiguration,
             ) {
-                AppTheme(darkTheme = darkTheme) {
+                AppTheme(darkTheme = darkTheme, language = AppLanguage.fromTag(settings.appLanguage)) {
                     val interstitialManager = com.devstdvad.devicedna.ads.rememberInterstitialAdManager(
                         adUnitId = BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID,
                     )

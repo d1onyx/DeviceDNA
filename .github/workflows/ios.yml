@@ -137,7 +137,7 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_UDID" -b
 
           xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
-          xcrun simctl launch "$SIMULATOR_UDID" com.devstdvad.devicedna
+          xcrun simctl launch "$SIMULATOR_UDID" com.example.devicedna
 
           sleep 15
           xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/01-first-frame.png

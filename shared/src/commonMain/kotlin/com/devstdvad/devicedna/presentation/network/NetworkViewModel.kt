@@ -69,16 +69,19 @@ class NetworkViewModel(
             val result = runCatching {
                 publicIpClient.get(PUBLIC_IP_URL).bodyAsText().trim()
                     .takeIf { it.isNotBlank() }
-                    ?: error("Public IP response was empty")
+                    ?: throw IllegalStateException()
             }
             _state.update {
                 result.fold(
                     onSuccess = { publicIp -> it.copy(publicIp = publicIp, publicIpLoading = false) },
                     onFailure = { error ->
+                        // No localized message here — this is a plain ViewModel, not a
+                        // @Composable, so it can't call stringRes(). The empty-message case
+                        // (including the empty-body guard above) is translated by the screen.
                         it.copy(
                             publicIp = null,
                             publicIpLoading = false,
-                            publicIpError = error.message ?: "Public IP lookup failed",
+                            publicIpError = error.message?.takeIf { msg -> msg.isNotBlank() },
                         )
                     },
                 )

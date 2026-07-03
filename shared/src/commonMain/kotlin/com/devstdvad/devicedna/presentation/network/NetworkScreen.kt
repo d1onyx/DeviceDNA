@@ -42,6 +42,7 @@ import com.devstdvad.devicedna.domain.model.ConnectionType
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun NetworkScreen(
@@ -76,11 +77,11 @@ fun NetworkScreen(
                 val typeLabel = when (net.connectionType) {
                     ConnectionType.WiFi -> net.ssid?.let {
                         if (settings.maskSensitive) PrivacyMask.maskSsid(it) else it
-                    } ?: "Wi-Fi"
-                    ConnectionType.Cellular -> net.cellularGeneration ?: "Cellular"
-                    ConnectionType.Ethernet -> "Ethernet"
-                    ConnectionType.None -> "Offline"
-                    ConnectionType.Unknown -> "Unknown"
+                    } ?: stringRes("network_type_wifi")
+                    ConnectionType.Cellular -> net.cellularGeneration ?: stringRes("network_type_cellular")
+                    ConnectionType.Ethernet -> stringRes("network_type_ethernet")
+                    ConnectionType.None -> stringRes("network_value_offline")
+                    ConnectionType.Unknown -> stringRes("common_unknown")
                 }
 
                 AccentCard(accentColor = colors.networkColor) {
@@ -101,7 +102,7 @@ fun NetworkScreen(
                                 Text(typeLabel, style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                                 if (net.connectionType != ConnectionType.None) {
                                     Text(
-                                        text = if (net.isMetered) "Metered" else "Unmetered",
+                                        text = if (net.isMetered) stringRes("network_value_metered") else stringRes("network_value_unmetered"),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (net.isMetered) colors.warning else colors.networkColor,
                                     )
@@ -130,7 +131,7 @@ fun NetworkScreen(
                                 SpeedChip(
                                     icon = Icons.Outlined.ArrowDownward,
                                     speed = rx,
-                                    label = "Download",
+                                    label = stringRes("network_label_download"),
                                     dataUnit = settings.dataUnit,
                                     color = colors.success,
                                     modifier = Modifier.weight(1f),
@@ -140,7 +141,7 @@ fun NetworkScreen(
                                 SpeedChip(
                                     icon = Icons.Outlined.ArrowUpward,
                                     speed = tx,
-                                    label = "Upload",
+                                    label = stringRes("network_label_upload"),
                                     dataUnit = settings.dataUnit,
                                     color = colors.networkColor,
                                     modifier = Modifier.weight(1f),
@@ -153,39 +154,39 @@ fun NetworkScreen(
 
             item {
                 SectionCard {
-                    Text("Connection", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                    InfoRow("Type", net.connectionType.name, copyable = false)
-                    net.wifiStandard?.let { InfoRow("Wi-Fi Standard", it, copyable = false) }
-                    net.linkSpeedMbps?.let { InfoRow("Link Speed", "$it Mbps", copyable = false) }
-                    net.frequencyMhz?.let { InfoRow("Frequency", "$it MHz", copyable = false) }
-                    net.channel?.let { InfoRow("Channel", it.toString(), copyable = false) }
-                    net.interfaceName?.let { InfoRow("Interface", it, copyable = false) }
+                    Text(stringRes("network_section_connection"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    InfoRow(stringRes("network_field_type"), net.connectionType.name, copyable = false)
+                    net.wifiStandard?.let { InfoRow(stringRes("network_field_wifi_standard"), it, copyable = false) }
+                    net.linkSpeedMbps?.let { InfoRow(stringRes("network_field_link_speed"), stringRes("network_value_mbps", it), copyable = false) }
+                    net.frequencyMhz?.let { InfoRow(stringRes("network_field_frequency"), stringRes("network_value_mhz", it), copyable = false) }
+                    net.channel?.let { InfoRow(stringRes("network_field_channel"), it.toString(), copyable = false) }
+                    net.interfaceName?.let { InfoRow(stringRes("network_field_interface"), it, copyable = false) }
                     if (net.activeTransports.isNotEmpty()) {
-                        InfoRow("Transports", net.activeTransports.joinToString(", "), copyable = false)
+                        InfoRow(stringRes("network_field_transports"), net.activeTransports.joinToString(", "), copyable = false)
                     }
                     net.macAddress?.let {
                         InfoRow(
-                            "MAC",
+                            stringRes("network_field_mac"),
                             it,
                             maskedValue = if (settings.maskSensitive) PrivacyMask.maskMac(it) else null,
                             copyable = true,
                             showDivider = false,
                         )
                     }
-                        ?: InfoRow("Status", if (net.connectionType == ConnectionType.None) "Offline" else "Connected", copyable = false, showDivider = false)
+                        ?: InfoRow(stringRes("network_field_status"), if (net.connectionType == ConnectionType.None) stringRes("network_value_offline") else stringRes("network_value_connected"), copyable = false, showDivider = false)
                 }
             }
 
             item {
                 SectionCard {
-                    Text("Network Risk", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                    InfoRow("VPN", if (net.isVpnActive) "Active" else "Not active", copyable = false)
-                    InfoRow("Validated Internet", if (net.isValidatedInternet) "Yes" else "No", copyable = false)
-                    InfoRow("Captive Portal", if (net.isCaptivePortal) "Detected" else "No", copyable = false)
-                    InfoRow("Private DNS", net.privateDnsServerName ?: "Not reported", copyable = false)
+                    Text(stringRes("network_section_risk"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    InfoRow(stringRes("network_field_vpn"), if (net.isVpnActive) stringRes("network_value_active") else stringRes("network_value_not_active"), copyable = false)
+                    InfoRow(stringRes("network_field_validated_internet"), if (net.isValidatedInternet) stringRes("common_yes") else stringRes("common_no"), copyable = false)
+                    InfoRow(stringRes("network_field_captive_portal"), if (net.isCaptivePortal) stringRes("common_detected") else stringRes("common_no"), copyable = false)
+                    InfoRow(stringRes("network_field_private_dns"), net.privateDnsServerName ?: stringRes("common_not_reported"), copyable = false)
                     InfoRow(
-                        label = "HTTP Proxy",
-                        value = net.httpProxyHost?.let { "$it:${net.httpProxyPort ?: 0}" } ?: "Not configured",
+                        label = stringRes("network_field_http_proxy"),
+                        value = net.httpProxyHost?.let { "$it:${net.httpProxyPort ?: 0}" } ?: stringRes("common_not_configured"),
                         copyable = false,
                         showDivider = false,
                     )
@@ -194,26 +195,26 @@ fun NetworkScreen(
 
             item {
                 SectionCard {
-                    Text("Addresses", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    Text(stringRes("network_section_addresses"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                     net.localIpv4?.let {
-                        InfoRow("IPv4", it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv4(it) else null)
+                        InfoRow(stringRes("network_field_ipv4"), it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv4(it) else null)
                     }
-                        ?: InfoRow("IPv4", "Not available", copyable = false)
+                        ?: InfoRow(stringRes("network_field_ipv4"), stringRes("common_not_available"), copyable = false)
                     net.localIpv6?.let {
-                        InfoRow("IPv6", it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv6(it) else null)
+                        InfoRow(stringRes("network_field_ipv6"), it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv6(it) else null)
                     }
-                        ?: InfoRow("IPv6", "Not available", copyable = false)
+                        ?: InfoRow(stringRes("network_field_ipv6"), stringRes("common_not_available"), copyable = false)
                     net.gateway?.let {
-                        InfoRow("Gateway", it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv4(it) else null)
+                        InfoRow(stringRes("network_field_gateway"), it, maskedValue = if (settings.maskSensitive) PrivacyMask.maskIpv4(it) else null)
                     }
-                    net.subnetMask?.let { InfoRow("Subnet", it, copyable = false) }
+                    net.subnetMask?.let { InfoRow(stringRes("network_field_subnet"), it, copyable = false) }
                     InfoRow(
-                        label = "Public IP",
+                        label = stringRes("network_field_public_ip"),
                         value = when {
-                            !settings.publicIpEnabled -> "Disabled in privacy settings"
-                            state.publicIpLoading -> "Loading..."
-                            state.publicIp != null -> state.publicIp ?: "Not available"
-                            else -> state.publicIpError ?: "Not available"
+                            !settings.publicIpEnabled -> stringRes("network_value_disabled_privacy")
+                            state.publicIpLoading -> stringRes("common_loading")
+                            state.publicIp != null -> state.publicIp ?: stringRes("common_not_available")
+                            else -> state.publicIpError ?: stringRes("network_public_ip_lookup_failed")
                         },
                         maskedValue = state.publicIp
                             ?.takeIf { settings.publicIpEnabled && settings.maskSensitive }
@@ -221,7 +222,7 @@ fun NetworkScreen(
                         copyable = settings.publicIpEnabled && state.publicIp != null,
                         showDivider = net.dns.isNotEmpty(),
                     )
-                    if (net.dns.isNotEmpty()) InfoRow("DNS", net.dns.joinToString(", "), copyable = true, showDivider = false)
+                    if (net.dns.isNotEmpty()) InfoRow(stringRes("network_field_dns"), net.dns.joinToString(", "), copyable = true, showDivider = false)
                 }
             }
         }

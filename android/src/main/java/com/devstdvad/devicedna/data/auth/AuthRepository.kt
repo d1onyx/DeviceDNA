@@ -77,7 +77,11 @@ class AuthRepository(private val context: Context) : AuthGateway {
         val account = try {
             GoogleSignIn.getSignedInAccountFromIntent(data).await()
         } catch (exception: ApiException) {
-            throw IllegalStateException("Google sign-in was cancelled or rejected.", exception)
+            throw IllegalStateException(
+                "Google sign-in failed with status ${exception.statusCode}. " +
+                    "If this is 10, refresh android/google-services.json after adding the SHA-1 in Firebase.",
+                exception,
+            )
         }
         val token = account.idToken ?: error("Google did not return an ID token.")
         auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()

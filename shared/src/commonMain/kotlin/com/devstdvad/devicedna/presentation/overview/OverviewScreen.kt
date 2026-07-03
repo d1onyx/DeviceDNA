@@ -57,6 +57,7 @@ import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +99,7 @@ fun OverviewScreen(
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = "Device Dashboard",
+                        text = stringRes("overview_subtitle"),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textMuted,
                     )
@@ -106,10 +107,10 @@ fun OverviewScreen(
             },
             actions = {
                 IconButton(onClick = { viewModel.refresh(); errorDismissed = false }) {
-                    Icon(Icons.Outlined.Refresh, contentDescription = "Refresh", tint = colors.textSecondary)
+                    Icon(Icons.Outlined.Refresh, contentDescription = stringRes("common_refresh"), tint = colors.textSecondary)
                 }
                 IconButton(onClick = onSettingsClick) {
-                    Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = colors.textSecondary)
+                    Icon(Icons.Outlined.Settings, contentDescription = stringRes("nav_settings"), tint = colors.textSecondary)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.background),
@@ -137,7 +138,7 @@ fun OverviewScreen(
                     val cpuUsage = state.cpuUsage
                     GaugeRing(
                         value = cpuUsage ?: 0f,
-                        label = "CPU",
+                        label = stringRes("overview_label_cpu"),
                         valueText = cpuUsage?.let { "${it.toInt()}%" } ?: "—",
                         accentColor = colors.cpuColor,
                         size = 100.dp,
@@ -151,7 +152,7 @@ fun OverviewScreen(
                     val ramPct = ((ram?.usedPercent ?: 0f) * 100f).toInt()
                     GaugeRing(
                         value = ramPct.toFloat(),
-                        label = "RAM",
+                        label = stringRes("overview_label_ram"),
                         valueText = "$ramPct%",
                         subLabel = ram?.let { SettingsFormatters.formatBytesShort(it.usedBytes, settings.dataUnit) },
                         accentColor = colors.ramColor,
@@ -171,7 +172,7 @@ fun OverviewScreen(
                     }
                     GaugeRing(
                         value = (bat?.levelPercent ?: 0).toFloat(),
-                        label = "Battery",
+                        label = stringRes("overview_label_battery"),
                         valueText = "${bat?.levelPercent ?: 0}%",
                         subLabel = bat?.status?.name?.take(5),
                         accentColor = batColor,
@@ -194,7 +195,7 @@ fun OverviewScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Health Score",
+                                text = stringRes("overview_health_score_title"),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = colors.textMuted,
                             )
@@ -203,22 +204,22 @@ fun OverviewScreen(
                             Text(
                                 text = if (healthScore != null) {
                                     when {
-                                        healthScore.overall >= 80 -> "Excellent"
-                                        healthScore.overall >= 60 -> "Good"
-                                        healthScore.overall >= 40 -> "Fair"
-                                        else -> "Needs Attention"
+                                        healthScore.overall >= 80 -> stringRes("overview_health_excellent")
+                                        healthScore.overall >= 60 -> stringRes("overview_health_good")
+                                        healthScore.overall >= 40 -> stringRes("overview_health_fair")
+                                        else -> stringRes("overview_health_needs_attention")
                                     }
-                                } else "Analyzing…",
+                                } else stringRes("overview_health_analyzing"),
                                 style = MaterialTheme.typography.displaySmall,
                                 color = colors.textPrimary,
                             )
                             state.healthScore?.let { score ->
                                 Spacer(Modifier.height(10.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    ScorePill("Battery", score.battery)
-                                    ScorePill("Thermal", score.thermal)
-                                    ScorePill("Security", score.security)
-                                    ScorePill("Storage", score.storage)
+                                    ScorePill(stringRes("overview_label_battery"), score.battery)
+                                    ScorePill(stringRes("overview_label_thermal"), score.thermal)
+                                    ScorePill(stringRes("device_section_security"), score.security)
+                                    ScorePill(stringRes("overview_label_storage"), score.storage)
                                 }
                             }
                         }
@@ -240,7 +241,7 @@ fun OverviewScreen(
                 item {
                     SectionCard {
                         Text(
-                            "Insights",
+                            stringRes("overview_section_insights"),
                             style = MaterialTheme.typography.titleLarge,
                             color = colors.textPrimary,
                         )
@@ -285,20 +286,24 @@ fun OverviewScreen(
                                 }
                                 Column {
                                     val typeLabel = when (net.connectionType) {
-                                        ConnectionType.WiFi -> net.ssid ?: "Wi-Fi"
-                                        ConnectionType.Cellular -> net.cellularGeneration ?: "Cellular"
-                                        ConnectionType.None -> "Offline"
+                                        ConnectionType.WiFi -> net.ssid ?: stringRes("network_type_wifi")
+                                        ConnectionType.Cellular -> net.cellularGeneration ?: stringRes("network_type_cellular")
+                                        ConnectionType.None -> stringRes("network_value_offline")
                                         else -> net.connectionType.name
                                     }
                                     Text(typeLabel, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                                     val subLabel = when {
-                                        net.connectionType == ConnectionType.None -> "No internet"
-                                        net.isVpnActive -> "VPN active"
-                                        net.linkSpeedMbps != null -> "${net.linkSpeedMbps} Mbps"
+                                        net.connectionType == ConnectionType.None -> stringRes("overview_network_no_internet")
+                                        net.isVpnActive -> stringRes("overview_network_vpn_active")
+                                        net.linkSpeedMbps != null -> stringRes("network_value_mbps", net.linkSpeedMbps)
                                         net.rxBytesPerSec != null || net.txBytesPerSec != null ->
-                                            "↓ ${SettingsFormatters.formatBytes(net.rxBytesPerSec ?: 0L, settings.dataUnit)}/s  ↑ ${SettingsFormatters.formatBytes(net.txBytesPerSec ?: 0L, settings.dataUnit)}/s"
-                                        net.isValidatedInternet -> "Connected"
-                                        else -> "Limited connectivity"
+                                            stringRes(
+                                                "overview_network_throughput",
+                                                SettingsFormatters.formatBytes(net.rxBytesPerSec ?: 0L, settings.dataUnit),
+                                                SettingsFormatters.formatBytes(net.txBytesPerSec ?: 0L, settings.dataUnit),
+                                            )
+                                        net.isValidatedInternet -> stringRes("network_value_connected")
+                                        else -> stringRes("overview_network_limited")
                                     }
                                     Text(subLabel, style = MaterialTheme.typography.labelMedium, color = colors.textMuted)
                                 }
@@ -343,9 +348,13 @@ fun OverviewScreen(
                                     Icon(Icons.Outlined.Storage, null, tint = colors.storageColor, modifier = Modifier.size(16.dp))
                                 }
                                 Column {
-                                    Text("Storage", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+                                    Text(stringRes("overview_label_storage"), style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                                     Text(
-                                        "${SettingsFormatters.formatBytes(storage.usedBytes, settings.dataUnit)} used of ${SettingsFormatters.formatBytes(storage.totalBytes, settings.dataUnit)}",
+                                        stringRes(
+                                            "overview_storage_used_of",
+                                            SettingsFormatters.formatBytes(storage.usedBytes, settings.dataUnit),
+                                            SettingsFormatters.formatBytes(storage.totalBytes, settings.dataUnit),
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = colors.textMuted,
                                     )
@@ -371,7 +380,7 @@ fun OverviewScreen(
                         LiveBar(fraction = storage.usedPercent, accentColor = storageAccent, height = 6.dp)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "${SettingsFormatters.formatBytes(storage.freeBytes, settings.dataUnit)} free",
+                            stringRes("overview_storage_free", SettingsFormatters.formatBytes(storage.freeBytes, settings.dataUnit)),
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.textMuted,
                         )
@@ -414,10 +423,10 @@ fun OverviewScreen(
                                         Icon(Icons.Outlined.Thermostat, null, tint = thermalAccent, modifier = Modifier.size(16.dp))
                                     }
                                     Column {
-                                        Text("Thermal", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+                                        Text(stringRes("overview_label_thermal"), style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                                         Text(
-                                            if (temp == null) "System thermal state"
-                                            else "${thermal.zones.size} zone${if (thermal.zones.size != 1) "s" else ""} monitored",
+                                            if (temp == null) stringRes("overview_thermal_system_state")
+                                            else stringRes("overview_thermal_zones_monitored", thermal.zones.size),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = colors.textMuted,
                                         )

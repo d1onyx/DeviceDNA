@@ -77,7 +77,12 @@ fun commonModule(useRealBilling: Boolean): Module = module {
     single { GetHealthScoreUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Export (renders shared, shares via platform FileSharer)
-    single { DiagnosticsExporter(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single {
+        DiagnosticsExporter(
+            get(), get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
     single { BatteryAnalyticsExporter() }
 
     // Sync pipeline (SyncApi + SyncStateStore come from the platform module)

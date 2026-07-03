@@ -12,9 +12,26 @@ cd "$(git rev-parse --show-toplevel)"
 PROJECT_ID="${1:-}"
 SHA1=""
 DO_IOS=1
-DISPLAY_NAME="DeviceDNA"
-ANDROID_PACKAGE="com.devstdvad.devicedna"
-IOS_BUNDLE_ID="com.devstdvad.devicedna"
+PROPERTIES_FILE="local.properties"
+
+read_property() {
+    local name="$1"
+    [ -f "$PROPERTIES_FILE" ] || return 0
+    awk -F= -v key="$name" '
+        $0 !~ /^[[:space:]]*#/ && $1 == key {
+            sub(/^[^=]*=/, "")
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+            print
+            exit
+        }
+    ' "$PROPERTIES_FILE"
+}
+
+DISPLAY_NAME="$(read_property appDisplayName)"
+DISPLAY_NAME="${DISPLAY_NAME:-DeviceDNA}"
+ANDROID_PACKAGE="$(read_property androidApplicationId)"
+IOS_BUNDLE_ID="$(read_property iosBundleId)"
+PROJECT_ID="${PROJECT_ID:-$(read_property firebaseProjectId)}"
 
 shift || true
 for arg in "$@"; do
@@ -30,6 +47,14 @@ done
 
 if [ -z "$PROJECT_ID" ]; then
     echo "Usage: ./scripts/setup-firebase-auth.sh <PROJECT_ID> [SHA1] [--no-ios]" >&2
+    exit 1
+fi
+if [ -z "$ANDROID_PACKAGE" ]; then
+    echo "Set androidApplicationId in local.properties before creating Firebase Android config." >&2
+    exit 1
+fi
+if [ "$DO_IOS" = "1" ] && [ -z "$IOS_BUNDLE_ID" ]; then
+    echo "Set iosBundleId in local.properties or pass --no-ios." >&2
     exit 1
 fi
 

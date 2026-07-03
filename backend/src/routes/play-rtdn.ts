@@ -105,8 +105,10 @@ playRtdnRoutes.post("/notifications", async (c) => {
 
   const productId =
     notification.subscriptionNotification?.subscriptionId ??
-    c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID ??
-    "devicedna_premium";
+    c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID?.trim();
+  if (!productId) {
+    return c.json({ error: "google_play_product_not_configured" }, 503);
+  }
 
   let purchase;
   try {

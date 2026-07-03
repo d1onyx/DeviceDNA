@@ -13,7 +13,7 @@ final class StoreKitBilling {
     static let shared = StoreKitBilling()
 
     /// Auto-renewable subscription product id (must exist in App Store Connect).
-    static let productId = "com.devstdvad.devicedna.premium.yearly"
+    static let productId = AppConfig.storeKitPremiumProductId
 
     private(set) lazy var gateway = IosBillingGateway(
         purchaseAction: { done in
@@ -23,7 +23,7 @@ final class StoreKitBilling {
             Task {
                 await StoreKitBilling.shared.syncWithAppStore()
                 done(await StoreKitBilling.shared.currentOutcome(
-                    missingMessage: "No active subscription found."))
+                    missingMessage: String(localized: "No active subscription found.")))
             }
         }
     )
@@ -46,23 +46,23 @@ final class StoreKitBilling {
     private func purchase() async -> StoreKitOutcome {
         do {
             guard let product = try await Product.products(for: [Self.productId]).first else {
-                return Self.failure("Subscription product is not available.")
+                return Self.failure(String(localized: "Subscription product is not available."))
             }
             let result = try await product.purchase()
             switch result {
             case .success(let verification):
                 guard case .verified(let transaction) = verification else {
-                    return Self.failure("Purchase could not be verified.")
+                    return Self.failure(String(localized: "Purchase could not be verified."))
                 }
                 await transaction.finish()
                 await pushCurrentEntitlements()
                 return Self.outcome(from: transaction)
             case .userCancelled:
-                return Self.failure("Purchase cancelled.")
+                return Self.failure(String(localized: "Purchase cancelled."))
             case .pending:
-                return Self.failure("Purchase is pending approval.")
+                return Self.failure(String(localized: "Purchase is pending approval."))
             @unknown default:
-                return Self.failure("Unknown purchase state.")
+                return Self.failure(String(localized: "Unknown purchase state."))
             }
         } catch {
             return Self.failure(error.localizedDescription)

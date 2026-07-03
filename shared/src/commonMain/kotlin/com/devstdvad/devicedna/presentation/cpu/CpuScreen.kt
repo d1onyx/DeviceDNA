@@ -40,7 +40,7 @@ fun CpuScreen(
     val isIos = PlatformInfo.isIos
 
     if (state.isLoading && state.info == null) { LoadingScreen(); return }
-    val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not load CPU info"); return }
+    val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("cpu_load_error")); return }
 
     val maxFreqKhz = info.cores.maxOfOrNull { it.maxFrequencyKhz }?.toInt() ?: 1
     val usagePercent = info.usagePercent
@@ -72,9 +72,9 @@ fun CpuScreen(
                         Text(info.architecture, style = MaterialTheme.typography.bodyMedium, color = colors.cpuColor)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            SpecChip("Cores", "${info.coreCount}")
-                            avgFreqMhz?.let { SpecChip("Avg Freq", "${it} MHz") }
-                            if (!isIos && info.governor.isNotBlank()) SpecChip("Governor", info.governor)
+                            SpecChip(stringRes("cpu_field_cores"), "${info.coreCount}")
+                            avgFreqMhz?.let { SpecChip(stringRes("cpu_field_avg_freq"), stringRes("network_value_mhz", it)) }
+                            if (!isIos && info.governor.isNotBlank()) SpecChip(stringRes("cpu_field_governor"), info.governor)
                         }
                         if (info.instructionSets.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
@@ -87,7 +87,7 @@ fun CpuScreen(
                     }
                     GaugeRing(
                         value = usagePercent ?: 0f,
-                        label = "CPU Load",
+                        label = stringRes("cpu_gauge_load"),
                         valueText = usagePercent?.let { "${it.toInt()}%" } ?: "—",
                         accentColor = colors.cpuColor,
                         size = 90.dp,
@@ -97,7 +97,7 @@ fun CpuScreen(
                 info.processCount?.let { count ->
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        text = "$count running processes",
+                        text = stringRes("cpu_running_processes", count),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textMuted,
                     )
@@ -108,12 +108,12 @@ fun CpuScreen(
         // CPU Cores live grid
         item {
             SectionCard {
-                Text("CPU Cores · Live", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                Text(stringRes("cpu_section_cores_live"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 Spacer(Modifier.height(10.dp))
                 if (info.cores.isEmpty()) {
                     // iOS does not expose per-core frequency/online state to sandboxed apps.
                     Text(
-                        text = if (isIos) stringRes("common_unavailable_ios") else "No per-core data",
+                        text = if (isIos) stringRes("common_unavailable_ios") else stringRes("cpu_no_per_core_data"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textMuted,
                     )
@@ -143,12 +143,12 @@ fun CpuScreen(
         if (info.clusters.isNotEmpty()) {
             item {
                 AccentCard(accentColor = colors.cpuColor) {
-                    Text("Architecture", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                    Text(stringRes("device_field_architecture"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                     Spacer(Modifier.height(4.dp))
                     info.clusters.forEachIndexed { i, cluster ->
                         InfoRow(
                             label = cluster.name,
-                            value = "Cores ${cluster.coreIndices.joinToString(",")} · ${cluster.minFrequencyMhz}–${cluster.maxFrequencyMhz} MHz",
+                            value = stringRes("cpu_cluster_detail", cluster.coreIndices.joinToString(","), cluster.minFrequencyMhz, cluster.maxFrequencyMhz),
                             copyable = false,
                             showDivider = i < info.clusters.lastIndex,
                         )
@@ -160,10 +160,10 @@ fun CpuScreen(
         // GPU
         item {
             AccentCard(accentColor = colors.displayColor) {
-                Text("GPU", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Renderer", info.gpu.renderer, copyable = false)
-                InfoRow("Vendor", info.gpu.vendor, copyable = false)
-                InfoRow("API", info.gpu.version, copyable = false, showDivider = false)
+                Text(stringRes("cpu_section_gpu"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("cpu_field_renderer"), info.gpu.renderer, copyable = false)
+                InfoRow(stringRes("cpu_field_vendor"), info.gpu.vendor, copyable = false)
+                InfoRow(stringRes("cpu_field_api"), info.gpu.version, copyable = false, showDivider = false)
             }
         }
     }

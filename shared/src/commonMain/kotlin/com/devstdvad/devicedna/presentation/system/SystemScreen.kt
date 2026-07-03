@@ -34,6 +34,7 @@ import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
 import com.devstdvad.devicedna.platform.PlatformInfo
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun SystemScreen(
@@ -45,7 +46,7 @@ fun SystemScreen(
     val isIos = PlatformInfo.isIos
 
     if (state.isLoading) { LoadingScreen(); return }
-    val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not load system info"); return }
+    val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("system_load_error")); return }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -67,22 +68,22 @@ fun SystemScreen(
                 ) {
                     androidx.compose.foundation.layout.Column {
                         Text(
-                            text = if (isIos) info.androidVersion else "Android ${info.androidVersion}",
+                            text = if (isIos) info.androidVersion else stringRes("system_android_version_prefix", info.androidVersion),
                             style = MaterialTheme.typography.displaySmall,
                             color = colors.textPrimary,
                         )
                         Text(
-                            text = if (isIos) "Build ${info.buildNumber}" else "API ${info.apiLevel} · ${info.releaseName}",
+                            text = if (isIos) stringRes("system_build_prefix", info.buildNumber) else stringRes("system_api_release", info.apiLevel, info.releaseName),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.deviceColor,
                         )
                         androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (info.runningProcessCount > 0) {
-                                InfoChip("${info.runningProcessCount} Processes")
+                                InfoChip(stringRes("system_processes_count", info.runningProcessCount))
                             }
                             if (info.totalRamGb > 0f) {
-                                InfoChip("${Formatters.oneDecimal(info.totalRamGb)} GB RAM")
+                                InfoChip(stringRes("system_ram_chip", Formatters.oneDecimal(info.totalRamGb)))
                             }
                             InfoChip(formatUptime(info.uptimeMillis))
                         }
@@ -101,48 +102,48 @@ fun SystemScreen(
 
         item {
             SectionCard {
-                Text(if (isIos) "Operating System" else "Android", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Version", info.androidVersion)
+                Text(if (isIos) stringRes("system_section_os") else stringRes("system_section_android"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("system_field_version"), info.androidVersion)
                 if (!isIos) {
-                    InfoRow("API Level", info.apiLevel.toString())
-                    InfoRow("Codename", info.releaseName)
-                    InfoRow("Security Patch", info.securityPatchLevel)
+                    InfoRow(stringRes("system_field_api_level"), info.apiLevel.toString())
+                    InfoRow(stringRes("device_field_codename"), info.releaseName)
+                    InfoRow(stringRes("system_field_security_patch"), info.securityPatchLevel)
                 }
-                InfoRow("Build Number", info.buildNumber)
-                InfoRow("Build Type", info.buildType, showDivider = false)
+                InfoRow(stringRes("system_field_build_number"), info.buildNumber)
+                InfoRow(stringRes("system_field_build_type"), info.buildType, showDivider = false)
             }
         }
 
         item {
             AccentCard(accentColor = colors.cpuColor) {
-                Text("Runtime", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Kernel", info.kernelVersion)
+                Text(stringRes("system_section_runtime"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("system_field_kernel"), info.kernelVersion)
                 if (isIos) {
-                    InfoRow("Graphics", info.openGlVersion)
-                    InfoRow("Low Power Mode", if (info.isPowerSaveMode) "On" else "Off")
-                    InfoRow("Uptime", formatUptime(info.uptimeMillis), showDivider = false)
+                    InfoRow(stringRes("system_field_graphics"), info.openGlVersion)
+                    InfoRow(stringRes("system_field_low_power_mode"), if (info.isPowerSaveMode) stringRes("common_on") else stringRes("common_off"))
+                    InfoRow(stringRes("system_field_uptime"), formatUptime(info.uptimeMillis), showDivider = false)
                 } else {
-                    InfoRow("Java VM", info.javaVm)
-                    InfoRow("OpenGL ES", info.openGlVersion)
+                    InfoRow(stringRes("system_field_java_vm"), info.javaVm)
+                    InfoRow(stringRes("system_field_opengl_es"), info.openGlVersion)
                     if (info.glEsVersion.isNotBlank() && info.glEsVersion != "3.2") {
-                        InfoRow("GL ES Version", info.glEsVersion)
+                        InfoRow(stringRes("system_field_gl_es_version"), info.glEsVersion)
                     }
-                    InfoRow("Baseband", info.baseband)
-                    InfoRow("Bootloader", info.bootloader)
-                    InfoRow("Uptime", formatUptime(info.uptimeMillis), showDivider = false)
+                    InfoRow(stringRes("system_field_baseband"), info.baseband)
+                    InfoRow(stringRes("device_field_bootloader"), info.bootloader)
+                    InfoRow(stringRes("system_field_uptime"), formatUptime(info.uptimeMillis), showDivider = false)
                 }
             }
         }
 
         item {
             SectionCard {
-                Text("Security", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                Text(stringRes("device_section_security"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 if (!isIos) {
-                    InfoRow("SELinux", info.seLinuxStatus.ifBlank { "Enforcing" }, copyable = false)
+                    InfoRow(stringRes("system_field_selinux"), info.seLinuxStatus.ifBlank { stringRes("system_value_enforcing") }, copyable = false)
                 }
                 InfoRow(
-                    label = if (isIos) "Data Protection" else "Encrypted",
-                    value = if (info.isEncrypted) (if (isIos) "Enabled" else "Yes") else "No",
+                    label = if (isIos) stringRes("system_field_data_protection") else stringRes("system_field_encrypted"),
+                    value = if (info.isEncrypted) (if (isIos) stringRes("common_enabled") else stringRes("common_yes")) else stringRes("common_no"),
                     copyable = false,
                     showDivider = false,
                 )
@@ -151,16 +152,16 @@ fun SystemScreen(
 
         item {
             SectionCard {
-                Text("App Integrity", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Package", info.packageName)
-                InfoRow("Version", "${info.appVersionName} (${info.appVersionCode})", copyable = false)
-                InfoRow("Installer", info.installerPackageName ?: "Unknown")
-                InfoRow("Known Store", if (info.isInstalledFromKnownStore) "Yes" else "No", copyable = false, showDivider = isIos)
+                Text(stringRes("system_section_app_integrity"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("system_field_package"), info.packageName)
+                InfoRow(stringRes("system_field_version"), "${info.appVersionName} (${info.appVersionCode})", copyable = false)
+                InfoRow(stringRes("system_field_installer"), info.installerPackageName ?: stringRes("common_unknown"))
+                InfoRow(stringRes("system_field_known_store"), if (info.isInstalledFromKnownStore) stringRes("common_yes") else stringRes("common_no"), copyable = false, showDivider = isIos)
                 if (!isIos) {
-                    InfoRow("Debuggable App", if (info.isAppDebuggable) "Yes" else "No", copyable = false)
+                    InfoRow(stringRes("system_field_debuggable_app"), if (info.isAppDebuggable) stringRes("common_yes") else stringRes("common_no"), copyable = false)
                     InfoRow(
-                        label = "Signing SHA-256",
-                        value = info.signingCertificateSha256 ?: "Unavailable",
+                        label = stringRes("system_field_signing_sha256"),
+                        value = info.signingCertificateSha256 ?: stringRes("common_unavailable"),
                         copyable = info.signingCertificateSha256 != null,
                         showDivider = false,
                     )
@@ -170,9 +171,9 @@ fun SystemScreen(
 
         item {
             SectionCard {
-                Text("Locale", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
-                InfoRow("Language", info.language)
-                InfoRow("Time Zone", info.timeZone, showDivider = false)
+                Text(stringRes("system_section_locale"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
+                InfoRow(stringRes("system_field_language"), info.language)
+                InfoRow(stringRes("system_field_time_zone"), info.timeZone, showDivider = false)
             }
         }
     }
@@ -193,9 +194,10 @@ private fun InfoChip(text: String) {
     )
 }
 
+@Composable
 private fun formatUptime(millis: Long): String {
     val totalMinutes = millis.coerceAtLeast(0L) / 60_000L
     val days = totalMinutes / (24L * 60L)
     val hours = (totalMinutes / 60L) % 24L
-    return if (days > 0) "${days}d ${hours}h up" else "${hours}h up"
+    return if (days > 0) stringRes("system_uptime_days_hours", days, hours) else stringRes("system_uptime_hours", hours)
 }

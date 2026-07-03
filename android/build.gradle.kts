@@ -11,12 +11,35 @@ val localProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun customerProperty(name: String): String? =
+    (localProperties.getProperty(name) ?: (project.findProperty(name) as String?))
+        ?.trim()
+        ?.takeUnless { it.isBlank() }
+
+fun signingProperty(name: String, envName: String): String? =
+    (keystoreProperties.getProperty(name) ?: System.getenv(envName))
+        ?.trim()
+        ?.takeUnless { it.isBlank() }
+
+fun releaseRequiredProperty(name: String, debugDefault: String? = null): String {
+    val value = customerProperty(name)
+    if (buildsReleaseArtifact && value == null) {
+        error(
+            "Missing $name. Add $name=... to local.properties or pass -P$name=... " +
+                "before building release artifacts.",
+        )
+    }
+    return value ?: debugDefault.orEmpty()
+}
+
 val configuredSyncBaseUrl = (
-    localProperties.getProperty("syncBaseUrl")
-        ?: (project.findProperty("syncBaseUrl") as String?)
+    customerProperty("syncBaseUrl")
     )
-    ?.trim()
-    ?.takeUnless { it.isBlank() }
     ?.removeSuffix("/")
 
 val buildsReleaseArtifact = gradle.startParameter.taskNames.any { taskName ->
@@ -39,7 +62,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.devstdvad.devicedna"
+        applicationId = releaseRequiredProperty("androidApplicationId", "com.example.devicedna")
         minSdk = 26
         targetSdk = 36
         versionCode = 4
@@ -48,35 +71,35 @@ android {
 
         // Deployed Cloudflare Worker URL. Release builds require an explicit value.
         // Override via local.properties -> syncBaseUrl, or a -PsyncBaseUrl Gradle property.
-        val syncBaseUrl = configuredSyncBaseUrl ?: "https://devicedna-sync.workers.dev"
+        val syncBaseUrl = configuredSyncBaseUrl ?: "https://example.invalid"
         buildConfigField("String", "SYNC_BASE_URL", "\"$syncBaseUrl\"")
 
-        val adMobAppId = localProperties.getProperty("adMobAppId")
-            ?: (project.findProperty("adMobAppId") as String?)
-            ?: "ca-app-pub-3940256099942544~3347511713"
-        val adMobBannerAdUnitId = localProperties.getProperty("adMobBannerAdUnitId")
-            ?: (project.findProperty("adMobBannerAdUnitId") as String?)
-            ?: "ca-app-pub-3940256099942544/9214589741"
-        val adMobInterstitialAdUnitId = localProperties.getProperty("adMobInterstitialAdUnitId")
-            ?: (project.findProperty("adMobInterstitialAdUnitId") as String?)
-            ?: "ca-app-pub-3940256099942544/1033173712"
+        val adMobAppId = releaseRequiredProperty(
+            "adMobAppId",
+            "ca-app-pub-3940256099942544~3347511713",
+        )
+        val adMobBannerAdUnitId = releaseRequiredProperty(
+            "adMobBannerAdUnitId",
+            "ca-app-pub-3940256099942544/9214589741",
+        )
+        val adMobInterstitialAdUnitId = releaseRequiredProperty(
+            "adMobInterstitialAdUnitId",
+            "ca-app-pub-3940256099942544/1033173712",
+        )
         manifestPlaceholders["adMobAppId"] = adMobAppId
         buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$adMobBannerAdUnitId\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"$adMobInterstitialAdUnitId\"")
 
         // Google Play subscription Product ID (must match the one created in Play Console).
         // Override via local.properties -> premiumSubProductId, or a -PpremiumSubProductId Gradle property.
-        val premiumSubProductId = localProperties.getProperty("premiumSubProductId")
-            ?: (project.findProperty("premiumSubProductId") as String?)
-            ?: "devicedna_premium"
+        val premiumSubProductId = releaseRequiredProperty("premiumSubProductId", "devicedna_premium")
         buildConfigField("String", "PREMIUM_SUB_PRODUCT_ID", "\"$premiumSubProductId\"")
 
         // Dev subscription mode: false (default) unlocks Premium locally with no network; true
         // activates the dev purchase through the backend so it is persisted to Neon end-to-end
         // (for testing the real flow). Has no effect on release (dev billing is debug-only).
         // Override via local.properties -> devSubscriptionUseBackend, or -PdevSubscriptionUseBackend.
-        val devSubscriptionUseBackend = (localProperties.getProperty("devSubscriptionUseBackend")
-            ?: (project.findProperty("devSubscriptionUseBackend") as String?))?.toBooleanStrictOrNull() ?: false
+        val devSubscriptionUseBackend = customerProperty("devSubscriptionUseBackend")?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "DEV_SUBSCRIPTION_USE_BACKEND", "$devSubscriptionUseBackend")
     }
 
@@ -84,28 +107,78 @@ android {
     // (instant unlock, no Play needed), release = real Google Play Billing. Override either build
     // type with `-PrealBilling=true|false` (or realBilling=... in local.properties) to, e.g., build
     // a debug variant wired to real Play Billing for testing on an internal test track.
-    val realBillingOverride = (localProperties.getProperty("realBilling")
-        ?: (project.findProperty("realBilling") as String?))?.toBooleanStrictOrNull()
+    val realBillingOverride = customerProperty("realBilling")?.toBooleanStrictOrNull()
 
-    val localKeystorePath = localProperties.getProperty("signingKeystore")
-    if (localKeystorePath != null) {
-        signingConfigs {
-            create("localDebug") {
-                storeFile = file(localKeystorePath)
-                storePassword = localProperties.getProperty("signingKeystorePassword") ?: "android"
-                keyAlias = localProperties.getProperty("signingKeyAlias") ?: "androiddebugkey"
-                keyPassword = localProperties.getProperty("signingKeyPassword") ?: "android"
+    val releaseStoreFile = signingProperty("releaseStoreFile", "ANDROID_RELEASE_STORE_FILE")
+    val releaseStorePassword = signingProperty("releaseStorePassword", "ANDROID_RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = signingProperty("releaseKeyAlias", "ANDROID_RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = signingProperty("releaseKeyPassword", "ANDROID_RELEASE_KEY_PASSWORD")
+    val debugStoreFile = customerProperty("debugStoreFile")
+    val debugStorePassword = customerProperty("debugStorePassword")
+    val debugKeyAlias = customerProperty("debugKeyAlias")
+    val debugKeyPassword = customerProperty("debugKeyPassword")
+    val hasDebugSigning = listOf(
+        debugStoreFile,
+        debugStorePassword,
+        debugKeyAlias,
+        debugKeyPassword,
+    ).all { it != null }
+    val hasPartialDebugSigning = listOf(
+        debugStoreFile,
+        debugStorePassword,
+        debugKeyAlias,
+        debugKeyPassword,
+    ).any { it != null } && !hasDebugSigning
+    val hasReleaseSigning = listOf(
+        releaseStoreFile,
+        releaseStorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+    ).all { it != null }
+
+    if (hasPartialDebugSigning) {
+        error(
+            "Incomplete Android debug signing. Add debugStoreFile, debugStorePassword, " +
+                "debugKeyAlias and debugKeyPassword to local.properties, or remove all debug signing values.",
+        )
+    }
+
+    if (buildsReleaseArtifact && !hasReleaseSigning) {
+        error(
+            "Missing Android release signing. Create keystore.properties with " +
+                "releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword " +
+                "or set ANDROID_RELEASE_STORE_FILE, ANDROID_RELEASE_STORE_PASSWORD, " +
+                "ANDROID_RELEASE_KEY_ALIAS, ANDROID_RELEASE_KEY_PASSWORD.",
+        )
+    }
+
+    signingConfigs {
+        if (hasDebugSigning) {
+            create("projectDebug") {
+                storeFile = rootProject.file(checkNotNull(debugStoreFile))
+                storePassword = checkNotNull(debugStorePassword)
+                keyAlias = checkNotNull(debugKeyAlias)
+                keyPassword = checkNotNull(debugKeyPassword)
+            }
+        }
+
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(checkNotNull(releaseStoreFile))
+                storePassword = checkNotNull(releaseStorePassword)
+                keyAlias = checkNotNull(releaseKeyAlias)
+                keyPassword = checkNotNull(releaseKeyPassword)
             }
         }
     }
 
     buildTypes {
         debug {
-            val localDebug = signingConfigs.findByName("localDebug")
-            if (localDebug != null) signingConfig = localDebug
+            signingConfigs.findByName("projectDebug")?.let { signingConfig = it }
             buildConfigField("boolean", "USE_REAL_BILLING", "${realBillingOverride ?: false}")
         }
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -173,6 +246,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
-if (file("google-services.json").exists()) {
+if (file("google-services.json").exists() && customerProperty("androidApplicationId") != null) {
     apply(plugin = "com.google.gms.google-services")
 }

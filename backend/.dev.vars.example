@@ -1,8 +1,13 @@
 # Copy to .dev.vars for local `wrangler dev`.
 
 # Required for local auth and sync.
+FIREBASE_PROJECT_ID="your-firebase-project-id"
 DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx.eu-central-1.aws.neon.tech/devicedna?sslmode=require"
 FIREBASE_WEB_API_KEY="AIzaSy..."
+
+# Required when testing Google Play subscriptions.
+GOOGLE_PLAY_PACKAGE_NAME="com.example.devicedna"
+GOOGLE_PLAY_PREMIUM_PRODUCT_ID="devicedna_premium"
 
 # Optional: required only for internal subscription upserts.
 # INTERNAL_API_KEY="change-me"

@@ -17,9 +17,8 @@ final class AdsHost: NSObject {
 
     static let shared = AdsHost()
 
-    /// Test ad units — replace with production ids before release.
-    static let bannerAdUnitId = "ca-app-pub-3940256099942544/2934735716"
-    static let interstitialAdUnitId = "ca-app-pub-3940256099942544/4411468910"
+    static let bannerAdUnitId = AppConfig.adMobBannerAdUnitId
+    static let interstitialAdUnitId = AppConfig.adMobInterstitialAdUnitId
 
     private var started = false
     private var interstitialAd: InterstitialAd?

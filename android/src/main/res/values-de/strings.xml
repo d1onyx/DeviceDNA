@@ -271,6 +271,9 @@
     <string name="settings_alert_high_ram">Hohe RAM-Nutzung</string>
     <string name="settings_alert_slow_charging">Langsames Laden</string>
     <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="notif_channel_battery_monitoring">Akku-Überwachung</string>
+    <string name="battery_monitoring_notif_title">Akku-Überwachung aktiv</string>
+    <string name="battery_monitoring_notif_body">DeviceDNA zeichnet Ladeänderungen für Akku-Intelligenz auf.</string>
     <string name="alert_cpu_overheating_title">CPU überhitzt</string>
     <string name="alert_cpu_overheating_body">Die Gerätetemperatur ist hoch. Lassen Sie es abkühlen, um Drosselung und Akkustress zu vermeiden.</string>
     <string name="alert_low_battery_title">Akku ist niedrig</string>

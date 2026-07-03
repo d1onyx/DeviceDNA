@@ -605,8 +605,8 @@ private fun HourlyChart(
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End,
             ) {
-                Text("60 хв", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
-                Text("30 хв", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
+                Text(stringRes("battery_intelligence_axis_minutes", 60), style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
+                Text(stringRes("battery_intelligence_axis_minutes", 30), style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
                 Text("0", style = MaterialTheme.typography.labelLarge, color = labelColor.copy(alpha = 0.62f))
             }
         }

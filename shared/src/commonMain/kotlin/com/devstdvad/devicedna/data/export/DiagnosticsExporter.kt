@@ -3,14 +3,22 @@ package com.devstdvad.devicedna.data.export
 import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.settings.ExportFormat
+import com.devstdvad.devicedna.domain.usecase.GetAppsUseCase
+import com.devstdvad.devicedna.domain.usecase.GetCameraInfoUseCase
+import com.devstdvad.devicedna.domain.usecase.GetConnectivityInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetCpuInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetDisplayInfoUseCase
+import com.devstdvad.devicedna.domain.usecase.GetHealthScoreUseCase
 import com.devstdvad.devicedna.domain.usecase.GetNetworkInfoUseCase
+import com.devstdvad.devicedna.domain.usecase.GetSensorsUseCase
 import com.devstdvad.devicedna.domain.usecase.GetStorageInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetSystemInfoUseCase
+import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
+import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
 import com.devstdvad.devicedna.platform.FileSharer
+import com.devstdvad.devicedna.platform.PlatformInfo
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
@@ -31,6 +39,13 @@ class DiagnosticsExporter(
     private val getNetwork: GetNetworkInfoUseCase,
     private val getDisplay: GetDisplayInfoUseCase,
     private val observeBattery: ObserveBatteryUseCase,
+    private val observeRam: ObserveRamUseCase,
+    private val getConnectivity: GetConnectivityInfoUseCase,
+    private val getCamera: GetCameraInfoUseCase,
+    private val getSensors: GetSensorsUseCase,
+    private val getThermal: GetThermalInfoUseCase,
+    private val getApps: GetAppsUseCase,
+    private val getHealth: GetHealthScoreUseCase,
     private val fileSharer: FileSharer,
 ) {
 
@@ -57,6 +72,11 @@ class DiagnosticsExporter(
     }
 
     private suspend fun collectData(): Map<String, Map<String, String>> = coroutineScope {
+        // Thermal/Apps/Health are excluded on iOS: Apps is always PlatformRestricted there,
+        // Thermal only exposes a coarse state (no real zone data), and Health is derived from
+        // both — none of the three carry meaningful data on the iOS sandbox.
+        val includePlatformRestricted = !PlatformInfo.isIos
+
         val deviceDef = async { (getDevice() as? AppResult.Success)?.value }
         val cpuDef = async { (getCpu() as? AppResult.Success)?.value }
         val systemDef = async { (getSystem() as? AppResult.Success)?.value }
@@ -64,6 +84,13 @@ class DiagnosticsExporter(
         val networkDef = async { (getNetwork() as? AppResult.Success)?.value }
         val displayDef = async { (getDisplay() as? AppResult.Success)?.value }
         val batteryDef = async { (observeBattery().first() as? AppResult.Success)?.value }
+        val ramDef = async { (observeRam().first() as? AppResult.Success)?.value }
+        val connectivityDef = async { (getConnectivity() as? AppResult.Success)?.value }
+        val cameraDef = async { (getCamera() as? AppResult.Success)?.value }
+        val sensorsDef = async { (getSensors() as? AppResult.Success)?.value }
+        val thermalDef = if (includePlatformRestricted) async { (getThermal() as? AppResult.Success)?.value } else null
+        val appsDef = if (includePlatformRestricted) async { (getApps() as? AppResult.Success)?.value } else null
+        val healthDef = if (includePlatformRestricted) async { runCatching { getHealth() }.getOrNull() } else null
 
         val device = deviceDef.await()
         val cpu = cpuDef.await()
@@ -72,6 +99,13 @@ class DiagnosticsExporter(
         val network = networkDef.await()
         val display = displayDef.await()
         val battery = batteryDef.await()
+        val ram = ramDef.await()
+        val connectivity = connectivityDef.await()
+        val camera = cameraDef.await()
+        val sensors = sensorsDef.await()
+        val thermal = thermalDef?.await()
+        val apps = appsDef?.await()
+        val health = healthDef?.await()
 
         buildMap {
             put("device", buildMap {
@@ -177,6 +211,93 @@ class DiagnosticsExporter(
                     it.chargeCycles?.let { c -> put("charge_cycles", c.toString()) }
                 }
             })
+            put("ram", buildMap {
+                ram?.let {
+                    put("total_bytes", it.totalBytes.toString())
+                    put("available_bytes", it.availableBytes.toString())
+                    put("used_bytes", it.usedBytes.toString())
+                    put("used_percent", oneDecimal(it.usedPercent * 100f))
+                    put("low_memory", it.isLowMemory.toString())
+                    put("cached_bytes", it.cachedBytes.toString())
+                    put("threshold_bytes", it.thresholdBytes.toString())
+                }
+            })
+            put("connectivity", buildMap {
+                connectivity?.let {
+                    put("has_wifi", it.hasWifi.toString())
+                    put("has_wifi_5ghz", it.hasWifi5Ghz.toString())
+                    put("has_wifi_6ghz", it.hasWifi6Ghz.toString())
+                    put("has_wifi_direct", it.hasWifiDirect.toString())
+                    put("wifi_standards", it.wifiStandards.joinToString(", ").ifBlank { "n/a" })
+                    put("has_bluetooth", it.hasBluetooth.toString())
+                    put("has_bluetooth_le", it.hasBluetoothLe.toString())
+                    put("bluetooth_version", it.bluetoothVersion ?: "n/a")
+                    put("has_nfc", it.hasNfc.toString())
+                    put("has_uwb", it.hasUwb.toString())
+                    put("has_esim", it.hasEsim.toString())
+                }
+            })
+            put("camera", buildMap {
+                camera?.let { info ->
+                    put("count", info.cameras.size.toString())
+                    info.cameras.forEachIndexed { i, c ->
+                        put("camera_${i}_facing", c.facing.name)
+                        put("camera_${i}_megapixels", oneDecimal(c.megapixels))
+                        put("camera_${i}_resolution", "${c.resolutionWidth}x${c.resolutionHeight}")
+                        put("camera_${i}_has_flash", c.hasFlash.toString())
+                        put("camera_${i}_has_ois", c.hasOis.toString())
+                    }
+                }
+            })
+            put("sensors", buildMap {
+                sensors?.let { info ->
+                    put("count", info.sensors.size.toString())
+                    info.sensors.forEachIndexed { i, s ->
+                        put("sensor_${i}_name", s.name)
+                        put("sensor_${i}_vendor", s.vendor.ifBlank { "n/a" })
+                    }
+                }
+            })
+            if (includePlatformRestricted) {
+                put("thermal", buildMap {
+                    thermal?.let { info ->
+                        info.zones.forEachIndexed { i, z ->
+                            put("zone_${i}_name", z.name)
+                            put("zone_${i}_type", z.type.name)
+                            put("zone_${i}_temperature_celsius", z.temperatureCelsius?.let { t -> oneDecimal(t) } ?: "n/a")
+                        }
+                    }
+                })
+                put("apps", buildMap {
+                    apps?.let { info ->
+                        put("total_count", info.totalCount.toString())
+                        put("user_count", info.userCount.toString())
+                        put("system_count", info.systemCount.toString())
+                        info.apps.forEachIndexed { i, a ->
+                            put("app_${i}_name", a.name)
+                            put("app_${i}_package", a.packageName)
+                            put("app_${i}_version", a.versionName)
+                            put("app_${i}_system", a.isSystemApp.toString())
+                        }
+                    }
+                })
+                put("health", buildMap {
+                    health?.let { h ->
+                        put("overall", h.overall.toString())
+                        put("battery_score", h.battery.toString())
+                        put("performance_score", h.performance.toString())
+                        put("storage_score", h.storage.toString())
+                        put("security_score", h.security.toString())
+                        put("thermal_score", h.thermal.toString())
+                        put("fraud_risk_score", h.fraudRisk.score.toString())
+                        put("fraud_risk_level", h.fraudRisk.level.name)
+                        h.insights.forEachIndexed { i, ins ->
+                            put("insight_${i}_title", ins.title)
+                            put("insight_${i}_severity", ins.severity.name)
+                        }
+                    }
+                })
+            }
         }
     }
 

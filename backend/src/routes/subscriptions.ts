@@ -64,7 +64,10 @@ subscriptionRoutes.post("/subscription/dev/activate", async (c) => {
   }
 
   const claims = c.get("claims");
-  const productId = c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID ?? "devicedna_premium";
+  const productId = c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID?.trim();
+  if (!productId) {
+    return c.json({ error: "google_play_product_not_configured" }, 503);
+  }
   const now = new Date();
   const expiresAt = null;
   const db = getDb(c.env.DATABASE_URL);
@@ -106,10 +109,14 @@ subscriptionRoutes.post("/subscription/google-play/verify", async (c) => {
   const body = await c.req.json<{ productId?: string; purchaseToken?: string } | null>();
   const productId = body?.productId?.trim();
   const purchaseToken = body?.purchaseToken?.trim();
-  const expectedProductId = c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID ?? "devicedna_premium";
+  const expectedProductId = c.env.GOOGLE_PLAY_PREMIUM_PRODUCT_ID?.trim();
 
   if (!productId || !purchaseToken) {
     return c.json({ error: "purchase_token_required" }, 400);
+  }
+
+  if (!expectedProductId) {
+    return c.json({ error: "google_play_product_not_configured" }, 503);
   }
 
   if (productId !== expectedProductId) {

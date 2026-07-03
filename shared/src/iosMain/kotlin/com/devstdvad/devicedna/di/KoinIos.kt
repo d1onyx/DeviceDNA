@@ -56,9 +56,6 @@ import org.koin.core.Koin
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
-/** App Group shared between the app, the WidgetKit extension and BGTask work. */
-const val APP_GROUP_ID = "group.com.devstdvad.devicedna"
-
 /**
  * Everything the Swift host must hand over at startup (auth/billing bridges and the
  * WidgetKit reload hook are Swift-only APIs the Kotlin side cannot construct itself).
@@ -67,6 +64,7 @@ class IosAppDependencies(
     val authGateway: IosAuthGateway,
     val billingGateway: IosBillingGateway,
     val syncBaseUrl: String,
+    val appGroupId: String,
     val reloadWidgetTimelines: () -> Unit,
 )
 
@@ -100,7 +98,7 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
     // Persistence
     single<SettingsStore> { IosSettingsStore() }
     single<PremiumEntitlementsStore> { IosEntitlementsStore() }
-    single<BatteryIntelligenceHistoryStore> { IosBatteryIntelligenceHistoryStore() }
+    single<BatteryIntelligenceHistoryStore> { IosBatteryIntelligenceHistoryStore(deps.appGroupId) }
     single<SyncStateStore> { IosSyncStateStore() }
 
     // Platform services
@@ -137,6 +135,7 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
             getHealth = get(),
             entitlementsStore = get(),
             reloadWidgetTimelines = deps.reloadWidgetTimelines,
+            appGroupId = deps.appGroupId,
         )
     }
     single { IosBackgroundWorker(get(), get(), get(), get(), get()) }

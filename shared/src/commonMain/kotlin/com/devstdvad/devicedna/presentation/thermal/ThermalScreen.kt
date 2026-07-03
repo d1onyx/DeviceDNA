@@ -23,6 +23,7 @@ import com.devstdvad.devicedna.domain.model.ThermalZoneType
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun ThermalScreen(
@@ -34,7 +35,7 @@ fun ThermalScreen(
     val colors = AppTheme.colors
 
     if (state.isLoading && state.info == null) { LoadingScreen(); return }
-    val info = state.info ?: run { LoadingScreen(message = state.error ?: "Thermal info unavailable"); return }
+    val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("thermal_load_error")); return }
 
     // Sort: hottest zones first, unknown last
     val sorted = info.zones.sortedWith(
@@ -65,19 +66,19 @@ fun ThermalScreen(
             ) {
                 androidx.compose.foundation.layout.Column {
                     Text(
-                        text = if (maxTemp == null) "System Thermal" else "${sorted.size} Thermal Zones",
+                        text = if (maxTemp == null) stringRes("thermal_title_system") else stringRes("thermal_title_zones", sorted.size),
                         style = MaterialTheme.typography.displaySmall,
                         color = colors.textPrimary,
                     )
                     if (hotZones > 0) {
                         Text(
-                            text = "$hotZones zone${if (hotZones != 1) "s" else ""} running hot",
+                            text = stringRes("thermal_zones_hot", hotZones),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.thermalColor,
                         )
                     } else if (maxTemp == null) {
                         Text(
-                            text = "Only a coarse thermal state is exposed on this device",
+                            text = stringRes("thermal_coarse_state_note"),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textMuted,
                         )
@@ -90,7 +91,7 @@ fun ThermalScreen(
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = if (maxTemp >= 60f) colors.critical else if (maxTemp >= 42f) colors.thermalColor else colors.sensorsColor,
                         )
-                        Text("Peak", style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+                        Text(stringRes("thermal_field_peak"), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                     }
                 } else {
                     val stateName = sorted.firstOrNull()?.name
@@ -106,7 +107,7 @@ fun ThermalScreen(
                                     else -> colors.sensorsColor
                                 },
                             )
-                            Text("State", style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+                            Text(stringRes("thermal_field_state"), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                         }
                     }
                 }
@@ -116,7 +117,7 @@ fun ThermalScreen(
         items(sorted) { zone ->
             val hasTemp = zone.temperatureCelsius != null
             ThermalTile(
-                label = if (hasTemp) zone.name else "System",
+                label = if (hasTemp) zone.name else stringRes("thermal_tile_system_label"),
                 tempCelsius = zone.temperatureCelsius,
                 temperatureText = zone.temperatureCelsius?.let {
                     SettingsFormatters.formatTemperature(it, settings.temperatureUnit)

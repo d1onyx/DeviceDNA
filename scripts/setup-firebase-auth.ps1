@@ -11,9 +11,9 @@
 param(
     [Parameter(Position = 0)][string]$ProjectId = "",
     [Parameter(Position = 1)][string]$AndroidSha1 = "",
-    [string]$AndroidPackageName = "com.devstdvad.devicedna",
-    [string]$IosBundleId = "com.devstdvad.devicedna",
-    [string]$DisplayName = "DeviceDNA",
+    [string]$AndroidPackageName = "",
+    [string]$IosBundleId = "",
+    [string]$DisplayName = "",
     [switch]$NoIos
 )
 
@@ -22,15 +22,42 @@ $ErrorActionPreference = "Stop"
 # tolerated/retried explicitly, mirroring the bash script's `|| true` handling.
 $PSNativeCommandUseErrorActionPreference = $false
 
-if ([string]::IsNullOrWhiteSpace($ProjectId)) {
-    Write-Error "Usage: ./scripts/setup-firebase-auth.ps1 -ProjectId <PROJECT_ID> [-AndroidSha1 <SHA1>] [-NoIos]"
-    exit 1
-}
-
 # Run from the repository root so the relative config paths resolve.
 $repoRoot = (& git rev-parse --show-toplevel 2>$null)
 if ($LASTEXITCODE -eq 0 -and $repoRoot) {
     Set-Location -LiteralPath $repoRoot.Trim()
+}
+
+function Get-LocalProperty {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    if (-not (Test-Path -LiteralPath "local.properties")) { return "" }
+    foreach ($line in Get-Content -LiteralPath "local.properties") {
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith("#") -or -not $trimmed.Contains("=")) { continue }
+        $parts = $trimmed.Split("=", 2)
+        if ($parts[0].Trim() -eq $Name) { return $parts[1].Trim() }
+    }
+    return ""
+}
+
+if ([string]::IsNullOrWhiteSpace($ProjectId)) { $ProjectId = Get-LocalProperty -Name "firebaseProjectId" }
+if ([string]::IsNullOrWhiteSpace($AndroidPackageName)) { $AndroidPackageName = Get-LocalProperty -Name "androidApplicationId" }
+if ([string]::IsNullOrWhiteSpace($IosBundleId)) { $IosBundleId = Get-LocalProperty -Name "iosBundleId" }
+if ([string]::IsNullOrWhiteSpace($DisplayName)) { $DisplayName = Get-LocalProperty -Name "appDisplayName" }
+if ([string]::IsNullOrWhiteSpace($DisplayName)) { $DisplayName = "DeviceDNA" }
+
+if ([string]::IsNullOrWhiteSpace($ProjectId)) {
+    Write-Error "Usage: ./scripts/setup-firebase-auth.ps1 -ProjectId <PROJECT_ID> [-AndroidSha1 <SHA1>] [-NoIos]"
+    exit 1
+}
+if ([string]::IsNullOrWhiteSpace($AndroidPackageName)) {
+    Write-Error "Set androidApplicationId in local.properties or pass -AndroidPackageName before creating Firebase Android config."
+    exit 1
+}
+if (-not $NoIos -and [string]::IsNullOrWhiteSpace($IosBundleId)) {
+    Write-Error "Set iosBundleId in local.properties, pass -IosBundleId, or use -NoIos."
+    exit 1
 }
 
 # ── helpers ───────────────────────────────────────────────────────────────────

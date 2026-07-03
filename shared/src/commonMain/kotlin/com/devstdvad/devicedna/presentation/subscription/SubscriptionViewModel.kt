@@ -92,10 +92,12 @@ class SubscriptionViewModel(
                 subscriptionRepository.clearDevSubscription()
                 operationState.update { it.copy(isLoading = false) }
             } catch (t: Throwable) {
+                // Empty (non-null) string sentinel: a plain ViewModel can't call stringRes(),
+                // so the screen supplies the localized fallback when rendering it.
                 operationState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = t.message ?: "Unable to clear dev subscription.",
+                        errorMessage = t.message?.takeIf { msg -> msg.isNotBlank() } ?: "",
                     )
                 }
             }
@@ -119,10 +121,12 @@ class SubscriptionViewModel(
                     }
                 }
             } catch (t: Throwable) {
+                // Empty (non-null) string sentinel: a plain ViewModel can't call stringRes(),
+                // so the screen supplies the localized fallback when rendering it.
                 operationState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = t.message ?: "Subscription operation failed.",
+                        errorMessage = t.message?.takeIf { msg -> msg.isNotBlank() } ?: "",
                     )
                 }
             }

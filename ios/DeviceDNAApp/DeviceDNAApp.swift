@@ -11,7 +11,7 @@ import shared   // Kotlin Multiplatform framework (baseName "shared")
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
-    static let backgroundTaskId = "com.devstdvad.devicedna.refresh"
+    static let backgroundTaskId = AppConfig.backgroundTaskId
 
     func application(
         _ application: UIApplication,
@@ -19,7 +19,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) -> Bool {
         // 1. Firebase (Google Sign-In backend).
         if FirebaseApp.app() == nil,
-           Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+           AppConfig.hasUsableFirebaseConfig {
             FirebaseApp.configure()
         }
 
@@ -36,10 +36,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             authGateway: AuthBridge.shared.gateway,
             billingGateway: StoreKitBilling.shared.gateway,
             syncBaseUrl: AppConfig.syncBaseUrl,
+            appGroupId: AppConfig.appGroupId,
             reloadWidgetTimelines: { WidgetCenter.shared.reloadAllTimelines() }
         ))
         AuthBridge.shared.startListening()
         StoreKitBilling.shared.start()
+
+        // 2b. Populate the widget snapshot immediately on launch so a freshly-added
+        //     widget doesn't sit on its placeholder until the next background
+        //     transition or the next (opportunistic, iOS-scheduled) BGAppRefreshTask.
+        KoinBridge.shared.backgroundWorker().run { _ in }
 
         // 3. Background refresh — registration MUST happen before launch finishes.
         BGTaskScheduler.shared.register(
@@ -68,10 +74,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Widget taps arrive as devicedna://open/<route> URLs.
-        if url.scheme == "devicedna" {
+        // Widget taps arrive as <scheme>://open/<route> URLs.
+        if url.scheme == AppConfig.deepLinkScheme {
             let route = url.absoluteString
-                .replacingOccurrences(of: "devicedna://open/", with: "")
+                .replacingOccurrences(of: "\(AppConfig.deepLinkScheme)://open/", with: "")
                 .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             if !route.isEmpty { DeepLinkHolder.shared.push(route: route) }
             return true
@@ -115,13 +121,79 @@ enum AppConfig {
     /// Android's `syncBaseUrl` (local.properties / -PsyncBaseUrl, see
     /// android/build.gradle.kts).
     static let syncBaseUrl: String = {
-        guard let url = Bundle.main.object(forInfoDictionaryKey: "SyncBaseUrl") as? String,
-              !url.isEmpty
-        else {
+        guard let url = string("SyncBaseUrl") else {
             fatalError("Missing SyncBaseUrl in Info.plist — check SYNC_BASE_URL in ios/project.yml")
         }
         return url
     }()
+
+    static let appGroupId: String = {
+        guard let value = string("AppGroupId") else {
+            fatalError("Missing AppGroupId in Info.plist — check IOS_APP_GROUP_ID in ios/project.yml")
+        }
+        return value
+    }()
+
+    static let backgroundTaskId: String = {
+        guard let value = string("BackgroundTaskId") else {
+            fatalError("Missing BackgroundTaskId in Info.plist — check IOS_BACKGROUND_TASK_ID in ios/project.yml")
+        }
+        return value
+    }()
+
+    static let deepLinkScheme: String = {
+        guard let value = string("DeepLinkScheme") else {
+            fatalError("Missing DeepLinkScheme in Info.plist — check IOS_DEEP_LINK_SCHEME in ios/project.yml")
+        }
+        return value
+    }()
+
+    static let storeKitPremiumProductId: String = {
+        guard let value = string("StoreKitPremiumProductId") else {
+            fatalError("Missing StoreKitPremiumProductId in Info.plist — check IOS_STOREKIT_PREMIUM_PRODUCT_ID in ios/project.yml")
+        }
+        return value
+    }()
+
+    static let adMobBannerAdUnitId: String = {
+        guard let value = string("AdMobBannerAdUnitId") else {
+            fatalError("Missing AdMobBannerAdUnitId in Info.plist — check IOS_ADMOB_BANNER_AD_UNIT_ID in ios/project.yml")
+        }
+        return value
+    }()
+
+    static let adMobInterstitialAdUnitId: String = {
+        guard let value = string("AdMobInterstitialAdUnitId") else {
+            fatalError("Missing AdMobInterstitialAdUnitId in Info.plist — check IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID in ios/project.yml")
+        }
+        return value
+    }()
+
+    static let hasUsableFirebaseConfig: Bool = {
+        guard
+            let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+            let plist = NSDictionary(contentsOfFile: path),
+            let appId = plist["GOOGLE_APP_ID"] as? String,
+            !appId.hasPrefix("YOUR_")
+        else {
+            return false
+        }
+        return true
+    }()
+
+    private static func string(_ key: String) -> String? {
+        (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .flatMap { value in
+                if value.isEmpty ||
+                    value.hasPrefix("$(") ||
+                    value.contains("YOUR_") ||
+                    value.contains("xxxxxxxx") {
+                    return nil
+                }
+                return value
+            }
+    }
 }
 
 // MARK: - SwiftUI scene
@@ -145,7 +217,21 @@ struct DeviceDNAApp: App {
             if phase == .background {
                 AppDelegate.scheduleBackgroundRefresh()
                 // Refresh widgets with the freshest foreground data before suspending.
-                KoinBridge.shared.backgroundWorker().run { _ in }
+                // Without an active background-task assertion, iOS can (and typically does)
+                // suspend the process within seconds of entering .background — killing this
+                // work mid-flight before the widget payload is written or timelines reload,
+                // which is why widgets silently never picked up fresh data.
+                var bgTaskId: UIBackgroundTaskIdentifier = .invalid
+                bgTaskId = UIApplication.shared.beginBackgroundTask(withName: "WidgetRefresh") {
+                    UIApplication.shared.endBackgroundTask(bgTaskId)
+                    bgTaskId = .invalid
+                }
+                KoinBridge.shared.backgroundWorker().run { _ in
+                    if bgTaskId != .invalid {
+                        UIApplication.shared.endBackgroundTask(bgTaskId)
+                        bgTaskId = .invalid
+                    }
+                }
             }
         }
     }
