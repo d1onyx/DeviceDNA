@@ -47,6 +47,14 @@ jobs:
       - name: Set up Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
 
+      # Kotlin/Native's own toolchain + platform libs (~200-500MB), downloaded once per
+      # Kotlin version and otherwise re-fetched from scratch on every fresh runner.
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
+
       - name: Select Xcode 16.4
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -64,6 +72,18 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
+
+      # Firebase + AdMob + UMP are large XCFrameworks; `pod install` re-downloading and
+      # re-processing them from scratch is one of the slowest steps in this workflow.
+      # No Podfile.lock is committed (Pods/ is gitignored), so key on the Podfile itself.
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: pods-${{ hashFiles('ios/Podfile') }}
+          restore-keys: pods-
 
       - name: Install CocoaPods dependencies
         working-directory: ios
@@ -95,6 +115,7 @@ jobs:
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             build
 
       # ── Stage 4: run it and photograph the result ──
@@ -161,6 +182,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             archive
 
       - name: Package unsigned .ipa
@@ -179,3 +201,33 @@ jobs:
         with:
           name: DeviceDNAApp-unsigned-ipa
           path: DeviceDNAApp-unsigned.ipa
+
+      # ── Stage 7: hand the .ipa to Telegram. Bot API caps bot-uploaded documents
+      #    at 50 MB; if the archive is bigger, skip the send instead of failing the
+      #    whole (already-green) build — the artifact is still on the Actions run. ──
+      - name: Send .ipa to Telegram
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          FILE="DeviceDNAApp-unsigned.ipa"
+          MAX_BYTES=$((50 * 1024 * 1024))
+          SIZE=$(stat -c%s "$FILE" 2>/dev/null || stat -f%z "$FILE")
+
+          if [ "$SIZE" -gt "$MAX_BYTES" ]; then
+            echo "::warning::$FILE is $SIZE bytes, over Telegram's 50 MB bot upload limit — skipping send. Download it from the workflow's artifacts instead."
+            exit 0
+          fi
+
+          CAPTION="DeviceDNA iOS unsigned build
+          Commit: ${GITHUB_SHA:0:7}
+          Branch: ${GITHUB_REF_NAME}
+          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          curl -sS -f \
+            -F "chat_id=${TELEGRAM_CHAT_ID}" \
+            -F "document=@${FILE}" \
+            -F "caption=${CAPTION}" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument"
