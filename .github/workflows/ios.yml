@@ -235,8 +235,16 @@ jobs:
           Branch: ${GITHUB_REF_NAME}
           Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-          curl -sS -f \
+          HTTP_STATUS=$(curl -sS -o response.json -w "%{http_code}" \
             -F "chat_id=${TELEGRAM_CHAT_ID}" \
             -F "document=@${FILE}" \
             -F "caption=${CAPTION}" \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument"
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument")
+
+          cat response.json
+          echo
+
+          if [ "$HTTP_STATUS" -ge 400 ]; then
+            echo "::error::Telegram API returned HTTP $HTTP_STATUS — see response body above for the exact 'description' field."
+            exit 1
+          fi
