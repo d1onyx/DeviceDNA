@@ -161,6 +161,9 @@ struct ComposeRootView: UIViewControllerRepresentable {
             onGoogleSignIn: { forceAccountPicker in
                 AuthBridge.shared.signIn(forceAccountPicker: forceAccountPicker.boolValue)
             },
+            onAppleSignIn: {
+                AuthBridge.shared.signInWithApple()
+            },
             interstitial: AdsHost.shared.interstitial,
             bannerViewFactory: { AdsHost.shared.makeBannerView() }
         )

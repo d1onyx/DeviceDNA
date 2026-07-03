@@ -7,10 +7,11 @@
 	<array>
 		<string>group.com.devstdvad.devicedna</string>
 	</array>
-	<!-- In-App Purchase capability is implicit; Sign in with Apple NOT required because
-	     the only login is Google via Firebase… NOTE: Apple guideline 4.8 DOES require
-	     "Sign in with Apple" (or an equivalent privacy-focused login) when third-party
-	     login is offered. See the review checklist in ios/README — either add Sign in
-	     with Apple through Firebase (recommended) or make login optional. -->
+	<!-- Sign in with Apple: required by App Store guideline 4.8 alongside Google login.
+	     Also enable Apple as a provider in Firebase Auth (see ios/README.md). -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

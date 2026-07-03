@@ -27,6 +27,8 @@ import com.devstdvad.devicedna.core.design.component.InfoRow
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.platform.PlatformInfo
+import com.devstdvad.devicedna.resources.stringRes
 
 @Composable
 fun CpuScreen(
@@ -35,6 +37,7 @@ fun CpuScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
+    val isIos = PlatformInfo.isIos
 
     if (state.isLoading && state.info == null) { LoadingScreen(); return }
     val info = state.info ?: run { LoadingScreen(message = state.error ?: "Could not load CPU info"); return }
@@ -71,7 +74,7 @@ fun CpuScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             SpecChip("Cores", "${info.coreCount}")
                             avgFreqMhz?.let { SpecChip("Avg Freq", "${it} MHz") }
-                            SpecChip("Governor", info.governor)
+                            if (!isIos && info.governor.isNotBlank()) SpecChip("Governor", info.governor)
                         }
                         if (info.instructionSets.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
@@ -107,21 +110,30 @@ fun CpuScreen(
             SectionCard {
                 Text("CPU Cores · Live", style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 Spacer(Modifier.height(10.dp))
-                val rows = (info.cores.size + 1) / 2
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxWidth().height((rows * 78).dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    userScrollEnabled = false,
-                ) {
-                    items(info.cores) { core ->
-                        CpuCoreTile(
-                            coreIndex = core.index,
-                            frequencyMhz = core.currentFrequencyKhz?.div(1000)?.toInt(),
-                            maxFrequencyMhz = maxFreqKhz / 1000,
-                            isOnline = core.isOnline,
-                        )
+                if (info.cores.isEmpty()) {
+                    // iOS does not expose per-core frequency/online state to sandboxed apps.
+                    Text(
+                        text = if (isIos) stringRes("common_unavailable_ios") else "No per-core data",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textMuted,
+                    )
+                } else {
+                    val rows = (info.cores.size + 1) / 2
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxWidth().height((rows * 78).dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        userScrollEnabled = false,
+                    ) {
+                        items(info.cores) { core ->
+                            CpuCoreTile(
+                                coreIndex = core.index,
+                                frequencyMhz = core.currentFrequencyKhz?.div(1000)?.toInt(),
+                                maxFrequencyMhz = maxFreqKhz / 1000,
+                                isOnline = core.isOnline,
+                            )
+                        }
                     }
                 }
             }

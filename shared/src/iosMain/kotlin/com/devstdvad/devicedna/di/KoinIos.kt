@@ -20,10 +20,13 @@ import com.devstdvad.devicedna.data.source.IosSensorRepository
 import com.devstdvad.devicedna.data.source.IosSystemRepository
 import com.devstdvad.devicedna.data.source.IosThermalRepository
 import com.devstdvad.devicedna.data.subscription.IosBillingGateway
+import com.devstdvad.devicedna.data.subscription.IosDevBillingGateway
 import com.devstdvad.devicedna.data.subscription.IosEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
+import kotlin.experimental.ExperimentalNativeApi
+import kotlin.native.Platform
 import com.devstdvad.devicedna.data.sync.IosSyncFactory
 import com.devstdvad.devicedna.data.sync.IosSyncStateStore
 import com.devstdvad.devicedna.data.sync.SyncStateStore
@@ -67,11 +70,15 @@ class IosAppDependencies(
     val reloadWidgetTimelines: () -> Unit,
 )
 
-private fun iosModule(deps: IosAppDependencies) = module {
+private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module {
     // Auth + billing bridges (constructed in Swift, registered here)
     single<AuthGateway> { deps.authGateway }
     single { deps.authGateway }
-    single<SubscriptionBillingGateway> { deps.billingGateway }
+    // Debug builds unlock premium locally through a dev gateway (no App Store sandbox account
+    // needed); release builds always use the real StoreKit bridge.
+    single<SubscriptionBillingGateway> {
+        if (useDevBilling) IosDevBillingGateway() else deps.billingGateway
+    }
 
     // Repositories (iOS data layer)
     single { IosRamStorageRepository() }
@@ -137,12 +144,16 @@ private fun iosModule(deps: IosAppDependencies) = module {
 
 /**
  * Starts Koin for the iOS host. Call once from the Swift AppDelegate before the first
- * Compose frame. `useRealBilling = true`: App Store builds always use real StoreKit.
+ * Compose frame. Debug binaries get a local dev unlock (and the dev subscription controls);
+ * release/App Store builds always use real StoreKit.
  */
-fun initKoin(deps: IosAppDependencies): Koin =
-    startKoin {
-        modules(iosModule(deps), commonModule(useRealBilling = true))
+@OptIn(ExperimentalNativeApi::class)
+fun initKoin(deps: IosAppDependencies): Koin {
+    val useDevBilling = Platform.isDebugBinary
+    return startKoin {
+        modules(iosModule(deps, useDevBilling), commonModule(useRealBilling = !useDevBilling))
     }.koin
+}
 
 /** Swift-friendly accessors for objects the host needs directly. */
 object KoinBridge {

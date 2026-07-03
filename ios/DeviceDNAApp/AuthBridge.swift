@@ -1,5 +1,7 @@
 import Foundation
 import UIKit
+import AuthenticationServices
+import CryptoKit
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
@@ -38,6 +40,10 @@ final class AuthBridge {
     )
 
     private var listenerHandle: AuthStateDidChangeListenerHandle?
+
+    /// Raw nonce for the in-flight Apple Sign-In request; Firebase requires the un-hashed
+    /// value when exchanging the Apple identity token for a Firebase credential.
+    private var currentAppleNonce: String?
 
     /// Pushes every Firebase auth-state change into the Kotlin gateway. The first callback
     /// clears `isInitializing`, letting the Compose shell leave the loading gate.
@@ -84,11 +90,91 @@ final class AuthBridge {
         }
     }
 
+    /// Launches the native "Sign in with Apple" flow and exchanges the Apple identity
+    /// token for a Firebase credential. Requires the "Sign in with Apple" capability and
+    /// Apple enabled as a provider in Firebase Auth (see ios/README.md).
+    func signInWithApple() {
+        DispatchQueue.main.async {
+            let nonce = Self.randomNonceString()
+            self.currentAppleNonce = nonce
+            let request = ASAuthorizationAppleIDProvider().createRequest()
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = Self.sha256(nonce)
+
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+        }
+    }
+
     private static func topViewController() -> UIViewController? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let window = scenes.flatMap(\.windows).first { $0.isKeyWindow }
         var top = window?.rootViewController
         while let presented = top?.presentedViewController { top = presented }
         return top
+    }
+
+    // MARK: Apple nonce helpers
+
+    private static func randomNonceString(length: Int = 32) -> String {
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remaining = length
+        while remaining > 0 {
+            var random: UInt8 = 0
+            let status = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+            if status != errSecSuccess { continue }
+            if random < charset.count {
+                result.append(charset[Int(random) % charset.count])
+                remaining -= 1
+            }
+        }
+        return result
+    }
+
+    private static func sha256(_ input: String) -> String {
+        let hashed = SHA256.hash(data: Data(input.utf8))
+        return hashed.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+// MARK: - Apple Sign-In delegates
+
+extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+
+    func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let nonce = currentAppleNonce,
+              let tokenData = appleIDCredential.identityToken,
+              let idToken = String(data: tokenData, encoding: .utf8)
+        else { return }
+
+        let credential = OAuthProvider.appleCredential(
+            withIDToken: idToken,
+            rawNonce: nonce,
+            fullName: appleIDCredential.fullName
+        )
+        Auth.auth().signIn(with: credential) { _, _ in
+            // State listener publishes the result into the Kotlin gateway.
+        }
+        currentAppleNonce = nil
+    }
+
+    func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithError error: Error
+    ) {
+        // User cancelled or the request failed; leave auth state untouched.
+        currentAppleNonce = nil
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        return scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? ASPresentationAnchor()
     }
 }

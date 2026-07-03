@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.apps
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -36,6 +39,7 @@ import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.model.AppDetails
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
+import com.devstdvad.devicedna.platform.PlatformInfo
 
 @Composable
 fun AppsScreen(
@@ -47,6 +51,13 @@ fun AppsScreen(
     val colors = AppTheme.colors
 
     if (state.isLoading) { LoadingScreen(); return }
+
+    // No app inventory (iOS sandboxing forbids listing installed apps, or the query
+    // failed). Render an honest explanation instead of a blank screen.
+    if (state.info == null) {
+        AppsUnavailable(contentPadding = contentPadding)
+        return
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -96,6 +107,51 @@ fun AppsScreen(
         }
         items(state.filtered, key = { it.packageName }) { app ->
             AppItem(app = app, maskSensitive = settings.maskSensitive)
+        }
+    }
+}
+
+@Composable
+private fun AppsUnavailable(contentPadding: PaddingValues) {
+    val colors = AppTheme.colors
+    val isIos = PlatformInfo.isIos
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+            )
+            .padding(horizontal = 32.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Outlined.Apps,
+                contentDescription = null,
+                tint = colors.textMuted,
+                modifier = Modifier.size(48.dp),
+            )
+            Text(
+                text = "App inventory unavailable",
+                style = MaterialTheme.typography.titleLarge,
+                color = colors.textPrimary,
+            )
+            Text(
+                text = if (isIos) {
+                    "iOS sandboxing prevents apps from listing other installed apps. " +
+                        "Apple does not provide a public API for this, so DeviceDNA cannot enumerate them here."
+                } else {
+                    "The installed-app inventory could not be read on this device."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textMuted,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
         }
     }
 }

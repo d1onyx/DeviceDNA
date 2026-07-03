@@ -21,6 +21,7 @@ import com.devstdvad.devicedna.domain.usecase.GetSystemInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetThermalInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveBatteryUseCase
 import com.devstdvad.devicedna.domain.usecase.ObserveRamUseCase
+import com.devstdvad.devicedna.platform.PlatformInfo
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,6 +70,10 @@ class TestsViewModel(
     private val _state = MutableStateFlow(TestsState())
     val state: StateFlow<TestsState> = _state.asStateFlow()
 
+    // Many checks probe Android-only capabilities; on iOS they must read as "Unavailable"
+    // (grey) rather than spuriously Failed/Warning.
+    private val isIos = PlatformInfo.isIos
+
     init {
         runTests()
     }
@@ -97,8 +102,12 @@ class TestsViewModel(
                         val device = result.value
                         add(test("Device", "Device identity", "${device.manufacturer} ${device.model}", device.model.isNotBlank()))
                         add(test("Device", "CPU ABI support", device.supportedAbis.joinToString(", "), device.supportedAbis.isNotEmpty()))
-                        add(test("Device", "Boot integrity data", "Verified boot: ${device.verifiedBootState.ifBlank { "unknown" }}", device.verifiedBootState.isNotBlank(), warningWhenFalse = true))
-                        add(test("Device", "Environment flags", "Root: ${device.isRooted}, emulator: ${device.isEmulator}, ADB: ${device.isAdbEnabled}", !device.isRooted && !device.isEmulator, warningWhenFalse = true))
+                        if (isIos) {
+                            add(test("Device", "Environment flags", "Jailbreak: ${device.isRooted}, simulator: ${device.isEmulator}", !device.isRooted && !device.isEmulator, warningWhenFalse = true))
+                        } else {
+                            add(test("Device", "Boot integrity data", "Verified boot: ${device.verifiedBootState.ifBlank { "unknown" }}", device.verifiedBootState.isNotBlank(), warningWhenFalse = true))
+                            add(test("Device", "Environment flags", "Root: ${device.isRooted}, emulator: ${device.isEmulator}, ADB: ${device.isAdbEnabled}", !device.isRooted && !device.isEmulator, warningWhenFalse = true))
+                        }
                     }
                     is AppResult.Error -> add(errorTest("Device", "Device identity", result.cause.message))
                 }
@@ -106,9 +115,13 @@ class TestsViewModel(
                 when (val result = systemDef.await()) {
                     is AppResult.Success -> {
                         val system = result.value
-                        add(test("Device", "OS build", "Android ${system.androidVersion}, API ${system.apiLevel}", system.apiLevel > 0))
-                        add(test("Device", "Security patch", system.securityPatchLevel, system.securityPatchLevel != "Unknown", warningWhenFalse = true))
-                        add(test("Device", "App signature", system.signingCertificateSha256 ?: "Unavailable", !system.signingCertificateSha256.isNullOrBlank(), warningWhenFalse = true))
+                        if (isIos) {
+                            add(test("Device", "OS build", system.androidVersion, system.androidVersion.isNotBlank()))
+                        } else {
+                            add(test("Device", "OS build", "Android ${system.androidVersion}, API ${system.apiLevel}", system.apiLevel > 0))
+                            add(test("Device", "Security patch", system.securityPatchLevel, system.securityPatchLevel != "Unknown", warningWhenFalse = true))
+                            add(test("Device", "App signature", system.signingCertificateSha256 ?: "Unavailable", !system.signingCertificateSha256.isNullOrBlank(), warningWhenFalse = true))
+                        }
                     }
                     is AppResult.Error -> add(errorTest("Device", "OS build", result.cause.message))
                 }
@@ -117,8 +130,10 @@ class TestsViewModel(
                     is AppResult.Success -> {
                         val cpu = result.value
                         add(test("Performance", "CPU topology", "${cpu.coreCount} cores, ${cpu.clusters.size} cluster(s)", cpu.coreCount > 0))
-                        add(test("Performance", "CPU frequency", "${cpu.minFreqMhz}-${cpu.maxFreqMhz} MHz", cpu.maxFreqMhz > 0, warningWhenFalse = true))
-                        add(test("Performance", "CPU live load", cpu.usagePercent?.let { "${Formatters.oneDecimal(it)}%" } ?: "Not reported", cpu.usagePercent != null, warningWhenFalse = true))
+                        if (!isIos) {
+                            add(test("Performance", "CPU frequency", "${cpu.minFreqMhz}-${cpu.maxFreqMhz} MHz", cpu.maxFreqMhz > 0, warningWhenFalse = true))
+                        }
+                        add(test("Performance", "CPU live load", cpu.usagePercent?.let { "${Formatters.oneDecimal(it)}%" } ?: "Not reported", cpu.usagePercent != null, warningWhenFalse = !isIos, unavailableWhenFalse = isIos))
                         add(test("Performance", "GPU metadata", "${cpu.gpu.vendor} ${cpu.gpu.renderer}", cpu.gpu.renderer.isNotBlank(), warningWhenFalse = true))
                     }
                     is AppResult.Error -> add(errorTest("Performance", "CPU topology", result.cause.message))
@@ -128,9 +143,15 @@ class TestsViewModel(
                     is AppResult.Success -> {
                         val battery = result.value
                         add(test("Power", "Battery presence", "${battery.levelPercent}% ${battery.status}", battery.isPresent))
-                        add(qualityTest("Power", "Battery temperature", "${Formatters.oneDecimal(battery.temperatureCelsius)}°C", battery.temperatureCelsius < 38f, battery.temperatureCelsius < 45f))
-                        add(test("Power", "Battery voltage", "${battery.voltageMv} mV", battery.voltageMv > 0))
-                        add(test("Power", "Battery health", battery.health.name, battery.health == BatteryHealth.Good, warningWhenFalse = true))
+                        if (isIos) {
+                            add(unavailableTest("Power", "Battery temperature", "Not exposed on iOS"))
+                            add(unavailableTest("Power", "Battery voltage", "Not exposed on iOS"))
+                            add(unavailableTest("Power", "Battery health", "Not exposed on iOS"))
+                        } else {
+                            add(qualityTest("Power", "Battery temperature", "${Formatters.oneDecimal(battery.temperatureCelsius)}°C", battery.temperatureCelsius < 38f, battery.temperatureCelsius < 45f))
+                            add(test("Power", "Battery voltage", "${battery.voltageMv} mV", battery.voltageMv > 0))
+                            add(test("Power", "Battery health", battery.health.name, battery.health == BatteryHealth.Good, warningWhenFalse = true))
+                        }
                     }
                     is AppResult.Error -> add(errorTest("Power", "Battery snapshot", result.cause.message))
                 }
@@ -179,7 +200,11 @@ class TestsViewModel(
                         val thermal = result.value
                         val hottest = thermal.zones.mapNotNull { it.temperatureCelsius }.maxOrNull()
                         add(test("Thermal", "Thermal zones", "${thermal.zones.size} zone(s)", thermal.zones.isNotEmpty()))
-                        add(qualityTest("Thermal", "Thermal readings", hottest?.let { "${Formatters.oneDecimal(it)}°C max" } ?: "No live temperature", hottest == null || hottest < 55f, hottest == null || hottest < 75f))
+                        if (isIos) {
+                            add(unavailableTest("Thermal", "Thermal readings", "Coarse thermal state only (no numeric temperature)"))
+                        } else {
+                            add(qualityTest("Thermal", "Thermal readings", hottest?.let { "${Formatters.oneDecimal(it)}°C max" } ?: "No live temperature", hottest == null || hottest < 55f, hottest == null || hottest < 75f))
+                        }
                         add(test("Thermal", "CPU thermal zone", "${thermal.zones.count { it.type == ThermalZoneType.Cpu }} CPU zone(s)", thermal.zones.any { it.type == ThermalZoneType.Cpu }, warningWhenFalse = true))
                     }
                     is AppResult.Error -> add(errorTest("Thermal", "Thermal zones", result.cause.message))
@@ -222,7 +247,12 @@ class TestsViewModel(
                         add(test("Apps", "Package visibility", "${apps.totalCount} package(s)", apps.totalCount > 0, warningWhenFalse = true))
                         add(test("Apps", "User apps", "${apps.userCount} user app(s)", apps.userCount >= 0))
                     }
-                    is AppResult.Error -> add(errorTest("Apps", "Package visibility", result.cause.message))
+                    is AppResult.Error ->
+                        if (isIos) {
+                            add(unavailableTest("Apps", "Package visibility", "Listing installed apps is not available on iOS (sandbox)"))
+                        } else {
+                            add(errorTest("Apps", "Package visibility", result.cause.message))
+                        }
                 }
             }
 
@@ -276,6 +306,9 @@ class TestsViewModel(
 
     private fun errorTest(group: String, title: String, detail: String): HardwareTestResult =
         HardwareTestResult(group, title, detail, HardwareTestStatus.Failed, defaultIconForGroup(group))
+
+    private fun unavailableTest(group: String, title: String, detail: String): HardwareTestResult =
+        HardwareTestResult(group, title, detail, HardwareTestStatus.Unavailable, defaultIconForGroup(group))
 
     private fun sensorDetail(
         sensors: List<com.devstdvad.devicedna.domain.model.SensorDetails>,

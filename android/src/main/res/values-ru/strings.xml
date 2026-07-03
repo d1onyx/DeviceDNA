@@ -55,12 +55,14 @@
 
     <string name="auth_badge_ready">Firebase готов</string>
     <string name="auth_badge_setup">Нужна настройка</string>
-    <string name="auth_title">Безопасная аналитика устройства начинается с Google.</string>
+    <string name="auth_title">Безопасная аналитика устройства начинается здесь.</string>
     <string name="auth_subtitle">Войдите, чтобы создать доверенный профиль DeviceDNA, сохраняя аппаратную диагностику локальной и под вашим контролем.</string>
     <string name="auth_value_private">Приватно по умолчанию</string>
     <string name="auth_value_sync">Firebase Auth</string>
     <string name="auth_value_device">Профиль устройства</string>
     <string name="auth_google">Продолжить с Google</string>
+    <string name="auth_apple">Продолжить с Apple</string>
+    <string name="common_unavailable_ios">Недоступно на iOS</string>
     <string name="auth_terms">Продолжая, вы используете Firebase Authentication для входа. Синхронизация после входа может загружать диагностику устройства на backend DeviceDNA.</string>
     <string name="auth_privacy_accept_prefix">Я прочитал(а) и принимаю</string>
     <string name="auth_privacy_link">Политику конфиденциальности</string>

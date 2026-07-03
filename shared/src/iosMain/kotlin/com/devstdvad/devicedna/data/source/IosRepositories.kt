@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVCaptureDeviceDiscoverySession
+import platform.AVFoundation.AVCaptureDeviceFormat
 import platform.AVFoundation.AVCaptureDevicePositionBack
 import platform.AVFoundation.AVCaptureDevicePositionFront
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInTelephotoCamera
@@ -61,8 +62,11 @@ import platform.AVFoundation.AVCaptureDeviceTypeBuiltInTrueDepthCamera
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInUltraWideCamera
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInWideAngleCamera
 import platform.AVFoundation.AVMediaTypeVideo
+import platform.AVFoundation.formatDescription
+import platform.AVFoundation.formats
 import platform.AVFoundation.hasFlash
 import platform.AVFoundation.position
+import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.CoreMotion.CMAltimeter
 import platform.CoreMotion.CMMotionManager
 import platform.CoreMotion.CMPedometer
@@ -85,15 +89,25 @@ import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
 import platform.UIKit.UIScreen
 import platform.darwin.HOST_VM_INFO64
+import platform.darwin.PROCESSOR_CPU_LOAD_INFO
+import platform.darwin.host_processor_info
 import platform.darwin.host_statistics64
 import platform.darwin.integer_tVar
 import platform.darwin.mach_host_self
 import platform.darwin.mach_msg_type_number_tVar
+import platform.darwin.mach_task_self_
+import platform.darwin.vm_deallocate
 import platform.darwin.vm_statistics64_data_t
+import kotlinx.cinterop.IntVar
+import kotlinx.cinterop.UIntVar
+import kotlinx.cinterop.plus
+import kotlinx.cinterop.toLong
 import platform.darwin.freeifaddrs
 import platform.darwin.getifaddrs
 import platform.posix.AF_INET
 import platform.posix.AF_INET6
+import platform.posix.AF_LINK
+import platform.posix.if_data
 import platform.posix.NI_MAXHOST
 import platform.posix.NI_NUMERICHOST
 import platform.posix.getnameinfo
@@ -143,6 +157,45 @@ private fun chipName(machine: String): String {
         "iPad13" to "Apple M1",
     )
     return map.firstOrNull { machine.startsWith(it.first) }?.second ?: "Apple Silicon"
+}
+
+/** Best-effort marketing name from the hardware identifier (e.g. "iPhone16,2" → "iPhone 15 Pro Max"). */
+private fun marketingName(machine: String): String {
+    val map = mapOf(
+        "iPhone17,1" to "iPhone 16 Pro",
+        "iPhone17,2" to "iPhone 16 Pro Max",
+        "iPhone17,3" to "iPhone 16",
+        "iPhone17,4" to "iPhone 16 Plus",
+        "iPhone16,1" to "iPhone 15 Pro",
+        "iPhone16,2" to "iPhone 15 Pro Max",
+        "iPhone15,4" to "iPhone 15",
+        "iPhone15,5" to "iPhone 15 Plus",
+        "iPhone15,2" to "iPhone 14 Pro",
+        "iPhone15,3" to "iPhone 14 Pro Max",
+        "iPhone14,7" to "iPhone 14",
+        "iPhone14,8" to "iPhone 14 Plus",
+        "iPhone14,2" to "iPhone 13 Pro",
+        "iPhone14,3" to "iPhone 13 Pro Max",
+        "iPhone14,4" to "iPhone 13 mini",
+        "iPhone14,5" to "iPhone 13",
+        "iPhone13,1" to "iPhone 12 mini",
+        "iPhone13,2" to "iPhone 12",
+        "iPhone13,3" to "iPhone 12 Pro",
+        "iPhone13,4" to "iPhone 12 Pro Max",
+        "iPhone12,1" to "iPhone 11",
+        "iPhone12,3" to "iPhone 11 Pro",
+        "iPhone12,5" to "iPhone 11 Pro Max",
+        "iPhone14,6" to "iPhone SE (3rd gen)",
+    )
+    map[machine]?.let { return it }
+    // Fall back to a family label when the exact identifier is unknown.
+    return when {
+        machine.startsWith("iPhone") -> "iPhone"
+        machine.startsWith("iPad") -> "iPad"
+        machine.startsWith("iPod") -> "iPod touch"
+        machine.startsWith("x86") || machine.startsWith("arm64") -> "Simulator"
+        else -> machine
+    }
 }
 
 /** Jailbreak heuristics: file-presence checks only (no URL-scheme probing — review-safe). */
@@ -288,7 +341,7 @@ class IosDeviceRepository : DeviceRepository {
         val suspicious = suspiciousJailbreakPaths()
         DeviceInfo(
             name = device.name,
-            model = machine,
+            model = marketingName(machine),
             manufacturer = "Apple",
             brand = "Apple",
             board = "",
@@ -344,6 +397,7 @@ class IosSystemRepository : SystemRepository {
             appVersionCode = build,
             packageName = bundle.bundleIdentifier ?: "",
             isInstalledFromKnownStore = true,
+            isPowerSaveMode = NSProcessInfo.processInfo.lowPowerModeEnabled,
         )
     }.fold(
         onSuccess = { AppResult.Success(it) },
@@ -354,7 +408,62 @@ class IosSystemRepository : SystemRepository {
 // ── CPU ───────────────────────────────────────────────────────────────────────
 
 class IosCpuRepository : CpuRepository {
-    private fun snapshot(): CpuInfo {
+
+    private data class CpuTicks(val total: Long, val idle: Long)
+
+    /**
+     * Aggregate CPU tick counters across all logical cores via host_processor_info
+     * (public Mach API — the system-wide analogue of /proc/stat). Unsigned natural_t
+     * ticks are read out of the returned integer_t array and the buffer is released
+     * with vm_deallocate to avoid leaking on every poll.
+     */
+    private fun readCpuTicks(): CpuTicks? = memScoped {
+        val cpuCount = alloc<UIntVar>()                    // natural_t out-param
+        val infoArray = alloc<CPointerVar<IntVar>>()       // processor_info_array_t (integer_t*)
+        val infoCount = alloc<mach_msg_type_number_tVar>()
+        val kr = host_processor_info(
+            mach_host_self(),
+            PROCESSOR_CPU_LOAD_INFO,
+            cpuCount.ptr,
+            infoArray.ptr,
+            infoCount.ptr,
+        )
+        if (kr != 0) return@memScoped null
+        val arr = infoArray.value ?: return@memScoped null
+        val cpus = cpuCount.value.toInt()
+        val stateMax = 4L // CPU_STATE_MAX; order: USER, SYSTEM, IDLE, NICE
+        var total = 0L
+        var idle = 0L
+        for (c in 0 until cpus) {
+            val base = c * stateMax
+            // Explicit pointer arithmetic + pointed.value avoids CPointer.get overload ambiguity.
+            val user = ((arr + base)!!.pointed.value.toLong()) and 0xFFFFFFFFL
+            val system = ((arr + (base + 1))!!.pointed.value.toLong()) and 0xFFFFFFFFL
+            val idleTicks = ((arr + (base + 2))!!.pointed.value.toLong()) and 0xFFFFFFFFL
+            val nice = ((arr + (base + 3))!!.pointed.value.toLong()) and 0xFFFFFFFFL
+            total += user + system + idleTicks + nice
+            idle += idleTicks
+        }
+        vm_deallocate(
+            mach_task_self_,
+            arr.toLong().convert(),
+            (infoCount.value.toLong() * sizeOf<IntVar>()).convert(),
+        )
+        CpuTicks(total, idle)
+    }
+
+    /** System-wide CPU load in percent, sampled over a short window. Null if unavailable. */
+    private suspend fun cpuUsagePercent(): Float? {
+        val first = readCpuTicks() ?: return null
+        delay(250)
+        val second = readCpuTicks() ?: return null
+        val totalDelta = (second.total - first.total).toDouble()
+        val idleDelta = (second.idle - first.idle).toDouble()
+        if (totalDelta <= 0.0) return null
+        return (((totalDelta - idleDelta) / totalDelta) * 100.0).toFloat().coerceIn(0f, 100f)
+    }
+
+    private fun snapshot(usagePercent: Float?): CpuInfo {
         val machine = machineIdentifier()
         return CpuInfo(
             chipsetName = chipName(machine),
@@ -365,14 +474,14 @@ class IosCpuRepository : CpuRepository {
             governor = "",                            // not applicable on iOS
             gpu = GpuInfo(renderer = "Apple GPU", vendor = "Apple", version = "Metal 3"),
             temperatureCelsius = null,                // sandbox-restricted
-            usagePercent = null,                      // system-wide usage: sandbox-restricted
+            usagePercent = usagePercent,
             instructionSets = listOf(if (machine.startsWith("x86")) "x86_64" else "arm64e"),
             processCount = null,
         )
     }
 
     override suspend fun getCpuInfo(): AppResult<CpuInfo> =
-        AppResult.Success(snapshot())
+        AppResult.Success(snapshot(runCatching { cpuUsagePercent() }.getOrNull()))
 
     override fun observeCpuCores(): Flow<AppResult<CpuInfo>> = flow {
         while (true) {
@@ -456,13 +565,21 @@ class IosSensorRepository : SensorRepository {
             isWakeUp = false,
             isDynamic = false,
         ).takeIf { available }
+        // Probe proximity honestly: enabling it sticks only on hardware that supports it.
+        val uiDevice = UIDevice.currentDevice
+        val wasProximityEnabled = uiDevice.proximityMonitoringEnabled
+        uiDevice.proximityMonitoringEnabled = true
+        val proximityAvailable = uiDevice.proximityMonitoringEnabled
+        uiDevice.proximityMonitoringEnabled = wasProximityEnabled
+
         val sensors = listOfNotNull(
             sensor("Accelerometer", motion.accelerometerAvailable, 1),
             sensor("Gyroscope", motion.gyroAvailable, 4),
             sensor("Magnetometer", motion.magnetometerAvailable, 2),
+            sensor("Device Motion", motion.deviceMotionAvailable, 15),
             sensor("Barometer", CMAltimeter.isRelativeAltitudeAvailable(), 6),
             sensor("Pedometer", CMPedometer.isStepCountingAvailable(), 19),
-            sensor("Proximity", true, 8),
+            sensor("Proximity", proximityAvailable, 8),
         )
         SensorInfo(sensors = sensors)
     }.fold(
@@ -490,6 +607,25 @@ class IosCameraRepository : CameraRepository {
         )
         val cameras = session.devices.mapIndexedNotNull { index, raw ->
             val device = raw as? AVCaptureDevice ?: return@mapIndexedNotNull null
+            // Highest still/video resolution the hardware advertises across all its formats.
+            // CMVideoFormatDescriptionGetDimensions is a public CoreMedia call and needs no
+            // camera permission (we never open a capture session).
+            var bestW = 0
+            var bestH = 0
+            var bestPixels = 0L
+            device.formats.forEach { fmtRaw ->
+                val fmt = fmtRaw as? AVCaptureDeviceFormat ?: return@forEach
+                val desc = fmt.formatDescription ?: return@forEach
+                CMVideoFormatDescriptionGetDimensions(desc).useContents {
+                    val px = width.toLong() * height.toLong()
+                    if (px > bestPixels) {
+                        bestPixels = px
+                        bestW = width
+                        bestH = height
+                    }
+                }
+            }
+            val mp = if (bestPixels > 0) (bestPixels / 1_000_000.0).toFloat() else 0f
             CameraDetails(
                 id = index.toString(),
                 facing = when (device.position) {
@@ -497,9 +633,9 @@ class IosCameraRepository : CameraRepository {
                     AVCaptureDevicePositionFront -> CameraFacing.Front
                     else -> CameraFacing.Unknown
                 },
-                megapixels = 0f,
-                resolutionWidth = 0,
-                resolutionHeight = 0,
+                megapixels = mp,
+                resolutionWidth = bestW,
+                resolutionHeight = bestH,
                 focalLengths = emptyList(),
                 hasFlash = device.hasFlash,
                 hasOis = false,
@@ -518,20 +654,34 @@ class IosCameraRepository : CameraRepository {
 
 class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
 
-    private data class Snapshot(val type: ConnectionType, val ipv4: String?, val ipv6: String?)
+    private data class Snapshot(
+        val type: ConnectionType,
+        val ipv4: String?,
+        val ipv6: String?,
+        val rxBytes: Long,
+        val txBytes: Long,
+    )
+
+    // Byte-counter baseline for throughput deltas (monotonic system uptime clock).
+    private var prevRxBytes = 0L
+    private var prevTxBytes = 0L
+    private var prevUptime = 0.0
 
     /**
      * Interface-based detection via getifaddrs (public POSIX API): en0 = Wi-Fi,
-     * pdp_ip* = cellular. Avoids the nw_path C-interop surface for reliability.
+     * pdp_ip* = cellular. AF_LINK entries carry if_data byte counters used for
+     * throughput. Avoids the nw_path C-interop surface for reliability.
      */
     private fun snapshot(): Snapshot = memScoped {
         var ipv4: String? = null
         var ipv6: String? = null
         var hasWifi = false
         var hasCellular = false
+        var rxBytes = 0L
+        var txBytes = 0L
 
         val ifaddrPtr = alloc<CPointerVar<ifaddrs>>()
-        if (getifaddrs(ifaddrPtr.ptr) != 0) return Snapshot(ConnectionType.Unknown, null, null)
+        if (getifaddrs(ifaddrPtr.ptr) != 0) return Snapshot(ConnectionType.Unknown, null, null, 0L, 0L)
         try {
             var cursor = ifaddrPtr.value
             while (cursor != null) {
@@ -557,6 +707,11 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
                                 ipv6 = ip
                             }
                         }
+                    } else if (family == AF_LINK && (name == "en0" || name.startsWith("pdp_ip"))) {
+                        ifa.ifa_data?.reinterpret<if_data>()?.pointed?.let { d ->
+                            rxBytes += d.ifi_ibytes.toLong() and 0xFFFFFFFFL
+                            txBytes += d.ifi_obytes.toLong() and 0xFFFFFFFFL
+                        }
                     }
                 }
                 cursor = ifa.ifa_next
@@ -571,11 +726,25 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
             ipv4 != null -> ConnectionType.Unknown
             else -> ConnectionType.None
         }
-        Snapshot(type, ipv4, ipv6)
+        Snapshot(type, ipv4, ipv6, rxBytes, txBytes)
     }
 
     private fun buildInfo(): NetworkInfo {
         val s = snapshot()
+        // Throughput from byte-counter deltas over the elapsed monotonic window.
+        val now = NSProcessInfo.processInfo.systemUptime
+        val dt = now - prevUptime
+        var rxRate: Long? = null
+        var txRate: Long? = null
+        if (prevUptime > 0.0 && dt > 0.0) {
+            val rxDelta = s.rxBytes - prevRxBytes
+            val txDelta = s.txBytes - prevTxBytes
+            if (rxDelta >= 0) rxRate = (rxDelta / dt).toLong()
+            if (txDelta >= 0) txRate = (txDelta / dt).toLong()
+        }
+        prevRxBytes = s.rxBytes
+        prevTxBytes = s.txBytes
+        prevUptime = now
         return NetworkInfo(
             connectionType = s.type,
             ssid = null,                 // requires the wifi-info entitlement + location consent
@@ -591,6 +760,8 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
             wifiStandard = null,
             securityType = null,
             signalStrength = null,
+            rxBytesPerSec = rxRate,
+            txBytesPerSec = txRate,
             isMetered = s.type == ConnectionType.Cellular,
             isValidatedInternet = s.type != ConnectionType.None,
             activeTransports = listOf(s.type.name),

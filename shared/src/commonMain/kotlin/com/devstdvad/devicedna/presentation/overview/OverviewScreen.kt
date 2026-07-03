@@ -295,6 +295,8 @@ fun OverviewScreen(
                                         net.connectionType == ConnectionType.None -> "No internet"
                                         net.isVpnActive -> "VPN active"
                                         net.linkSpeedMbps != null -> "${net.linkSpeedMbps} Mbps"
+                                        net.rxBytesPerSec != null || net.txBytesPerSec != null ->
+                                            "↓ ${SettingsFormatters.formatBytes(net.rxBytesPerSec ?: 0L, settings.dataUnit)}/s  ↑ ${SettingsFormatters.formatBytes(net.txBytesPerSec ?: 0L, settings.dataUnit)}/s"
                                         net.isValidatedInternet -> "Connected"
                                         else -> "Limited connectivity"
                                     }
@@ -377,15 +379,19 @@ fun OverviewScreen(
                 }
             }
 
-            // Thermal quick card
+            // Thermal quick card. iOS exposes only a coarse thermal *state* (no numeric
+            // temperature), so fall back to the zone's state name when the temp is null.
             state.thermal?.let { thermal ->
                 val cpuZone = thermal.zones.firstOrNull { it.type == ThermalZoneType.Cpu }
                     ?: thermal.zones.firstOrNull()
-                cpuZone?.temperatureCelsius?.let { temp ->
+                if (cpuZone != null) {
+                    val temp = cpuZone.temperatureCelsius
                     item {
                         val thermalAccent = when {
-                            temp >= 60f -> colors.critical
-                            temp >= 50f -> colors.warning
+                            temp != null && temp >= 60f -> colors.critical
+                            temp != null && temp >= 50f -> colors.warning
+                            temp == null && cpuZone.name.equals("Critical", ignoreCase = true) -> colors.critical
+                            temp == null && cpuZone.name.equals("Serious", ignoreCase = true) -> colors.warning
                             else -> colors.thermalColor
                         }
                         SectionCard {
@@ -410,14 +416,19 @@ fun OverviewScreen(
                                     Column {
                                         Text("Thermal", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                                         Text(
-                                            "${thermal.zones.size} zone${if (thermal.zones.size != 1) "s" else ""} monitored",
+                                            if (temp == null) "System thermal state"
+                                            else "${thermal.zones.size} zone${if (thermal.zones.size != 1) "s" else ""} monitored",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = colors.textMuted,
                                         )
                                     }
                                 }
                                 Text(
-                                    SettingsFormatters.formatTemperature(temp, settings.temperatureUnit),
+                                    text = if (temp != null) {
+                                        SettingsFormatters.formatTemperature(temp, settings.temperatureUnit)
+                                    } else {
+                                        cpuZone.name
+                                    },
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = thermalAccent,
                                 )

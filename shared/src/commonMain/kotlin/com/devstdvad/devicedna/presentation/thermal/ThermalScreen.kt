@@ -65,7 +65,7 @@ fun ThermalScreen(
             ) {
                 androidx.compose.foundation.layout.Column {
                     Text(
-                        text = "${sorted.size} Thermal Zones",
+                        text = if (maxTemp == null) "System Thermal" else "${sorted.size} Thermal Zones",
                         style = MaterialTheme.typography.displaySmall,
                         color = colors.textPrimary,
                     )
@@ -75,28 +75,53 @@ fun ThermalScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.thermalColor,
                         )
+                    } else if (maxTemp == null) {
+                        Text(
+                            text = "Only a coarse thermal state is exposed on this device",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textMuted,
+                        )
                     }
                 }
-                maxTemp?.let {
+                if (maxTemp != null) {
                     androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
                         Text(
-                            text = SettingsFormatters.formatTemperatureWhole(it, settings.temperatureUnit),
+                            text = SettingsFormatters.formatTemperatureWhole(maxTemp, settings.temperatureUnit),
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (it >= 60f) colors.critical else if (it >= 42f) colors.thermalColor else colors.sensorsColor,
+                            color = if (maxTemp >= 60f) colors.critical else if (maxTemp >= 42f) colors.thermalColor else colors.sensorsColor,
                         )
                         Text("Peak", style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+                    }
+                } else {
+                    val stateName = sorted.firstOrNull()?.name
+                    if (stateName != null) {
+                        androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+                            Text(
+                                text = stateName,
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                color = when (stateName.lowercase()) {
+                                    "critical" -> colors.critical
+                                    "serious" -> colors.thermalColor
+                                    "fair" -> colors.warning
+                                    else -> colors.sensorsColor
+                                },
+                            )
+                            Text("State", style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+                        }
                     }
                 }
             }
         }
 
         items(sorted) { zone ->
+            val hasTemp = zone.temperatureCelsius != null
             ThermalTile(
-                label = zone.name,
+                label = if (hasTemp) zone.name else "System",
                 tempCelsius = zone.temperatureCelsius,
                 temperatureText = zone.temperatureCelsius?.let {
                     SettingsFormatters.formatTemperature(it, settings.temperatureUnit)
                 },
+                stateName = if (hasTemp) null else zone.name,
             )
         }
     }

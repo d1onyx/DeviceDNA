@@ -16,4 +16,6 @@ actual object PlatformInfo {
         get() = NSProcessInfo.processInfo.processorCount.toInt()
     actual val totalMemoryBytes: Long
         get() = NSProcessInfo.processInfo.physicalMemory.toLong()
+    actual val isIos: Boolean
+        get() = true
 }
