@@ -49,9 +49,11 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.toKString
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.value
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVCaptureDeviceDiscoverySession
 import platform.AVFoundation.AVCaptureDeviceFormat
@@ -564,11 +566,16 @@ class IosSensorRepository : SensorRepository {
             isDynamic = false,
         ).takeIf { available }
         // Probe proximity honestly: enabling it sticks only on hardware that supports it.
-        val uiDevice = UIDevice.currentDevice
-        val wasProximityEnabled = uiDevice.proximityMonitoringEnabled
-        uiDevice.proximityMonitoringEnabled = true
-        val proximityAvailable = uiDevice.proximityMonitoringEnabled
-        uiDevice.proximityMonitoringEnabled = wasProximityEnabled
+        // UIDevice.proximityMonitoringEnabled must only be touched from the main thread —
+        // FrontBoardServices asserts (SIGTRAP) if it's set from a background dispatcher.
+        val proximityAvailable = withContext(Dispatchers.Main) {
+            val uiDevice = UIDevice.currentDevice
+            val wasProximityEnabled = uiDevice.proximityMonitoringEnabled
+            uiDevice.proximityMonitoringEnabled = true
+            val available = uiDevice.proximityMonitoringEnabled
+            uiDevice.proximityMonitoringEnabled = wasProximityEnabled
+            available
+        }
 
         val sensors = listOfNotNull(
             sensor("Accelerometer", motion.accelerometerAvailable, 1),
