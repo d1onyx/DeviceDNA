@@ -127,5 +127,9 @@
 	<!-- ── Export compliance: HTTPS only (exempt) — skips the encryption questionnaire. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+
+	<!-- ── Sync backend base URL, injected from Config.xcconfig (SYNC_BASE_URL) ─── -->
+	<key>SyncBaseUrl</key>
+	<string>$(SYNC_BASE_URL)</string>
 </dict>
 </plist>

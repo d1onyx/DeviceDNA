@@ -37,6 +37,9 @@ targets:
       # fix was written, since the code path was simply never reached at runtime.
       - path: DeviceDNAApp/GoogleService-Info.plist
         buildPhase: resources
+    configFiles:
+      Debug: Config.xcconfig
+      Release: Config.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.devstdvad.devicedna

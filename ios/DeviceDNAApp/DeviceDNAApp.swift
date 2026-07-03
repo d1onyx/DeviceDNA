@@ -110,8 +110,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 // MARK: - Configuration
 
 enum AppConfig {
-    /// Cloudflare Worker sync backend (no trailing slash). Override per build configuration.
-    static let syncBaseUrl = "https://devicedna-sync.workers.dev"
+    /// Cloudflare Worker sync backend (no trailing slash), injected via the
+    /// SYNC_BASE_URL build setting (ios/Config.xcconfig, overridable per-machine via
+    /// a gitignored ios/Local.xcconfig) into Info.plist. Must match Android's
+    /// `syncBaseUrl` (local.properties / -PsyncBaseUrl, see android/build.gradle.kts).
+    static let syncBaseUrl: String = {
+        guard let url = Bundle.main.object(forInfoDictionaryKey: "SyncBaseUrl") as? String,
+              !url.isEmpty
+        else {
+            fatalError("Missing SyncBaseUrl in Info.plist — check SYNC_BASE_URL in ios/Config.xcconfig")
+        }
+        return url
+    }()
 }
 
 // MARK: - SwiftUI scene
