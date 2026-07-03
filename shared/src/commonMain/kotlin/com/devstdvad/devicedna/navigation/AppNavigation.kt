@@ -138,7 +138,10 @@ fun AppNavigation(
             AccountCheckOutcome.Removed -> "Account no longer exists. Sign in again."
             AccountCheckOutcome.Disabled -> "Account is disabled."
             AccountCheckOutcome.NotSignedIn -> "Sign in again."
-            is AccountCheckOutcome.Failed -> "Could not verify account with the server."
+            is AccountCheckOutcome.Failed -> {
+                val reason = (syncState.lastAccountCheck as? AccountCheckOutcome.Failed)?.reason
+                "Could not verify account with the server." + (reason?.let { " ($it)" } ?: "")
+            }
             AccountCheckOutcome.Verified -> null
             else -> null
         }
