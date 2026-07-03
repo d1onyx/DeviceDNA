@@ -27,6 +27,16 @@ targets:
       - path: DeviceDNAApp
         excludes:
           - "Info.plist"
+          - "GoogleService-Info.plist"
+      # XcodeGen doesn't reliably add non-Info.plist *.plist files under a `sources`
+      # path to Copy Bundle Resources (yonaskolb/XcodeGen#1423) — without this explicit
+      # entry, GoogleService-Info.plist silently never ships in the .app bundle, so
+      # `Bundle.main.path(forResource:ofType:)` returns nil, FirebaseApp.configure()
+      # never runs, and GIDSignIn.sharedInstance.configuration never gets set —
+      # producing the exact same "no active configuration" NSException as before that
+      # fix was written, since the code path was simply never reached at runtime.
+      - path: DeviceDNAApp/GoogleService-Info.plist
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.devstdvad.devicedna

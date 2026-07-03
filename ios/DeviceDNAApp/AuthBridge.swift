@@ -59,6 +59,11 @@ final class AuthBridge {
     /// Launches the Google Sign-In sheet and exchanges the Google credential for Firebase.
     func signIn(forceAccountPicker: Bool) {
         DispatchQueue.main.async {
+            // GIDSignIn.signIn(withPresenting:) raises an uncatchable NSException (not a
+            // Swift error) if `.configuration` was never set — e.g. because Firebase
+            // failed to configure. Guard on it explicitly so a misconfigured build fails
+            // silently instead of crashing the whole app.
+            guard GIDSignIn.sharedInstance.configuration != nil else { return }
             guard let presenter = Self.topViewController() else { return }
             if forceAccountPicker {
                 GIDSignIn.sharedInstance.signOut()
