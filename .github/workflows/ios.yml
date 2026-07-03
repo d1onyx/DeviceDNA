@@ -1,21 +1,27 @@
-# iOS build + simulator smoke-run for the Compose Multiplatform app.
+# iOS build for the Compose Multiplatform app.
 #
 # Produces artifacts you can inspect from any OS:
-#   • screenshots/               — the app actually running in the iOS Simulator
-#   • DeviceDNAApp.app.zip       — the built simulator bundle
 #   • DeviceDNAApp-unsigned.ipa  — UNSIGNED real-device build (arm64), for sideloading
 #     tools that do their own signing (AltStore/AltServer, Sideloadly). Not installable
 #     as-is — iOS enforces code-signature verification at install/launch time on real
 #     devices, so whatever re-signs this IPA must apply a real signature first.
+#   • screenshots/ + DeviceDNAApp.app.zip — simulator smoke-test, OPT-IN only (see below).
 #
-# NOTE: macOS runner minutes bill at 10x on private repos. The first runs are the
-# feedback loop for fixing Kotlin/Native interop in shared/src/iosMain (written ahead
-# on Linux, never compiled) — expect a few iterations before green.
+# NOTE: macOS runner minutes bill at 10x on private repos. Every push run only builds
+# the device .ipa now — the simulator build+boot+screenshot stage roughly doubles
+# per-run minutes and is redundant once real-device crash logs confirm the app installs
+# and boots. Run it on demand via "Run workflow" with "Run simulator smoke test" checked
+# when you actually need fresh screenshots (e.g. after a UI change).
 
 name: iOS
 
 on:
   workflow_dispatch:
+    inputs:
+      run_simulator_smoke_test:
+        description: "Also build/boot the iOS Simulator and capture screenshots"
+        type: boolean
+        default: false
   push:
     branches: [master]
     paths:
@@ -90,6 +96,7 @@ jobs:
         run: pod install
 
       - name: Create iOS simulator
+        if: github.event_name == 'workflow_dispatch' && inputs.run_simulator_smoke_test
         run: |
           set -euo pipefail
           RUNTIME_ID="$(xcrun simctl list runtimes --json | jq -r '[.runtimes[] | select(.isAvailable and (.identifier | contains("SimRuntime.iOS-"))) | .identifier] | last')"
@@ -104,6 +111,7 @@ jobs:
 
       # ── Stage 3: build the app for the simulator (no signing needed) ──
       - name: Build app for iOS Simulator
+        if: github.event_name == 'workflow_dispatch' && inputs.run_simulator_smoke_test
         working-directory: ios
         run: |
           set -o pipefail
@@ -120,6 +128,7 @@ jobs:
 
       # ── Stage 4: run it and photograph the result ──
       - name: Boot simulator, launch app, capture screenshots
+        if: github.event_name == 'workflow_dispatch' && inputs.run_simulator_smoke_test
         run: |
           APP_PATH="ios/build/DerivedData/Build/Products/Debug-iphonesimulator/DeviceDNAApp.app"
           mkdir -p screenshots
@@ -136,7 +145,7 @@ jobs:
           xcrun simctl io "$SIMULATOR_UDID" screenshot screenshots/02-settled.png
 
       - name: Upload screenshots
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.run_simulator_smoke_test
         uses: actions/upload-artifact@v4
         with:
           name: simulator-screenshots
@@ -144,13 +153,13 @@ jobs:
           if-no-files-found: ignore
 
       - name: Zip and upload the simulator app bundle
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_simulator_smoke_test
         run: |
           cd ios/build/DerivedData/Build/Products/Debug-iphonesimulator
           zip -r "$GITHUB_WORKSPACE/DeviceDNAApp.app.zip" DeviceDNAApp.app
 
       - name: Upload app bundle
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.run_simulator_smoke_test
         uses: actions/upload-artifact@v4
         with:
           name: DeviceDNAApp-simulator
