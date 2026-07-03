@@ -10,7 +10,10 @@ import shared
 /// Bridges Firebase Auth + Google Sign-In into the shared Kotlin `IosAuthGateway`.
 /// Kotlin owns the auth *state* (Flow consumed by the Compose shell); Swift owns the
 /// platform sign-in UI flow and token plumbing.
-final class AuthBridge {
+/// Inherits NSObject: ASAuthorizationControllerDelegate and
+/// ASAuthorizationControllerPresentationContextProviding are Objective-C protocols that
+/// refine NSObjectProtocol, so a conforming Swift type must be an NSObject subclass.
+final class AuthBridge: NSObject {
 
     static let shared = AuthBridge()
 
