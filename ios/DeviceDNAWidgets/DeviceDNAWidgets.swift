@@ -36,14 +36,14 @@ enum WidgetStore {
 }
 
 private func widgetConfig(_ key: String) -> String? {
-    (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
+    let trimmed = (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
         .trimmingCharacters(in: .whitespacesAndNewlines)
-        .flatMap { value in
-            if value.isEmpty || value.hasPrefix("$(") || value.contains("YOUR_") {
-                return nil
-            }
-            return value
+    return trimmed.flatMap { value in
+        if value.isEmpty || value.hasPrefix("$(") || value.contains("YOUR_") {
+            return nil
         }
+        return value
+    }
 }
 
 private func widgetDeepLink(_ route: String) -> URL? {
