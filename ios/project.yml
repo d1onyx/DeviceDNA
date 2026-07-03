@@ -5,6 +5,13 @@
 
 name: DeviceDNAApp
 
+# Adds Config.xcconfig to the project's file tree so it has a parent group. Without this,
+# a configFiles-referenced xcconfig is only wired into build settings, not the project
+# navigator — xcodeproj (and CocoaPods' `pod install`, which loads the .xcodeproj to compute
+# per-target Swift versions) then fails with "Consistency issue: no parent for object".
+fileGroups:
+  - Config.xcconfig
+
 options:
   bundleIdPrefix: com.devstdvad
   deploymentTarget:
