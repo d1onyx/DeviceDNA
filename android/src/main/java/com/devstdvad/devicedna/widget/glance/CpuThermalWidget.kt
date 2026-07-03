@@ -15,52 +15,53 @@ import androidx.glance.layout.height
 import androidx.glance.unit.ColorProvider
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.common.Formatters
-import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 
 class CpuThermalWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val snapshot = WidgetSnapshotCache(context).current()
-        if (snapshot.lastUpdatedMillis == 0L || !snapshot.isPremium) WidgetRefreshScheduler.refreshNow(context)
+        val snapshot = loadWidgetSnapshotForRender(context)
+        val hasRequiredData = snapshot.hasCpuData
+        if (snapshot.lastUpdatedMillis == 0L || snapshot.needsRefresh(hasRequiredData)) {
+            WidgetRefreshScheduler.refreshNow(context)
+        }
         val ctx = localizedWidgetContext(context)
+        val title = ctx.getString(R.string.widget_cpu_thermal_title)
 
         provideContent {
-            if (!snapshot.isPremium) {
-                LockedContent(ctx, ctx.getString(R.string.widget_cpu_thermal_title))
-                return@provideContent
-            }
-            val usage = snapshot.cpuUsagePercent
-            val usageText = if (usage < 0f) "—" else "${usage.toInt()}%"
-            val usageColor = when {
-                usage >= 85f -> WidgetColors.critical
-                usage >= 60f -> WidgetColors.warning
-                else -> WidgetColors.cpu
-            }
-            WidgetFrame(ctx, openRoute = "hardware/cpu") {
-                Column(modifier = GlanceModifier.fillMaxWidth()) {
+            WidgetStatusContent(ctx, title, snapshot, hasRequiredData) {
+                val usage = snapshot.cpuUsagePercent
+                val usageText = if (usage < 0f) "—" else "${usage.toInt()}%"
+                val usageColor = when {
+                    usage >= 85f -> WidgetColors.critical
+                    usage >= 60f -> WidgetColors.warning
+                    else -> WidgetColors.cpu
+                }
+                WidgetFrame(ctx, openRoute = "hardware/cpu") {
                     Column(modifier = GlanceModifier.fillMaxWidth()) {
-                        WidgetHeader(ctx.getString(R.string.widget_cpu_thermal_title), WidgetColors.cpu)
-                        Spacer(GlanceModifier.height(6.dp))
-                        BigValue(usageText, usageColor)
-                        Caption(ctx.getString(R.string.widget_caption_cpu_load))
-                        Spacer(GlanceModifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = (if (usage < 0f) 0f else usage / 100f).coerceIn(0f, 1f),
-                            modifier = GlanceModifier.fillMaxWidth().height(6.dp),
-                            color = ColorProvider(usageColor),
-                            backgroundColor = ColorProvider(WidgetColors.track),
-                        )
-                    }
-                    Column(modifier = GlanceModifier.fillMaxWidth()) {
-                        Spacer(GlanceModifier.height(6.dp))
-                        val cpuTemp = if (snapshot.cpuTempC > 0f) Formatters.formatCelsius(snapshot.cpuTempC) else "—"
-                        MetricLine(ctx.getString(R.string.widget_metric_cpu_temp), cpuTemp, WidgetColors.textPrimary)
-                        Spacer(GlanceModifier.height(2.dp))
-                        val maxColor = if (snapshot.thermalMaxC >= 45f) WidgetColors.thermal else WidgetColors.textPrimary
-                        val maxText = if (snapshot.thermalMaxC > 0f) Formatters.formatCelsius(snapshot.thermalMaxC) else "—"
-                        MetricLine(ctx.getString(R.string.widget_metric_hottest_zone), maxText, maxColor)
-                        Spacer(GlanceModifier.height(2.dp))
-                        Caption(updatedAgo(ctx, snapshot.lastUpdatedMillis))
+                        Column(modifier = GlanceModifier.fillMaxWidth()) {
+                            WidgetHeader(ctx.getString(R.string.widget_cpu_thermal_title), WidgetColors.cpu)
+                            Spacer(GlanceModifier.height(6.dp))
+                            BigValue(usageText, usageColor)
+                            Caption(ctx.getString(R.string.widget_caption_cpu_load))
+                            Spacer(GlanceModifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = (if (usage < 0f) 0f else usage / 100f).coerceIn(0f, 1f),
+                                modifier = GlanceModifier.fillMaxWidth().height(6.dp),
+                                color = ColorProvider(usageColor),
+                                backgroundColor = ColorProvider(WidgetColors.track),
+                            )
+                        }
+                        Column(modifier = GlanceModifier.fillMaxWidth()) {
+                            Spacer(GlanceModifier.height(6.dp))
+                            val cpuTemp = if (snapshot.cpuTempC > 0f) Formatters.formatCelsius(snapshot.cpuTempC) else "—"
+                            MetricLine(ctx.getString(R.string.widget_metric_cpu_temp), cpuTemp, WidgetColors.textPrimary)
+                            Spacer(GlanceModifier.height(2.dp))
+                            val maxColor = if (snapshot.thermalMaxC >= 45f) WidgetColors.thermal else WidgetColors.textPrimary
+                            val maxText = if (snapshot.thermalMaxC > 0f) Formatters.formatCelsius(snapshot.thermalMaxC) else "—"
+                            MetricLine(ctx.getString(R.string.widget_metric_hottest_zone), maxText, maxColor)
+                            Spacer(GlanceModifier.height(2.dp))
+                            Caption(updatedAgo(ctx, snapshot.lastUpdatedMillis))
+                        }
                     }
                 }
             }

@@ -32,7 +32,12 @@ import androidx.glance.unit.ColorProvider
 import com.devstdvad.devicedna.MainActivity
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.design.DesignTokens
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
+import com.devstdvad.devicedna.data.subscription.SubscriptionStore
+import com.devstdvad.devicedna.data.widget.WidgetSnapshot
+import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
 import com.devstdvad.devicedna.widget.RefreshAction
+import kotlinx.coroutines.flow.first
 
 /** Static colors for widgets (no access to AppTheme outside the app process). */
 object WidgetColors {
@@ -152,6 +157,41 @@ fun severityColor(severity: String): Color = when (severity) {
     else -> WidgetColors.battery
 }
 
+suspend fun loadWidgetSnapshotForRender(context: Context): WidgetSnapshot {
+    val cache = WidgetSnapshotCache(context)
+    val cached = cache.current()
+    val nowMillis = System.currentTimeMillis()
+    val widgetsUnlocked = SubscriptionStore(context).entitlements
+        .first()
+        .hasFeature(PremiumFeature.Widgets, nowMillis)
+
+    if (!widgetsUnlocked) {
+        val locked = WidgetSnapshot(isPremium = false, hasData = false, lastUpdatedMillis = nowMillis)
+        if (cached.isPremium || cached.hasData) cache.save(locked)
+        return locked
+    }
+
+    return if (cached.isPremium) cached else cached.copy(isPremium = true)
+}
+
+fun WidgetSnapshot.needsRefresh(hasRequiredData: Boolean): Boolean =
+    isPremium && (!hasData || !hasRequiredData)
+
+@Composable
+fun WidgetStatusContent(
+    context: Context,
+    title: String,
+    snapshot: WidgetSnapshot,
+    hasRequiredData: Boolean,
+    content: @Composable () -> Unit,
+) {
+    when {
+        !snapshot.isPremium -> LockedContent(context, title)
+        !hasRequiredData -> LoadingContent(context, title)
+        else -> content()
+    }
+}
+
 /** Color for a BatteryHealth enum name. */
 fun healthColor(health: String): Color = when (health) {
     "Good" -> WidgetColors.battery
@@ -204,6 +244,32 @@ fun LockedContent(context: Context, title: String) {
             Text(
                 text = context.getString(R.string.widget_unlock_premium),
                 style = TextStyle(color = ColorProvider(WidgetColors.accent), fontSize = 12.sp),
+            )
+        }
+    }
+}
+
+/** Shown for premium users while the worker is still collecting real metrics. */
+@Composable
+fun LoadingContent(context: Context, title: String) {
+    Box(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(WidgetColors.background)
+            .cornerRadius(16.dp)
+            .padding(14.dp)
+            .clickable(actionRunCallback<RefreshAction>()),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = title,
+                style = TextStyle(color = ColorProvider(WidgetColors.textPrimary), fontSize = 14.sp, fontWeight = FontWeight.Bold),
+            )
+            Spacer(GlanceModifier.height(6.dp))
+            Text(
+                text = context.getString(R.string.widget_updating),
+                style = TextStyle(color = ColorProvider(WidgetColors.textMuted), fontSize = 12.sp),
             )
         }
     }

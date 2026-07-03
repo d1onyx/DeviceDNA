@@ -3,6 +3,7 @@ package com.devstdvad.devicedna.data.widget
 import com.devstdvad.devicedna.core.common.getOrNull
 import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
 import com.devstdvad.devicedna.domain.usecase.GetHealthScoreUseCase
 import com.devstdvad.devicedna.domain.usecase.GetStorageInfoUseCase
@@ -26,6 +27,10 @@ import platform.Foundation.thermalState
 data class WidgetPayload(
     val isPremium: Boolean = false,
     val hasData: Boolean = false,
+    val hasBatteryData: Boolean = false,
+    val hasMemoryData: Boolean = false,
+    val hasStorageData: Boolean = false,
+    val hasHealthData: Boolean = false,
     val lastUpdatedMillis: Long = 0,
     val batteryLevel: Int = -1,
     val batteryStatus: String = "",
@@ -61,16 +66,24 @@ class IosWidgetBridge(
     private val json = Json { encodeDefaults = true }
 
     suspend fun refresh(): WidgetSnapshot {
+        val nowMillis = currentTimeMillis()
+        val hasWidgets = entitlementsStore.entitlements.first()
+            .hasFeature(PremiumFeature.Widgets, nowMillis)
+        if (!hasWidgets) {
+            val locked = WidgetSnapshot(isPremium = false, hasData = false, lastUpdatedMillis = nowMillis)
+            publish(locked)
+            return locked
+        }
+
         val battery = observeBattery().first().getOrNull()
         val ram = observeRam().first().getOrNull()
         val storage = getStorage().getOrNull()
         val thermal = getThermal().getOrNull()
         val device = getDevice().getOrNull()
         val health = getHealth()
-        val isPremium = entitlementsStore.entitlements.first().isActive
 
         val snapshot = WidgetSnapshotBuilder.buildSnapshot(
-            isPremium = isPremium,
+            isPremium = true,
             battery = battery,
             ram = ram,
             storage = storage,
@@ -80,7 +93,7 @@ class IosWidgetBridge(
             health = health,
             thermalStatus = thermalStatusValue(),
             designCapacityMah = null,
-            nowMillis = currentTimeMillis(),
+            nowMillis = nowMillis,
         )
         publish(snapshot)
         return snapshot
@@ -90,6 +103,10 @@ class IosWidgetBridge(
         val payload = WidgetPayload(
             isPremium = s.isPremium,
             hasData = s.hasData,
+            hasBatteryData = s.hasBatteryData,
+            hasMemoryData = s.hasMemoryData,
+            hasStorageData = s.hasStorageData,
+            hasHealthData = s.hasHealthData,
             lastUpdatedMillis = s.lastUpdatedMillis,
             batteryLevel = s.batteryLevel,
             batteryStatus = s.batteryStatus,

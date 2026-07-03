@@ -11,6 +11,8 @@ import com.devstdvad.devicedna.domain.model.GpuInfo
 import com.devstdvad.devicedna.domain.model.HealthInsight
 import com.devstdvad.devicedna.domain.model.HealthScore
 import com.devstdvad.devicedna.domain.model.InsightSeverity
+import com.devstdvad.devicedna.domain.model.RamInfo
+import com.devstdvad.devicedna.domain.model.StorageInfo
 import com.devstdvad.devicedna.domain.model.ThermalInfo
 import com.devstdvad.devicedna.domain.model.ThermalZone
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
@@ -56,6 +58,8 @@ class WidgetSnapshotTest {
 
     private fun build(
         battery: BatteryInfo? = null,
+        ram: RamInfo? = null,
+        storage: StorageInfo? = null,
         cpu: CpuInfo? = null,
         thermal: ThermalInfo? = null,
         device: DeviceInfo? = null,
@@ -63,7 +67,7 @@ class WidgetSnapshotTest {
         thermalStatus: Int = -1,
         designCapacityMah: Int? = null,
     ) = WidgetSnapshotBuilder.buildSnapshot(
-        isPremium = true, battery = battery, ram = null, storage = null, cpu = cpu,
+        isPremium = true, battery = battery, ram = ram, storage = storage, cpu = cpu,
         thermal = thermal, device = device, health = health,
         thermalStatus = thermalStatus, designCapacityMah = designCapacityMah, nowMillis = 1L,
     )
@@ -124,6 +128,44 @@ class WidgetSnapshotTest {
     fun `empty inputs produce no data`() {
         val snap = build()
         assertFalse(snap.hasData)
+        assertFalse(snap.hasBatteryData)
+        assertFalse(snap.hasMemoryData)
+        assertFalse(snap.hasStorageData)
+        assertFalse(snap.hasCpuData)
+        assertFalse(snap.hasThermalData)
+        assertFalse(snap.hasDeviceData)
+        assertFalse(snap.hasHealthData)
         assertEquals(-1, snap.batteryLevel)
+    }
+
+    @Test
+    fun `domain data flags only mark loaded sources`() {
+        val snap = build(
+            battery = battery(),
+            ram = RamInfo(
+                totalBytes = 4_000L,
+                availableBytes = 1_000L,
+                usedBytes = 3_000L,
+                usedPercent = 0.75f,
+                isLowMemory = false,
+            ),
+            storage = StorageInfo(
+                totalBytes = 10_000L,
+                usedBytes = 4_000L,
+                freeBytes = 6_000L,
+                usedPercent = 0.4f,
+            ),
+            thermal = ThermalInfo(listOf(ThermalZone("battery", ThermalZoneType.Battery, 31f))),
+            device = device(),
+        )
+
+        assertTrue(snap.hasData)
+        assertTrue(snap.hasBatteryData)
+        assertTrue(snap.hasMemoryData)
+        assertTrue(snap.hasStorageData)
+        assertFalse(snap.hasCpuData)
+        assertTrue(snap.hasThermalData)
+        assertTrue(snap.hasDeviceData)
+        assertFalse(snap.hasHealthData)
     }
 }

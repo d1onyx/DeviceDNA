@@ -53,6 +53,7 @@ import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.core.feedback.LocalAppFeedback
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlements
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 import com.devstdvad.devicedna.widget.glance.BatteryDoctorWidgetReceiver
@@ -84,12 +85,12 @@ fun WidgetsScreen(
     val context = LocalContext.current
     val feedback = LocalAppFeedback.current
     val entitlements by subscriptionRepository.entitlements.collectAsState(initial = PremiumEntitlements.Empty)
-    val premium = entitlements.isActive
+    val premium = entitlements.hasFeature(PremiumFeature.Widgets)
 
-    // Refresh the home-screen widget cache as soon as premium is available,
-    // so locked widgets unlock without waiting for the periodic worker.
+    // Refresh the home-screen widget cache when widget access changes so existing widgets
+    // unlock or lock without waiting for the periodic worker.
     LaunchedEffect(premium) {
-        if (premium) WidgetRefreshScheduler.refreshNow(context)
+        WidgetRefreshScheduler.refreshNow(context)
     }
 
     val widgets = listOf(

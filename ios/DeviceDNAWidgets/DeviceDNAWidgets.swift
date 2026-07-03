@@ -6,6 +6,10 @@ import SwiftUI
 struct WidgetPayload: Codable {
     var isPremium = false
     var hasData = false
+    var hasBatteryData = false
+    var hasMemoryData = false
+    var hasStorageData = false
+    var hasHealthData = false
     var lastUpdatedMillis: Int64 = 0
     var batteryLevel = -1
     var batteryStatus = ""
@@ -76,7 +80,12 @@ struct SnapshotProvider: TimelineProvider {
 
     private var previewPayload: WidgetPayload {
         var p = WidgetPayload()
+        p.isPremium = true
         p.hasData = true
+        p.hasBatteryData = true
+        p.hasMemoryData = true
+        p.hasStorageData = true
+        p.hasHealthData = true
         p.batteryLevel = 82
         p.batteryCharging = true
         p.ramUsedPercent = 0.46
@@ -101,6 +110,35 @@ enum WidgetPalette {
     static let accent = Color(red: 0.65, green: 0.78, blue: 1.0)
 }
 
+struct StatusWidgetView: View {
+    let title: String
+    let message: String
+    let symbol: String
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(WidgetPalette.textPrimary)
+                .multilineTextAlignment(.center)
+            Text(message)
+                .font(.caption2)
+                .foregroundStyle(WidgetPalette.textMuted)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(2)
+    }
+}
+
+private func widgetURL(for payload: WidgetPayload, route: String) -> URL? {
+    widgetDeepLink(payload.isPremium ? route : "subscription")
+}
+
 // MARK: - Battery widget
 
 struct BatteryWidgetView: View {
@@ -108,30 +146,38 @@ struct BatteryWidgetView: View {
 
     var body: some View {
         let p = entry.payload
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: p.batteryCharging ? "battery.100.bolt" : "battery.75")
-                    .foregroundStyle(WidgetPalette.battery)
-                Spacer()
-                if p.batteryCharging {
-                    Text("Charging")
+        Group {
+            if !p.isPremium {
+                StatusWidgetView(title: "Battery", message: "Unlock with Premium", symbol: "lock.fill", tint: WidgetPalette.accent)
+            } else if !p.hasBatteryData {
+                StatusWidgetView(title: "Battery", message: "Updating...", symbol: "arrow.clockwise", tint: WidgetPalette.textMuted)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: p.batteryCharging ? "battery.100.bolt" : "battery.75")
+                            .foregroundStyle(WidgetPalette.battery)
+                        Spacer()
+                        if p.batteryCharging {
+                            Text("Charging")
+                                .font(.caption2)
+                                .foregroundStyle(WidgetPalette.textMuted)
+                        }
+                    }
+                    Spacer()
+                    Text(p.batteryLevel >= 0 ? "\(p.batteryLevel)%" : "—")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(WidgetPalette.textPrimary)
+                    Gauge(value: Double(max(p.batteryLevel, 0)), in: 0...100) { EmptyView() }
+                        .gaugeStyle(.accessoryLinearCapacity)
+                        .tint(p.batteryLevel <= 20 ? WidgetPalette.critical : WidgetPalette.battery)
+                    Text("Battery")
                         .font(.caption2)
                         .foregroundStyle(WidgetPalette.textMuted)
                 }
             }
-            Spacer()
-            Text(p.batteryLevel >= 0 ? "\(p.batteryLevel)%" : "—")
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .foregroundStyle(WidgetPalette.textPrimary)
-            Gauge(value: Double(max(p.batteryLevel, 0)), in: 0...100) { EmptyView() }
-                .gaugeStyle(.accessoryLinearCapacity)
-                .tint(p.batteryLevel <= 20 ? WidgetPalette.critical : WidgetPalette.battery)
-            Text("Battery")
-                .font(.caption2)
-                .foregroundStyle(WidgetPalette.textMuted)
         }
         .padding(2)
-        .widgetURL(widgetDeepLink("hardware/battery"))
+        .widgetURL(widgetURL(for: p, route: "hardware/battery"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 }
@@ -156,33 +202,41 @@ struct HealthWidgetView: View {
         let p = entry.payload
         let score = p.healthOverall
         let tint: Color = score >= 70 ? WidgetPalette.battery : (score >= 40 ? WidgetPalette.storage : WidgetPalette.critical)
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: "heart.text.square")
-                    .foregroundStyle(WidgetPalette.accent)
-                Text("Device Health")
-                    .font(.caption)
-                    .foregroundStyle(WidgetPalette.textMuted)
-                Spacer()
-            }
-            Spacer()
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text(score >= 0 ? "\(score)" : "—")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(tint)
-                Text("/100")
-                    .font(.caption)
-                    .foregroundStyle(WidgetPalette.textMuted)
-            }
-            if !p.healthInsight.isEmpty {
-                Text(p.healthInsight)
-                    .font(.caption2)
-                    .lineLimit(2)
-                    .foregroundStyle(WidgetPalette.textMuted)
+        Group {
+            if !p.isPremium {
+                StatusWidgetView(title: "Device Health", message: "Unlock with Premium", symbol: "lock.fill", tint: WidgetPalette.accent)
+            } else if !p.hasHealthData {
+                StatusWidgetView(title: "Device Health", message: "Updating...", symbol: "arrow.clockwise", tint: WidgetPalette.textMuted)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "heart.text.square")
+                            .foregroundStyle(WidgetPalette.accent)
+                        Text("Device Health")
+                            .font(.caption)
+                            .foregroundStyle(WidgetPalette.textMuted)
+                        Spacer()
+                    }
+                    Spacer()
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text(score >= 0 ? "\(score)" : "—")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(tint)
+                        Text("/100")
+                            .font(.caption)
+                            .foregroundStyle(WidgetPalette.textMuted)
+                    }
+                    if !p.healthInsight.isEmpty {
+                        Text(p.healthInsight)
+                            .font(.caption2)
+                            .lineLimit(2)
+                            .foregroundStyle(WidgetPalette.textMuted)
+                    }
+                }
             }
         }
         .padding(2)
-        .widgetURL(widgetDeepLink("system"))
+        .widgetURL(widgetURL(for: p, route: "system"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 }
@@ -205,22 +259,30 @@ struct MemoryWidgetView: View {
 
     var body: some View {
         let p = entry.payload
-        VStack(alignment: .leading, spacing: 10) {
-            meter(
-                title: "Memory",
-                fraction: Double(p.ramUsedPercent),
-                tint: WidgetPalette.ram,
-                symbol: "memorychip"
-            )
-            meter(
-                title: "Storage",
-                fraction: Double(p.storageUsedPercent),
-                tint: WidgetPalette.storage,
-                symbol: "internaldrive"
-            )
+        Group {
+            if !p.isPremium {
+                StatusWidgetView(title: "Memory & Storage", message: "Unlock with Premium", symbol: "lock.fill", tint: WidgetPalette.accent)
+            } else if !p.hasMemoryData || !p.hasStorageData {
+                StatusWidgetView(title: "Memory & Storage", message: "Updating...", symbol: "arrow.clockwise", tint: WidgetPalette.textMuted)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    meter(
+                        title: "Memory",
+                        fraction: Double(p.ramUsedPercent),
+                        tint: WidgetPalette.ram,
+                        symbol: "memorychip"
+                    )
+                    meter(
+                        title: "Storage",
+                        fraction: Double(p.storageUsedPercent),
+                        tint: WidgetPalette.storage,
+                        symbol: "internaldrive"
+                    )
+                }
+            }
         }
         .padding(2)
-        .widgetURL(widgetDeepLink("dashboard"))
+        .widgetURL(widgetURL(for: p, route: "dashboard"))
         .containerBackground(WidgetPalette.background, for: .widget)
     }
 

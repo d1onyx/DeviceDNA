@@ -7,6 +7,13 @@ package com.devstdvad.devicedna.data.widget
 data class WidgetSnapshot(
     val isPremium: Boolean = false,
     val hasData: Boolean = false,
+    val hasBatteryData: Boolean = false,
+    val hasMemoryData: Boolean = false,
+    val hasStorageData: Boolean = false,
+    val hasCpuData: Boolean = false,
+    val hasThermalData: Boolean = false,
+    val hasDeviceData: Boolean = false,
+    val hasHealthData: Boolean = false,
     val lastUpdatedMillis: Long = 0L,
 
     val batteryLevel: Int = -1,

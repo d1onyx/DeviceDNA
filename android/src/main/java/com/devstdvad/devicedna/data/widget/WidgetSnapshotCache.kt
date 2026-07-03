@@ -21,6 +21,13 @@ class WidgetSnapshotCache(private val context: Context) {
         WidgetSnapshot(
             isPremium = p[IS_PREMIUM] ?: false,
             hasData = p[HAS_DATA] ?: false,
+            hasBatteryData = p[HAS_BATTERY_DATA] ?: false,
+            hasMemoryData = p[HAS_MEMORY_DATA] ?: false,
+            hasStorageData = p[HAS_STORAGE_DATA] ?: false,
+            hasCpuData = p[HAS_CPU_DATA] ?: false,
+            hasThermalData = p[HAS_THERMAL_DATA] ?: false,
+            hasDeviceData = p[HAS_DEVICE_DATA] ?: false,
+            hasHealthData = p[HAS_HEALTH_DATA] ?: false,
             lastUpdatedMillis = p[LAST_UPDATED] ?: 0L,
             batteryLevel = p[BATTERY_LEVEL] ?: -1,
             batteryTempC = p[BATTERY_TEMP] ?: 0f,
@@ -58,6 +65,13 @@ class WidgetSnapshotCache(private val context: Context) {
         context.widgetDataStore.edit { p ->
             p[IS_PREMIUM] = s.isPremium
             p[HAS_DATA] = s.hasData
+            p[HAS_BATTERY_DATA] = s.hasBatteryData
+            p[HAS_MEMORY_DATA] = s.hasMemoryData
+            p[HAS_STORAGE_DATA] = s.hasStorageData
+            p[HAS_CPU_DATA] = s.hasCpuData
+            p[HAS_THERMAL_DATA] = s.hasThermalData
+            p[HAS_DEVICE_DATA] = s.hasDeviceData
+            p[HAS_HEALTH_DATA] = s.hasHealthData
             p[LAST_UPDATED] = s.lastUpdatedMillis
             p[BATTERY_LEVEL] = s.batteryLevel
             p[BATTERY_TEMP] = s.batteryTempC
@@ -92,6 +106,13 @@ class WidgetSnapshotCache(private val context: Context) {
     private companion object {
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
         val HAS_DATA = booleanPreferencesKey("has_data")
+        val HAS_BATTERY_DATA = booleanPreferencesKey("has_battery_data")
+        val HAS_MEMORY_DATA = booleanPreferencesKey("has_memory_data")
+        val HAS_STORAGE_DATA = booleanPreferencesKey("has_storage_data")
+        val HAS_CPU_DATA = booleanPreferencesKey("has_cpu_data")
+        val HAS_THERMAL_DATA = booleanPreferencesKey("has_thermal_data")
+        val HAS_DEVICE_DATA = booleanPreferencesKey("has_device_data")
+        val HAS_HEALTH_DATA = booleanPreferencesKey("has_health_data")
         val LAST_UPDATED = longPreferencesKey("last_updated")
         val BATTERY_LEVEL = intPreferencesKey("battery_level")
         val BATTERY_TEMP = floatPreferencesKey("battery_temp")

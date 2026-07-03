@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.data.widget
 
 import com.devstdvad.devicedna.core.common.getOrNull
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.domain.repository.BatteryRepository
 import com.devstdvad.devicedna.domain.repository.CpuRepository
@@ -31,10 +32,11 @@ class WidgetMetricsLoader(
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun refresh(): WidgetSnapshot {
-        // Single premium tier: any active subscription unlocks widgets.
-        val isPremium = subscriptionRepository.entitlements.first().isActive
-        if (!isPremium) {
-            val locked = WidgetSnapshot(isPremium = false, hasData = false, lastUpdatedMillis = now())
+        val nowMillis = now()
+        val hasWidgets = subscriptionRepository.entitlements.first()
+            .hasFeature(PremiumFeature.Widgets, nowMillis)
+        if (!hasWidgets) {
+            val locked = WidgetSnapshot(isPremium = false, hasData = false, lastUpdatedMillis = nowMillis)
             cache.save(locked)
             return locked
         }
@@ -58,7 +60,7 @@ class WidgetMetricsLoader(
                 health = health.await(),
                 thermalStatus = probe.thermalStatus(),
                 designCapacityMah = probe.designCapacityMah(),
-                nowMillis = now(),
+                nowMillis = nowMillis,
             )
         }
         cache.save(snapshot)

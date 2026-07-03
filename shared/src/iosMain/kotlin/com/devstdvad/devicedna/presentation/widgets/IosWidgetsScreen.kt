@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlements
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import org.koin.compose.koinInject
 
@@ -66,7 +67,7 @@ fun IosWidgetsScreen(
 ) {
     val colors = AppTheme.colors
     val entitlements by subscriptionRepository.entitlements.collectAsState(initial = PremiumEntitlements.Empty)
-    val premium = entitlements.isActive
+    val premium = entitlements.hasFeature(PremiumFeature.Widgets)
 
     val widgets = listOf(
         IosWidgetEntry("Battery", "Battery level and charging status at a glance.", Icons.Outlined.BatteryStd) { colors.batteryColor },

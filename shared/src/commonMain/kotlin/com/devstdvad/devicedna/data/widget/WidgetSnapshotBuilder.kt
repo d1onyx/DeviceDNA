@@ -37,7 +37,20 @@ object WidgetSnapshotBuilder {
 
         return WidgetSnapshot(
             isPremium = isPremium,
-            hasData = battery != null || ram != null || storage != null || cpu != null,
+            hasData = battery != null ||
+                ram != null ||
+                storage != null ||
+                cpu != null ||
+                thermal != null ||
+                device != null ||
+                health != null,
+            hasBatteryData = battery != null,
+            hasMemoryData = ram != null,
+            hasStorageData = storage != null,
+            hasCpuData = cpu != null,
+            hasThermalData = thermal != null,
+            hasDeviceData = device != null,
+            hasHealthData = health != null,
             lastUpdatedMillis = nowMillis,
             batteryLevel = battery?.levelPercent ?: -1,
             batteryTempC = battery?.temperatureCelsius ?: 0f,
