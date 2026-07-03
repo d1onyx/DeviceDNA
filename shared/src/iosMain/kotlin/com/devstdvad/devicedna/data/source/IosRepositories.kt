@@ -62,8 +62,6 @@ import platform.AVFoundation.AVCaptureDeviceTypeBuiltInTrueDepthCamera
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInUltraWideCamera
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInWideAngleCamera
 import platform.AVFoundation.AVMediaTypeVideo
-import platform.AVFoundation.formatDescription
-import platform.AVFoundation.formats
 import platform.AVFoundation.hasFlash
 import platform.AVFoundation.position
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
