@@ -48,7 +48,7 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
-    fun `dev billing grants a one hour premium entitlement`() = runTest {
+    fun `dev billing grants a twenty four hour premium entitlement`() = runTest {
         val before = System.currentTimeMillis()
         val result = DevSubscriptionBillingGateway().restorePurchases()
 
@@ -56,9 +56,9 @@ class SubscriptionRepositoryTest {
         val entitlements = (result as SubscriptionPurchaseResult.Success).entitlements
         val expiresAt = entitlements.expiresAtMillis
         assertNotNull(expiresAt)
-        // Active right after purchase, valid for ~1 hour.
+        // Active right after purchase, valid for ~24 hours (matches the iOS dev gateway).
         assertTrue(entitlements.hasFeature(PremiumFeature.BatteryIntelligence))
-        assertTrue((expiresAt!! - before) in (59 * 60_000L)..(61 * 60_000L))
+        assertTrue((expiresAt!! - before) in (23 * 60 * 60_000L)..(25 * 60 * 60_000L))
     }
 
     @Test
