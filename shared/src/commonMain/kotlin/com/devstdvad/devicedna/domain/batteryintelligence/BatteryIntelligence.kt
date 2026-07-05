@@ -636,7 +636,11 @@ private fun List<BatteryHistorySnapshot>.toChargingSessionSummary(
     // A trailing pause marker ends the session at the moment tracking stopped, like a disconnect.
     val disconnected = last.recordingPaused || !(last.isCharging || last.isPlugged)
     val endMillis = if (disconnected) last.timestampMillis else null
-    val endSample = if (disconnected && size >= 2) get(size - 2) else last
+    // Prefer the last known charging reading over the disconnect sample itself (level can dip right
+    // as the cable comes out). But when the only charging reading is the start sample (sparse polling
+    // caught just the plug-in and the disconnect), that reading is stale, so the disconnect sample -
+    // the most recent level we actually have - is the better estimate of where charging left off.
+    val endSample = if (disconnected && size >= 3) get(size - 2) else last
     val watts = chargingSamples.mapNotNull { it.estimatedWatts }.filter { it > 0f }
     val durationEnd = endMillis ?: nowMillis
     val durationMillis = (durationEnd - start.timestampMillis).coerceAtLeast(0L)

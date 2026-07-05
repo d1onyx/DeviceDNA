@@ -46,6 +46,23 @@ class BatteryIntelligenceTest {
     }
 
     @Test
+    fun `sparse session with only a plug-in and a disconnect reading reports the level gained`() {
+        // Only two samples for the whole session (sparse polling): plug in at 65%, then the next
+        // sample is already unplugged at 70%. The disconnect reading is the only evidence of the
+        // gain, so it must be used instead of repeating the stale start level.
+        val snapshots = listOf(
+            snapshot(minute = 0, plugged = true, level = 65),
+            snapshot(minute = 135, plugged = false, level = 70),
+        )
+
+        val sessions = buildChargingSessions(snapshots)
+
+        assertEquals(1, sessions.size)
+        assertEquals(70, sessions[0].endLevelPercent)
+        assertEquals(5, sessions[0].levelDeltaPercent)
+    }
+
+    @Test
     fun `local cycle estimate counts accumulated charge percent`() {
         val snapshots = listOf(
             snapshot(minute = 0, plugged = true, level = 20),
