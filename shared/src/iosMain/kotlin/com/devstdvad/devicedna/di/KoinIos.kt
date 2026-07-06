@@ -25,6 +25,7 @@ import com.devstdvad.devicedna.data.subscription.IosEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
+import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.Platform
 import com.devstdvad.devicedna.data.sync.IosSyncFactory
@@ -52,6 +53,13 @@ import com.devstdvad.devicedna.platform.IosFileImporter
 import com.devstdvad.devicedna.platform.IosFileSharer
 import com.devstdvad.devicedna.platform.IosHapticManager
 import com.devstdvad.devicedna.platform.IosSoundManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
@@ -157,13 +165,28 @@ fun initKoin(deps: IosAppDependencies): Koin {
 /** Swift-friendly accessors for objects the host needs directly. */
 object KoinBridge {
     private var koin: Koin? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     fun start(deps: IosAppDependencies) {
-        if (koin == null) koin = initKoin(deps)
+        if (koin != null) return
+        val instance = initKoin(deps)
+        koin = instance
+
+        // Refresh WidgetKit timelines the moment premium status changes (purchase, restore, dev
+        // activate), regardless of which screen is open — otherwise widgets only unlock/lock on
+        // the next cold launch, background transition, or the ~15-min BGAppRefreshTask.
+        val entitlementsStore = instance.get<PremiumEntitlementsStore>()
+        val widgetBridge = instance.get<IosWidgetBridge>()
+        scope.launch {
+            entitlementsStore.entitlements
+                .map { it.hasFeature(PremiumFeature.Widgets) }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { widgetBridge.refresh() }
+        }
     }
 
     fun backgroundWorker(): IosBackgroundWorker = requireNotNull(koin).get()
-    fun widgetBridge(): IosWidgetBridge = requireNotNull(koin).get()
     fun settingsStore(): SettingsStore = requireNotNull(koin).get()
     fun authGateway(): IosAuthGateway = requireNotNull(koin).get()
     fun entitlementsStore(): PremiumEntitlementsStore = requireNotNull(koin).get()
