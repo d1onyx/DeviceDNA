@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.ErrorBanner
@@ -49,6 +51,7 @@ import com.devstdvad.devicedna.core.design.component.InsightCard
 import com.devstdvad.devicedna.core.design.component.LiveBar
 import com.devstdvad.devicedna.core.design.component.SectionCard
 import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.domain.model.BatteryStatus
 import com.devstdvad.devicedna.domain.model.ConnectionType
 import com.devstdvad.devicedna.domain.model.InsightSeverity
 import com.devstdvad.devicedna.domain.model.ThermalZoneType
@@ -58,6 +61,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import com.devstdvad.devicedna.di.resolveViewModel
 import com.devstdvad.devicedna.resources.stringRes
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +78,7 @@ fun OverviewScreen(
     LaunchedEffect(settings.fastRefresh) {
         if (!settings.fastRefresh) return@LaunchedEffect
         while (isActive) {
-            delay(5_000)
+            delay(5_000.milliseconds)
             viewModel.refresh()
         }
     }
@@ -170,11 +174,18 @@ fun OverviewScreen(
                         bat.levelPercent <= 15 -> colors.warning
                         else -> colors.batteryColor
                     }
+                    val batStatusLabel = when (bat?.status) {
+                        BatteryStatus.Charging -> stringRes("battery_status_charging")
+                        BatteryStatus.Discharging -> stringRes("battery_status_discharging")
+                        BatteryStatus.Full -> stringRes("battery_status_full")
+                        BatteryStatus.NotCharging -> stringRes("battery_status_not_charging")
+                        BatteryStatus.Unknown, null -> null
+                    }
                     GaugeRing(
                         value = (bat?.levelPercent ?: 0).toFloat(),
                         label = stringRes("overview_label_battery"),
                         valueText = "${bat?.levelPercent ?: 0}%",
-                        subLabel = bat?.status?.name?.take(5),
+                        subLabel = batStatusLabel,
                         accentColor = batColor,
                         size = 100.dp,
                         strokeWidth = 9.dp,
@@ -215,11 +226,14 @@ fun OverviewScreen(
                             )
                             state.healthScore?.let { score ->
                                 Spacer(Modifier.height(10.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    ScorePill(stringRes("overview_label_battery"), score.battery)
-                                    ScorePill(stringRes("overview_label_thermal"), score.thermal)
-                                    ScorePill(stringRes("device_section_security"), score.security)
-                                    ScorePill(stringRes("overview_label_storage"), score.storage)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    ScorePill(stringRes("overview_label_battery"), score.battery, Modifier.weight(1f))
+                                    ScorePill(stringRes("overview_label_thermal"), score.thermal, Modifier.weight(1f))
+                                    ScorePill(stringRes("device_section_security"), score.security, Modifier.weight(1f))
+                                    ScorePill(stringRes("overview_label_storage"), score.storage, Modifier.weight(1f))
                                 }
                             }
                         }
@@ -453,20 +467,28 @@ fun OverviewScreen(
 }
 
 @Composable
-private fun ScorePill(label: String, value: Int) {
+private fun ScorePill(label: String, value: Int, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val color = when {
         value >= 80 -> colors.success
         value >= 60 -> colors.warning
         else -> colors.critical
     }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = "$value",
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = color,
+            maxLines = 1,
         )
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.textMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
