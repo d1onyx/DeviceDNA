@@ -143,6 +143,7 @@ val appModule = module {
     single<SettingsStore> { com.devstdvad.devicedna.data.settings.AndroidSettingsStore(androidContext()) }
     single { SubscriptionStore(androidContext()) }
     single<BatteryIntelligenceHistoryStore> { com.devstdvad.devicedna.data.batteryintelligence.AndroidBatteryIntelligenceHistoryStore(androidContext()) }
+    single { com.devstdvad.devicedna.data.batteryintelligence.BatteryHistoryTracker(get()) }
 
     // Repositories
     single<DeviceRepository> { DeviceRepositoryImpl(get()) }

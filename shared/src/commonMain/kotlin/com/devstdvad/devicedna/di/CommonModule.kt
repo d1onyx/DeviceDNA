@@ -95,6 +95,9 @@ fun commonModule(useRealBilling: Boolean): Module = module {
     single { DeviceSyncManager(get(), get(), get(), get()) }
     single<SubscriptionVerifier> { BackendSubscriptionVerifier(get(), get()) }
 
+    // Shared decision point for writing battery-history samples (screen VM + iOS app-wide recorder + BGTask).
+    single { com.devstdvad.devicedna.data.batteryintelligence.BatteryHistoryTracker(get()) }
+
     // ViewModels
     viewModelOf(::OverviewViewModel)
     viewModelOf(::DeviceViewModel)

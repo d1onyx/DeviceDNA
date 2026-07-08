@@ -2,8 +2,8 @@ package com.devstdvad.devicedna.presentation.batteryintelligence
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.core.common.AppResult
+import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistoryTracker
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
@@ -37,6 +37,7 @@ class BatteryIntelligenceViewModel(
     observeBattery: ObserveBatteryUseCase,
     subscriptionRepository: SubscriptionRepository,
     private val historyStore: BatteryIntelligenceHistoryStore,
+    private val historyTracker: BatteryHistoryTracker,
 ) : ViewModel() {
     private val timeZone: TimeZone = TimeZone.currentSystemDefault()
     private val selectedDayStartMillis = MutableStateFlow(todayStartMillis(timeZone))
@@ -57,18 +58,7 @@ class BatteryIntelligenceViewModel(
             val info = (batteryResult as? AppResult.Success)?.value
             Triple(entitlements, info, trackingEnabled)
         }.onEach { (entitlements, info, trackingEnabled) ->
-            val nowMillis = currentTimeMillis()
-            val unlocked = entitlements.hasFeature(PremiumFeature.BatteryIntelligence, nowMillis)
-            val expiredAtMillis = entitlements.expiresAtMillis?.takeIf { it <= nowMillis }
-            when {
-                unlocked && trackingEnabled && info != null -> historyStore.record(info)
-                // Drop a marker so the timeline leaves the un-tracked gap empty. No-op if already marked.
-                !trackingEnabled -> historyStore.markRecordingPaused()
-                !unlocked -> historyStore.markRecordingPaused(
-                    timestampMillis = expiredAtMillis ?: nowMillis,
-                    removeSnapshotsAfterMarker = expiredAtMillis != null,
-                )
-            }
+            historyTracker.onBatterySample(entitlements, info, trackingEnabled)
         }.launchIn(viewModelScope)
     }
 
