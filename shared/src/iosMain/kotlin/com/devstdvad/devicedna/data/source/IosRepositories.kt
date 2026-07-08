@@ -66,6 +66,7 @@ import platform.AVFoundation.AVCaptureDeviceTypeBuiltInUltraWideCamera
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInWideAngleCamera
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.hasFlash
+import platform.AVFoundation.lensAperture
 import platform.AVFoundation.position
 import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
