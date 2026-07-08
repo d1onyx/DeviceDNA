@@ -214,6 +214,13 @@ struct DeviceDNAApp: App {
                 }
         }
         .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                // Capture a battery-history sample the moment the app returns to the foreground.
+                // iOS runs BGAppRefreshTask rarely, so without this the graph would have a long gap
+                // for the whole time the app was backgrounded; this bounds that gap regardless of
+                // which tab is open.
+                KoinBridge.shared.backgroundWorker().run { _ in }
+            }
             if phase == .background {
                 AppDelegate.scheduleBackgroundRefresh()
                 // Refresh widgets with the freshest foreground data before suspending.

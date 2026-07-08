@@ -118,6 +118,7 @@ import kotlinx.cinterop.CPointerVar
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.allocArray
 import kotlinx.cinterop.sizeOf
+import kotlin.time.Duration.Companion.milliseconds
 
 /*
  * iOS data layer for the shared repository interfaces. Collection is done with public
@@ -220,18 +221,34 @@ private fun suspiciousJailbreakPaths(): List<String> {
 
 class IosBatteryRepository : BatteryRepository {
 
-    private fun snapshot(): BatteryInfo {
+    /**
+     * Read the battery on the main thread. UIDevice's battery properties must be touched from the
+     * main thread, and — critically — `batteryLevel` returns -1.0 for a short moment right after
+     * `batteryMonitoringEnabled` is switched on (iOS populates it asynchronously). In a fresh
+     * process (BGAppRefreshTask, cold launch) the first read therefore reads -1; without warming up
+     * we would persist a garbage -1% sample into the history graph. Retry briefly so background
+     * samples carry a real level. Returns null when the level is genuinely unknown (Simulator).
+     */
+    private suspend fun snapshot(): BatteryInfo? = withContext(Dispatchers.Main) {
         val device = UIDevice.currentDevice
         device.batteryMonitoringEnabled = true
-        val level = device.batteryLevel // -1.0 when unknown (Simulator)
+        var level = device.batteryLevel // -1.0 when unknown / not yet warmed up (Simulator)
+        var attempts = 0
+        while (level < 0f && attempts < 3) {
+            delay(200.milliseconds)
+            level = device.batteryLevel
+            attempts++
+        }
+        if (level < 0f) return@withContext null
+
         val status = when (device.batteryState) {
             UIDeviceBatteryState.UIDeviceBatteryStateCharging -> BatteryStatus.Charging
             UIDeviceBatteryState.UIDeviceBatteryStateFull -> BatteryStatus.Full
             UIDeviceBatteryState.UIDeviceBatteryStateUnplugged -> BatteryStatus.Discharging
             else -> BatteryStatus.Unknown
         }
-        return BatteryInfo(
-            levelPercent = if (level >= 0f) (level * 100f).toInt() else -1,
+        BatteryInfo(
+            levelPercent = (level * 100f).toInt(),
             status = status,
             health = BatteryHealth.Unknown,          // iOS: not exposed to apps
             source = if (status == BatteryStatus.Charging || status == BatteryStatus.Full) {
@@ -254,14 +271,16 @@ class IosBatteryRepository : BatteryRepository {
 
     override suspend fun getBatterySnapshot(): AppResult<BatteryInfo> =
         runCatching { snapshot() }.fold(
-            onSuccess = { AppResult.Success(it) },
+            onSuccess = { info ->
+                if (info != null) AppResult.Success(info) else AppResult.Error(AppError.Unavailable())
+            },
             onFailure = { AppResult.Error(AppError.Unknown()) },
         )
 
     override fun observeBatteryInfo(): Flow<AppResult<BatteryInfo>> = flow {
         while (true) {
             emit(getBatterySnapshot())
-            delay(5_000)
+            delay(5_000.milliseconds)
         }
     }
 }
@@ -310,7 +329,7 @@ class IosRamStorageRepository : RamRepository, StorageRepository {
     override fun observeRamInfo(): Flow<AppResult<RamInfo>> = flow {
         while (true) {
             emit(getRamSnapshot())
-            delay(3_000)
+            delay(3_000.milliseconds)
         }
     }
 
@@ -455,7 +474,7 @@ class IosCpuRepository : CpuRepository {
     /** System-wide CPU load in percent, sampled over a short window. Null if unavailable. */
     private suspend fun cpuUsagePercent(): Float? {
         val first = readCpuTicks() ?: return null
-        delay(250)
+        delay(250.milliseconds)
         val second = readCpuTicks() ?: return null
         val totalDelta = (second.total - first.total).toDouble()
         val idleDelta = (second.idle - first.idle).toDouble()
@@ -486,7 +505,7 @@ class IosCpuRepository : CpuRepository {
     override fun observeCpuCores(): Flow<AppResult<CpuInfo>> = flow {
         while (true) {
             emit(getCpuInfo())
-            delay(3_000)
+            delay(3_000.milliseconds)
         }
     }
 }
@@ -543,7 +562,7 @@ class IosThermalRepository : ThermalRepository {
     override fun observeThermalInfo(): Flow<AppResult<ThermalInfo>> = flow {
         while (true) {
             emit(getThermalInfo())
-            delay(5_000)
+            delay(5_000.milliseconds)
         }
     }
 }
@@ -782,7 +801,7 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
     override fun observeNetworkInfo(): Flow<AppResult<NetworkInfo>> = flow {
         while (true) {
             emit(getNetworkInfo())
-            delay(5_000)
+            delay(5_000.milliseconds)
         }
     }
 

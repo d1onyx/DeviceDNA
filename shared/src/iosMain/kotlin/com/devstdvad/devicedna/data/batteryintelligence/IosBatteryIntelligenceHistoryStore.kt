@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import platform.Foundation.NSUserDefaults
 import kotlin.math.abs
@@ -53,6 +52,10 @@ class IosBatteryIntelligenceHistoryStore(
 
     override suspend fun record(info: BatteryInfo, timestampMillis: Long) = mutex.withLock {
         if (!trackingFlow.value) return@withLock
+        // Never persist an invalid reading (iOS reports -1% until battery monitoring warms up, e.g.
+        // in a fresh BGTask/cold-launch process). A garbage sample would draw a red "discharge" dip
+        // to -1 on the history graph.
+        if (info.levelPercent !in 0..100) return@withLock
 
         val existing = loadSnapshots()
         val retained = existing.filter { it.timestampMillis <= timestampMillis }
