@@ -57,6 +57,7 @@ import kotlinx.coroutines.withContext
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVCaptureDeviceDiscoverySession
 import platform.AVFoundation.AVCaptureDeviceFormat
+import platform.AVFoundation.AVFrameRateRange
 import platform.AVFoundation.AVCaptureDevicePositionBack
 import platform.AVFoundation.AVCaptureDevicePositionFront
 import platform.AVFoundation.AVCaptureDeviceTypeBuiltInTelephotoCamera
@@ -66,6 +67,7 @@ import platform.AVFoundation.AVCaptureDeviceTypeBuiltInWideAngleCamera
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.hasFlash
 import platform.AVFoundation.position
+import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.CoreMotion.CMAltimeter
 import platform.CoreMotion.CMMotionManager
@@ -631,25 +633,61 @@ class IosCameraRepository : CameraRepository {
         )
         val cameras = session.devices.mapIndexedNotNull { index, raw ->
             val device = raw as? AVCaptureDevice ?: return@mapIndexedNotNull null
-            // Highest still/video resolution the hardware advertises across all its formats.
-            // CMVideoFormatDescriptionGetDimensions is a public CoreMedia call and needs no
-            // camera permission (we never open a capture session).
-            var bestW = 0
-            var bestH = 0
-            var bestPixels = 0L
+            // Walk every advertised format to derive capabilities. CMVideoFormatDescriptionGetDimensions
+            // and the format metadata are public reads and need no camera permission (we never open a
+            // capture session).
+            var bestVideoW = 0
+            var bestVideoH = 0
+            var bestVideoPixels = 0L
+            var bestVideoFps = 0
+            var slowMoFps = 0
+            var slowMoW = 0
+            var slowMoH = 0
+            var photoW = 0
+            var photoH = 0
+            var photoPixels = 0L
+            var minExposureNanos = Long.MAX_VALUE
+            var maxExposureNanos = 0L
             device.formats.forEach { fmtRaw ->
                 val fmt = fmtRaw as? AVCaptureDeviceFormat ?: return@forEach
                 val desc = fmt.formatDescription ?: return@forEach
-                CMVideoFormatDescriptionGetDimensions(desc).useContents {
-                    val px = width.toLong() * height.toLong()
-                    if (px > bestPixels) {
-                        bestPixels = px
-                        bestW = width
-                        bestH = height
-                    }
+                var w = 0
+                var h = 0
+                CMVideoFormatDescriptionGetDimensions(desc).useContents { w = width; h = height }
+                val px = w.toLong() * h.toLong()
+                val fps = fmt.videoSupportedFrameRateRanges
+                    .mapNotNull { (it as? AVFrameRateRange)?.maxFrameRate }
+                    .maxOrNull()?.toInt() ?: 0
+                if (px > bestVideoPixels) {
+                    bestVideoPixels = px; bestVideoW = w; bestVideoH = h; bestVideoFps = fps
+                }
+                if (fps > slowMoFps) {
+                    slowMoFps = fps; slowMoW = w; slowMoH = h
+                }
+                // Largest still-photo dimensions this format can produce.
+                fmt.highResolutionStillImageDimensions.useContents {
+                    val ppx = width.toLong() * height.toLong()
+                    if (ppx > photoPixels) { photoPixels = ppx; photoW = width; photoH = height }
+                }
+                val minS = CMTimeGetSeconds(fmt.minExposureDuration)
+                val maxS = CMTimeGetSeconds(fmt.maxExposureDuration)
+                if (minS > 0.0) {
+                    val n = (minS * 1_000_000_000.0).toLong()
+                    if (n < minExposureNanos) minExposureNanos = n
+                }
+                if (maxS > 0.0) {
+                    val n = (maxS * 1_000_000_000.0).toLong()
+                    if (n > maxExposureNanos) maxExposureNanos = n
                 }
             }
-            val mp = if (bestPixels > 0) (bestPixels / 1_000_000.0).toFloat() else 0f
+            // Photo pixels are the true sensor resolution (e.g. 4032×3024 → 12 MP); fall back to the
+            // best video format when a device doesn't advertise still dimensions.
+            val mp = when {
+                photoPixels > 0 -> (photoPixels / 1_000_000.0).toFloat()
+                bestVideoPixels > 0 -> (bestVideoPixels / 1_000_000.0).toFloat()
+                else -> 0f
+            }
+            val aperture = device.lensAperture
             CameraDetails(
                 id = index.toString(),
                 facing = when (device.position) {
@@ -658,16 +696,31 @@ class IosCameraRepository : CameraRepository {
                     else -> CameraFacing.Unknown
                 },
                 megapixels = mp,
-                resolutionWidth = bestW,
-                resolutionHeight = bestH,
+                resolutionWidth = if (photoW > 0) photoW else bestVideoW,
+                resolutionHeight = if (photoH > 0) photoH else bestVideoH,
                 focalLengths = emptyList(),
                 hasFlash = device.hasFlash,
-                hasOis = false,
-                apertures = emptyList(),
+                hasOis = false, // iOS exposes no public OIS flag.
+                apertures = if (aperture > 0f) listOf(aperture) else emptyList(),
                 supportedModes = emptyList(),
+                maxVideoWidth = bestVideoW,
+                maxVideoHeight = bestVideoH,
+                maxVideoFps = bestVideoFps,
+                maxSlowMoFps = slowMoFps,
+                slowMoWidth = slowMoW,
+                slowMoHeight = slowMoH,
+                maxPhotoWidth = if (photoW > 0) photoW else bestVideoW,
+                maxPhotoHeight = if (photoH > 0) photoH else bestVideoH,
+                minExposureNanos = if (minExposureNanos == Long.MAX_VALUE) 0L else minExposureNanos,
+                maxExposureNanos = maxExposureNanos,
             )
         }
-        CameraInfo(cameras = cameras)
+        // iOS enumerates the front camera twice (wide-angle + TrueDepth). Collapse the front to a
+        // single representative (highest resolution) so it isn't shown as two/"Dual" front cameras;
+        // rear lenses stay distinct so the count reflects real hardware (Dual/Triple).
+        val nonFront = cameras.filter { it.facing != CameraFacing.Front }
+        val front = cameras.filter { it.facing == CameraFacing.Front }.maxByOrNull { it.megapixels }
+        CameraInfo(cameras = nonFront + listOfNotNull(front))
     }.fold(
         onSuccess = { AppResult.Success(it) },
         onFailure = { AppResult.Error(AppError.Unknown()) },

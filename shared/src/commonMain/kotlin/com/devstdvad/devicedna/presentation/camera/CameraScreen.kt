@@ -37,6 +37,7 @@ import com.devstdvad.devicedna.domain.model.CameraFacing
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.di.resolveViewModel
 import com.devstdvad.devicedna.resources.stringRes
+import kotlin.math.roundToInt
 
 @Composable
 fun CameraScreen(
@@ -49,7 +50,12 @@ fun CameraScreen(
     if (state.isLoading) { LoadingScreen(); return }
     val info = state.info ?: run { LoadingScreen(message = state.error ?: stringRes("camera_load_error")); return }
 
-    val backCameras = info.cameras.filter { it.facing == CameraFacing.Back }
+    // Group physical lenses by facing so each side renders as ONE section (like iOS Settings):
+    // this also collapses the front camera that iOS enumerates twice (wide-angle + TrueDepth).
+    val facingOrder = listOf(CameraFacing.Back, CameraFacing.Front, CameraFacing.External, CameraFacing.Unknown)
+    val groups = facingOrder.mapNotNull { facing ->
+        info.cameras.filter { it.facing == facing }.takeIf { it.isNotEmpty() }?.let { facing to it }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -63,30 +69,46 @@ fun CameraScreen(
     ) {
         item {
             Text(
-                text = stringRes("camera_count", info.cameras.size),
+                text = stringRes("camera_count", groups.sumOf { it.second.size }),
                 style = MaterialTheme.typography.displaySmall,
                 color = colors.textPrimary,
             )
         }
 
-        info.cameras.forEach { cam ->
+        groups.forEach { (facing, lenses) ->
             item {
-                val label = when (cam.facing) {
-                    CameraFacing.Back -> if (backCameras.size > 1) stringRes("camera_label_rear_indexed", backCameras.indexOf(cam) + 1) else stringRes("camera_label_rear")
+                val label = when (facing) {
+                    CameraFacing.Back -> stringRes("camera_label_back")
                     CameraFacing.Front -> stringRes("camera_label_front")
                     CameraFacing.External -> stringRes("camera_label_external")
-                    CameraFacing.Unknown -> stringRes("camera_label_unknown", cam.id)
+                    CameraFacing.Unknown -> stringRes("camera_label_unknown", lenses.first().id)
                 }
-                CameraCard(cam, label)
+                CameraCard(facing, lenses, label)
             }
         }
     }
 }
 
 @Composable
-private fun CameraCard(cam: CameraDetails, label: String) {
+private fun CameraCard(facing: CameraFacing, lenses: List<CameraDetails>, label: String) {
     val colors = AppTheme.colors
-    val isFront = cam.facing == CameraFacing.Front
+    val isFront = facing == CameraFacing.Front
+
+    // Aggregate the group's lenses into one representative spec set.
+    val megapixels = lenses.maxOf { it.megapixels }
+    val lensPrefix = when (lenses.size) {
+        2 -> stringRes("camera_lens_prefix_dual")
+        3 -> stringRes("camera_lens_prefix_triple")
+        in 4..Int.MAX_VALUE -> stringRes("camera_lens_prefix_quad")
+        else -> ""
+    }
+    val minAperture = lenses.flatMap { it.apertures }.minOrNull()
+    val bestVideo = lenses.filter { it.maxVideoWidth > 0 }.maxByOrNull { it.maxVideoWidth.toLong() * it.maxVideoHeight }
+    val bestSlowMo = lenses.filter { it.maxSlowMoFps > 0 }.maxByOrNull { it.maxSlowMoFps }
+    val hasOis = lenses.any { it.hasOis }
+    val bestPhoto = lenses.filter { it.maxPhotoWidth > 0 }.maxByOrNull { it.maxPhotoWidth.toLong() * it.maxPhotoHeight }
+    val shortestExposure = lenses.mapNotNull { it.minExposureNanos.takeIf { n -> n > 0L } }.minOrNull()
+    val longestExposure = lenses.mapNotNull { it.maxExposureNanos.takeIf { n -> n > 0L } }.maxOrNull()
 
     AccentCard(accentColor = colors.cameraColor) {
         Row(
@@ -98,22 +120,14 @@ private fun CameraCard(cam: CameraDetails, label: String) {
                 Text(label, style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = if (cam.megapixels > 0) "${Formatters.oneDecimal(cam.megapixels)} MP" else stringRes("camera_value_unknown_mp"),
+                    text = if (megapixels > 0) {
+                        stringRes("camera_value_megapixels", lensPrefix, megapixels.roundToInt())
+                    } else {
+                        stringRes("camera_value_unknown_mp")
+                    },
                     style = MaterialTheme.typography.headlineSmall,
                     color = colors.cameraColor,
                 )
-                Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (cam.megapixels > 0) {
-                        SpecBadge("${cam.resolutionWidth}×${cam.resolutionHeight}")
-                    }
-                    if (cam.apertures.isNotEmpty()) {
-                        SpecBadge("f/${Formatters.oneDecimal(cam.apertures.first())}")
-                    }
-                    if (cam.focalLengths.isNotEmpty()) {
-                        SpecBadge("${Formatters.noDecimals(cam.focalLengths.first())}mm")
-                    }
-                }
             }
             Box(
                 modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
@@ -131,25 +145,88 @@ private fun CameraCard(cam: CameraDetails, label: String) {
         }
 
         Spacer(Modifier.height(12.dp))
-        InfoRow(stringRes("camera_field_megapixels"), "${Formatters.oneDecimal(cam.megapixels)} MP", copyable = false)
-        InfoRow(stringRes("display_field_resolution"), "${cam.resolutionWidth} × ${cam.resolutionHeight}", copyable = false)
-        if (cam.focalLengths.isNotEmpty()) InfoRow(stringRes("camera_field_focal_length"), cam.focalLengths.joinToString(", ") { "${Formatters.oneDecimal(it)} mm" }, copyable = false)
-        if (cam.apertures.isNotEmpty()) InfoRow(stringRes("camera_field_aperture"), cam.apertures.joinToString(", ") { "f/${Formatters.oneDecimal(it)}" }, copyable = false)
-        InfoRow(stringRes("camera_field_flash"), if (cam.hasFlash) stringRes("common_yes") else stringRes("common_no"), copyable = false)
-        InfoRow(stringRes("camera_field_ois"), if (cam.hasOis) stringRes("common_yes") else stringRes("common_no"), copyable = false, showDivider = false)
+
+        if (megapixels > 0) {
+            InfoRow(
+                stringRes("camera_field_resolution"),
+                stringRes("camera_value_megapixels", lensPrefix, megapixels.roundToInt()),
+                copyable = false,
+            )
+        }
+        if (minAperture != null) {
+            InfoRow(stringRes("camera_field_aperture"), Formatters.oneDecimal(minAperture), copyable = false)
+        }
+        if (bestVideo != null) {
+            InfoRow(
+                stringRes("camera_field_max_video_resolution"),
+                stringRes(
+                    "camera_value_video_res_fps",
+                    resolutionLabel(bestVideo.maxVideoWidth, bestVideo.maxVideoHeight),
+                    bestVideo.maxVideoFps,
+                ),
+                copyable = false,
+            )
+        }
+        if (bestSlowMo != null) {
+            InfoRow(
+                stringRes("camera_field_max_video_speed"),
+                stringRes(
+                    "camera_value_video_speed",
+                    bestSlowMo.maxSlowMoFps,
+                    resolutionLabel(bestSlowMo.slowMoWidth, bestSlowMo.slowMoHeight),
+                ),
+                copyable = false,
+            )
+        }
+        InfoRow(
+            stringRes("camera_field_optical_stabilization"),
+            if (hasOis) "1" else "0",
+            copyable = false,
+        )
+        if (bestPhoto != null) {
+            InfoRow(
+                stringRes("camera_field_max_photo_resolution"),
+                "${bestPhoto.maxPhotoWidth} × ${bestPhoto.maxPhotoHeight}",
+                copyable = false,
+            )
+        }
+        if (shortestExposure != null) {
+            InfoRow(
+                stringRes("camera_field_shortest_exposure"),
+                formatExposure(shortestExposure),
+                copyable = false,
+            )
+        }
+        InfoRow(stringRes("camera_field_flash"), if (lenses.any { it.hasFlash }) stringRes("common_yes") else stringRes("common_no"), copyable = false, showDivider = longestExposure != null)
+        if (longestExposure != null) {
+            InfoRow(
+                stringRes("camera_field_longest_exposure"),
+                formatExposure(longestExposure),
+                copyable = false,
+                showDivider = false,
+            )
+        }
     }
 }
 
+/** Maps a pixel size to a familiar video label (based on the shorter side): 4k, 1080p, 720p, … */
+private fun resolutionLabel(width: Int, height: Int): String {
+    val v = minOf(width, height)
+    return when {
+        v >= 4320 -> "8k"
+        v >= 2160 -> "4k"
+        v >= 1440 -> "1440p"
+        v >= 1080 -> "1080p"
+        v >= 720 -> "720p"
+        v > 0 -> "${v}p"
+        else -> "—"
+    }
+}
+
+/** Exposure as a shutter fraction, e.g. 21µs → "1/47619 sec", 1s → "1/1 sec". */
 @Composable
-private fun SpecBadge(text: String) {
-    val colors = AppTheme.colors
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = colors.cameraColor,
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(colors.cameraColor.copy(alpha = 0.1f))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-    )
+private fun formatExposure(nanos: Long): String {
+    val seconds = nanos / 1_000_000_000.0
+    val denom = if (seconds > 0.0) (1.0 / seconds).roundToInt().coerceAtLeast(1) else 1
+    return stringRes("camera_value_exposure", denom)
 }
