@@ -190,4 +190,14 @@ object KoinBridge {
     fun settingsStore(): SettingsStore = requireNotNull(koin).get()
     fun authGateway(): IosAuthGateway = requireNotNull(koin).get()
     fun entitlementsStore(): PremiumEntitlementsStore = requireNotNull(koin).get()
+
+    /**
+     * Whether real StoreKit is the entitlement source of truth (release/App Store builds). Mirrors
+     * [initKoin]'s `useDevBilling = Platform.isDebugBinary`. Debug builds unlock premium through the
+     * local [IosDevBillingGateway] instead, so the Swift StoreKit bridge must NOT run — otherwise its
+     * launch sync would clear the locally-saved dev entitlement on every relaunch (dev premium would
+     * not persist, unlike Android's local dev unlock).
+     */
+    @OptIn(ExperimentalNativeApi::class)
+    fun usesRealBilling(): Boolean = !Platform.isDebugBinary
 }

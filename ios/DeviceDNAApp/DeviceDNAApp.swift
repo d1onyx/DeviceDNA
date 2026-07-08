@@ -40,7 +40,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             reloadWidgetTimelines: { WidgetCenter.shared.reloadAllTimelines() }
         ))
         AuthBridge.shared.startListening()
-        StoreKitBilling.shared.start()
+        // Only run the StoreKit entitlement bridge when real billing is the source of truth
+        // (release/App Store). In debug builds premium is granted locally by IosDevBillingGateway and
+        // persisted in the entitlements store; StoreKit's launch sync would otherwise clear that dev
+        // entitlement on every relaunch (premium wouldn't persist, unlike Android's local dev unlock).
+        if KoinBridge.shared.usesRealBilling() {
+            StoreKitBilling.shared.start()
+        }
 
         // 2b. Populate the widget snapshot immediately on launch so a freshly-added
         //     widget doesn't sit on its placeholder until the next background
