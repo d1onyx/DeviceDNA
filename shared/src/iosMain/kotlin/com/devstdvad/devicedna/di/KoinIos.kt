@@ -1,11 +1,9 @@
 package com.devstdvad.devicedna.di
 
 import com.devstdvad.devicedna.background.IosBackgroundWorker
-import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.data.alerts.IosSmartAlertNotifier
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.IosAuthGateway
-import com.devstdvad.devicedna.data.batteryintelligence.BatteryHistoryTracker
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.batteryintelligence.IosBatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.settings.IosSettingsStore
@@ -58,7 +56,6 @@ import com.devstdvad.devicedna.platform.IosSoundManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
@@ -149,7 +146,7 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
             appGroupId = deps.appGroupId,
         )
     }
-    single { IosBackgroundWorker(get(), get(), get(), get(), get(), get(), get()) }
+    single { IosBackgroundWorker(get(), get(), get()) }
 }
 
 /**
@@ -187,26 +184,9 @@ object KoinBridge {
                 .drop(1)
                 .collect { widgetBridge.refresh() }
         }
-
-        // App-wide battery-history recorder: records on ANY screen while the app is foregrounded,
-        // not just while the BatteryIntelligence screen is open. iOS suspends this coroutine in the
-        // background (where the scene-transition/BGTask worker takes over), so it costs nothing while
-        // suspended. Mirrors Android's always-on BatteryMonitoringService — history must not be tied
-        // to one screen. Routed through the shared tracker so the premium/tracking gate is identical.
-        val historyStore = instance.get<BatteryIntelligenceHistoryStore>()
-        val batteryRepository = instance.get<BatteryRepository>()
-        val historyTracker = instance.get<BatteryHistoryTracker>()
-        scope.launch {
-            combine(
-                entitlementsStore.entitlements,
-                batteryRepository.observeBatteryInfo(),
-                historyStore.chargingTrackingEnabled,
-            ) { entitlements, batteryResult, trackingEnabled ->
-                Triple(entitlements, (batteryResult as? AppResult.Success)?.value, trackingEnabled)
-            }.collect { (entitlements, info, trackingEnabled) ->
-                historyTracker.onBatterySample(entitlements, info, trackingEnabled)
-            }
-        }
+        // NOTE: Battery Intelligence is deactivated on iOS (see BatteryIntelligence tab gating in
+        // navigation/NavRoutes.kt), so there is no app-wide battery-history recorder here. The
+        // feature's code stays compiled but unwired on iOS; it remains fully active on Android.
     }
 
     fun backgroundWorker(): IosBackgroundWorker = requireNotNull(koin).get()

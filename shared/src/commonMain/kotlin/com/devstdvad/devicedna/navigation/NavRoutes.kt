@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.devstdvad.devicedna.platform.PlatformInfo
 
 object NavRoutes {
     // Bottom nav root destinations
@@ -55,11 +56,15 @@ data class BottomNavItem(
     val icon: ImageVector,
 )
 
-val bottomNavItems = listOf(
-    BottomNavItem(NavRoutes.DASHBOARD, "nav_dashboard", Icons.Outlined.Speed),
-    BottomNavItem(NavRoutes.HARDWARE, "nav_hardware", Icons.Outlined.Memory),
-    BottomNavItem(NavRoutes.SYSTEM, "nav_system_hub", Icons.Outlined.PhoneAndroid),
-    BottomNavItem(NavRoutes.APPS, "nav_apps", Icons.Outlined.Apps),
-    BottomNavItem(NavRoutes.TESTS, "nav_tests", Icons.AutoMirrored.Outlined.FactCheck),
-    BottomNavItem(NavRoutes.BATTERY_INTELLIGENCE, "nav_battery_intelligence", Icons.Outlined.BatteryChargingFull),
-)
+val bottomNavItems: List<BottomNavItem> = buildList {
+    add(BottomNavItem(NavRoutes.DASHBOARD, "nav_dashboard", Icons.Outlined.Speed))
+    add(BottomNavItem(NavRoutes.HARDWARE, "nav_hardware", Icons.Outlined.Memory))
+    add(BottomNavItem(NavRoutes.SYSTEM, "nav_system_hub", Icons.Outlined.PhoneAndroid))
+    add(BottomNavItem(NavRoutes.APPS, "nav_apps", Icons.Outlined.Apps))
+    add(BottomNavItem(NavRoutes.TESTS, "nav_tests", Icons.AutoMirrored.Outlined.FactCheck))
+    // Battery Intelligence is deactivated on iOS (no viable continuous background monitoring there);
+    // it stays a full bottom-nav destination on Android.
+    if (!PlatformInfo.isIos) {
+        add(BottomNavItem(NavRoutes.BATTERY_INTELLIGENCE, "nav_battery_intelligence", Icons.Outlined.BatteryChargingFull))
+    }
+}

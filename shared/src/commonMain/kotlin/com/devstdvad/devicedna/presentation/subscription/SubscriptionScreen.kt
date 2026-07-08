@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.common.MetricStatus
+import com.devstdvad.devicedna.platform.PlatformInfo
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.ErrorBanner
 import com.devstdvad.devicedna.core.design.component.SectionCard
@@ -180,13 +181,16 @@ fun SubscriptionScreen(
                         detail = stringRes("subscription_feature_widgets_detail"),
                         active = state.widgets,
                     )
-                    Spacer(Modifier.height(8.dp))
-                    PremiumFeatureRow(
-                        icon = Icons.Outlined.BatteryChargingFull,
-                        title = stringRes("subscription_feature_battery_title"),
-                        detail = stringRes("subscription_feature_battery_detail"),
-                        active = state.batteryIntelligence,
-                    )
+                    // Battery Intelligence is deactivated on iOS; don't advertise it there.
+                    if (!PlatformInfo.isIos) {
+                        Spacer(Modifier.height(8.dp))
+                        PremiumFeatureRow(
+                            icon = Icons.Outlined.BatteryChargingFull,
+                            title = stringRes("subscription_feature_battery_title"),
+                            detail = stringRes("subscription_feature_battery_detail"),
+                            active = state.batteryIntelligence,
+                        )
+                    }
                     Spacer(Modifier.height(8.dp))
                     PremiumFeatureRow(
                         icon = Icons.Outlined.MonitorHeart,
