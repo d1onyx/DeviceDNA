@@ -179,8 +179,8 @@
     <string name="subscription_feature_battery_detail">Unlock battery health analysis, charging history, wear forecast, cycle stats and analytics export.</string>
     <string name="subscription_feature_smart_alerts_title">Smart Alerts</string>
     <string name="subscription_feature_smart_alerts_detail">Receive proactive notifications for overheating, low battery, full storage, high RAM and slow charging.</string>
-    <string name="subscription_dev_title">Dev payment mode</string>
-    <string name="subscription_dev_body">This build simulates a purchase locally. Real billing can replace this gateway later without changing the screen flow.</string>
+    <string name="subscription_dev_title">Get Premium</string>
+    <string name="subscription_dev_body">Subscribe to unlock all premium features. You can cancel anytime.</string>
     <string name="subscription_activate_dev">Activate Premium</string>
     <string name="subscription_active_button">Premium active</string>
     <string name="subscription_restore">Restore purchases</string>
@@ -271,6 +271,9 @@
     <string name="settings_alert_high_ram">High RAM usage</string>
     <string name="settings_alert_slow_charging">Slow charging</string>
     <string name="notif_channel_smart_alerts">Smart Alerts</string>
+    <string name="notif_channel_battery_monitoring">Battery monitoring</string>
+    <string name="battery_monitoring_notif_title">Battery monitoring active</string>
+    <string name="battery_monitoring_notif_body">DeviceDNA is recording charging changes for Battery Intelligence.</string>
     <string name="alert_cpu_overheating_title">CPU is overheating</string>
     <string name="alert_cpu_overheating_body">Device temperature is high. Let it cool down to avoid throttling and battery stress.</string>
     <string name="alert_low_battery_title">Battery is low</string>

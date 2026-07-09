@@ -179,8 +179,8 @@
     <string name="subscription_feature_battery_detail">Schaltet Akkuzustand, Ladeverlauf, Verschleißprognose, Zyklusstatistiken und Analyseexport frei.</string>
     <string name="subscription_feature_smart_alerts_title">Smart Alerts</string>
     <string name="subscription_feature_smart_alerts_detail">Erhalten Sie Warnungen bei Überhitzung, niedrigem Akku, vollem Speicher, hoher RAM-Nutzung und langsamem Laden.</string>
-    <string name="subscription_dev_title">Dev-Zahlungsmodus</string>
-    <string name="subscription_dev_body">Dieser Build simuliert einen Kauf lokal. Echte Abrechnung kann später dieses Gateway ersetzen, ohne den Screen-Flow zu ändern.</string>
+    <string name="subscription_dev_title">Premium holen</string>
+    <string name="subscription_dev_body">Abonniere Premium, um alle Premium-Funktionen freizuschalten. Jederzeit kündbar.</string>
     <string name="subscription_activate_dev">Premium aktivieren</string>
     <string name="subscription_active_button">Premium aktiv</string>
     <string name="subscription_restore">Käufe wiederherstellen</string>

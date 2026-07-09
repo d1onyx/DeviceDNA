@@ -1,46 +1,56 @@
 # DeviceDNA iOS
 
-A native SwiftUI iOS app with full hardware diagnostics, Firebase Authentication, and Google Sign-In.
+The iOS app shares its UI and business logic with Android through the Kotlin
+Multiplatform `shared` module (Compose Multiplatform). The native Swift layer is a
+thin shell that hosts the shared Compose UI and bridges the platform SDKs that must
+be native on iOS: Firebase Authentication with Google/Apple Sign-In, AdMob, and
+StoreKit billing.
+
+## Project layout
+
+- **Shared UI & logic** — `shared/src/iosMain` (Kotlin).
+  `ui/MainViewController.kt` exposes the shared Compose UI as a `UIViewController`;
+  screens, navigation, DI (`di/KoinIos.kt`), and the iOS data sources
+  (`data/source/IosRepositories.kt`) live under the same tree, on top of
+  `shared/commonMain`.
+- **Native shell** — `ios/DeviceDNAApp/*.swift`:
+  - `DeviceDNAApp.swift` — SwiftUI `@main` entry; configures Firebase and Google
+    Sign-In, hosts the Compose `UIViewController`, and runs background refresh tasks.
+  - `AuthBridge.swift` — Firebase Auth with Google and Apple Sign-In.
+  - `AdsHost.swift` — AdMob banner and interstitial.
+  - `StoreKitBilling.swift` — StoreKit subscription purchase and restore.
+- **Project generation** — `ios/project.yml` (XcodeGen) and `ios/Podfile`
+  (CocoaPods). There is no committed `.xcodeproj`; it is generated from `project.yml`.
 
 ## Setup (requires macOS + Xcode)
 
-### 1. Create Xcode project
-
-Open Xcode → File → New → Project → App
-- Product Name: `DeviceDNAApp`
-- Team: your Apple Developer account
-- Bundle ID: `com.devstdvad.devicedna`
-- Interface: SwiftUI
-- Language: Swift
-- Save to: `ios/` (this directory)
-
-Add all `.swift` files from `ios/DeviceDNAApp/` to the Xcode project.
-
-### 2. Install CocoaPods dependencies
-
 ```sh
 cd ios
-pod install
+xcodegen generate          # builds DeviceDNAApp.xcodeproj from project.yml
+pod install                # Firebase, GoogleSignIn, AdMob pods
 open DeviceDNAApp.xcworkspace
 ```
 
-### 3. Firebase Configuration
+The Xcode "Build Kotlin shared framework" build phase runs
+`./gradlew :shared:embedAndSignAppleFrameworkForXcode`, so the `shared` framework is
+recompiled and embedded on every build.
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Create a project (or use the same one as Android)
-3. Add iOS app with bundle ID `com.devstdvad.devicedna`
-4. Download `GoogleService-Info.plist` and add it to the Xcode project root
-5. Enable **Google Sign-In** under Authentication → Sign-in providers
-6. In Firebase Console → Authentication → Settings → Authorized domains, ensure your domain is listed
+### Firebase configuration
 
-### 4. URL Scheme
+1. In the Firebase Console (same project as Android), add an iOS app with the bundle
+   id `com.devstdvad.devicedna` (or the customer's `iosBundleId`).
+2. Enable **Google** under Authentication → Sign-in method.
+3. Place `GoogleService-Info.plist` in `ios/DeviceDNAApp/`.
+   `scripts/setup-firebase-auth.sh` can download it for you. (This file is
+   gitignored; `GoogleService-Info.plist.example` is the committed template.)
+4. The Google Sign-In URL scheme must equal the `REVERSED_CLIENT_ID` value from the
+   plist — it is set in `project.yml`; regenerate the project with `xcodegen` after
+   changing it.
 
-In Xcode → Target → Info → URL Types, add:
-- URL Schemes: the `REVERSED_CLIENT_ID` value from `GoogleService-Info.plist`
+### Entitlements (optional, for Wi-Fi SSID)
 
-### 5. Entitlements (optional, for SSID access)
-
-To read the current Wi-Fi SSID, add `com.apple.developer.networking.wifi-info` entitlement and enable it in App Capabilities.
+To read the current Wi-Fi SSID, add the `com.apple.developer.networking.wifi-info`
+entitlement and enable it in the App capabilities.
 
 ## What's collected on iOS
 
@@ -61,17 +71,3 @@ To read the current Wi-Fi SSID, add `com.apple.developer.networking.wifi-info` e
 | App list | ❌ iOS privacy restriction |
 | Battery capacity / cycles | ❌ iOS private API |
 | Carrier / SIM info | ❌ Requires special entitlement |
-
-## Architecture
-
-- `DeviceDNAApp.swift` — App entry, Firebase/Google setup
-- `AuthState.swift` — Firebase auth state management (ObservableObject)
-- `ContentView.swift` — Root routing (auth gate → TabView)
-- `HardwareService.swift` — All native hardware data collection
-- `DesignSystem.swift` — Shared colors, MetricCard, InfoRow, GaugeCard
-- `AuthView.swift` — Sign-in screen
-- `DashboardView.swift` — Overview with gauges
-- `HardwareView.swift` — Hardware tabs (Device/CPU/Battery/Display/Camera)
-- `SystemView.swift` — OS, Memory, Network, Sensors
-- `AppsView.swift` — App list (restricted, explains iOS policy)
-- `SettingsView.swift` — User prefs + sign out

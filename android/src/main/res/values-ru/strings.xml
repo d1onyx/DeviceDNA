@@ -179,8 +179,8 @@
     <string name="subscription_feature_battery_detail">Открывает анализ здоровья батареи, историю зарядки, прогноз износа, статистику циклов и экспорт аналитики.</string>
     <string name="subscription_feature_smart_alerts_title">Smart Alerts</string>
     <string name="subscription_feature_smart_alerts_detail">Получайте уведомления о перегреве, низком заряде, заполненной памяти, высокой RAM и медленной зарядке.</string>
-    <string name="subscription_dev_title">Dev-режим оплаты</string>
-    <string name="subscription_dev_body">Эта сборка локально имитирует покупку. Позже реальный биллинг сможет заменить этот gateway без изменения потока экрана.</string>
+    <string name="subscription_dev_title">Получить Premium</string>
+    <string name="subscription_dev_body">Оформите подписку, чтобы разблокировать все функции Premium. Отменить можно в любой момент.</string>
     <string name="subscription_activate_dev">Активировать Premium</string>
     <string name="subscription_active_button">Premium активен</string>
     <string name="subscription_restore">Восстановить покупки</string>

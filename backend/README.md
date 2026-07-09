@@ -49,6 +49,12 @@ A user is treated as premium when `status` is one of `active`, `trialing`, or
 Google Play subscriptions keep access only when `expires_at` is still in the
 future.
 
+Deleting an account first cancels any active Google Play subscription stored for
+that Firebase UID, then deletes the Neon `users` row. If Google Play credentials
+are missing or cancellation fails, `DELETE /v1/me` fails and the app keeps the
+Firebase account so the user is not left with a paid subscription tied to deleted
+account data.
+
 Real Google Play purchases are verified by the backend:
 
 ```http

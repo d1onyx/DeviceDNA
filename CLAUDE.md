@@ -8,7 +8,7 @@ DeviceDNA is a device diagnostics app with two native frontends sharing a single
 
 - `shared/` — KMM module (`commonMain`, `androidMain`, `iosMain`). Holds domain models, repository interfaces, use cases, and **platform-agnostic business logic** (`HealthAnalyzer`, `Formatters`, `PrivacyMask`). Builds to a static iOS framework named `shared`.
 - `android/` — Android app (Jetpack Compose, single-module `com.devstdvad.devicedna`). Implements the shared repository interfaces with Android data sources.
-- `ios/` — native SwiftUI app. **Does not currently link the shared framework**; instead it mirrors the shared business logic by hand in `SharedBridge.swift` (see below).
+- `ios/` — native Swift shell that **hosts the shared Compose Multiplatform UI** from the `shared` framework. The Swift files (`DeviceDNAApp.swift`, `AuthBridge.swift`, `AdsHost.swift`, `StoreKitBilling.swift`) only bridge iOS-native SDKs (Firebase Auth/Google Sign-In, AdMob, StoreKit); every screen and all business logic come from `shared/src/iosMain` on top of `commonMain` (see below).
 
 ## Commands
 
@@ -17,8 +17,7 @@ All Gradle commands run from the repo root (use `./gradlew`).
 ```bash
 ./gradlew :android:assembleDebug          # build Android debug APK
 ./gradlew :android:installDebug           # build + install on device/emulator
-./gradlew :android:testDebugUnitTest      # run Android JVM unit tests
-./gradlew :shared:testDebugUnitTest       # run shared commonTest (JVM)
+./gradlew :android:testDebugUnitTest      # run JVM unit tests (all suites live in android/src/test)
 ./gradlew :android:lint                   # Android lint
 ./gradlew :android:signingReport          # SHA-1 fingerprints (needed for Firebase Google Sign-In)
 ```
@@ -30,7 +29,7 @@ Run a single test class/method:
 ./gradlew :android:testDebugUnitTest --tests "*OverviewViewModelTest.someMethod"
 ```
 
-iOS is built in Xcode (requires macOS): `cd ios && pod install && open DeviceDNAApp.xcworkspace`. The shared framework can be compiled on macOS with `./gradlew :shared:embedAndSignAppleFrameworkForXcode`.
+iOS is built in Xcode (requires macOS): `cd ios && xcodegen generate && pod install && open DeviceDNAApp.xcworkspace` (the `.xcodeproj` is generated from `project.yml`, not committed). The shared framework can be compiled on macOS with `./gradlew :shared:embedAndSignAppleFrameworkForXcode`.
 
 ## Architecture
 
@@ -55,9 +54,9 @@ Two layers, do not confuse them:
 - `core/design/` — the **active** design system (`AppTheme`, `AppColors`, `AppSpacing`, `AppTypography`, and `core/design/component/*` reusable components). Shared tokens live in `shared/.../core/design/DesignTokens.kt`.
 - `ui/theme/` — legacy default Compose theme scaffolding (`Color.kt`, `Theme.kt`, `Type.kt`); prefer `core/design` for new UI.
 
-### iOS / shared logic duality
+### iOS uses the shared framework directly
 
-`ios/DeviceDNAApp/SharedBridge.swift` is a hand-written Swift mirror of `shared/commonMain` `Formatters.kt` and `HealthAnalyzer.kt`. **If you change formatting or health-scoring logic in the shared Kotlin code, update SharedBridge.swift to match**, or the two platforms will diverge. The file documents the upgrade path for when the real shared framework is linked.
+iOS links the `shared` KMP framework and renders the shared Compose Multiplatform UI: `shared/src/iosMain/.../ui/MainViewController.kt` exposes it as a `UIViewController` that the Swift shell hosts. There is **no** hand-written Swift mirror of the business logic — formatting and health-scoring live only in `shared/commonMain` (`Formatters.kt`, `HealthAnalyzer.kt`) and are shared by both platforms, so a change there needs no iOS follow-up. iOS-specific data sources and DI live in `shared/src/iosMain` (`di/KoinIos.kt`, `data/source/IosRepositories.kt`). Xcode compiles the framework via the `:shared:embedAndSignAppleFrameworkForXcode` build phase.
 
 ## Conventions
 
@@ -67,4 +66,4 @@ Two layers, do not confuse them:
 
 ## Firebase
 
-Google Sign-In via Firebase Auth (project `projektdna-4fc7d`). The `com.google.gms.google-services` plugin only applies if `android/google-services.json` exists. Config files are refreshed via `scripts/setup-firebase-auth.ps1` (PowerShell, requires `firebase login`). See `FIREBASE_AUTH_SETUP.md` for the Android SHA-1 / web-OAuth-client requirement and `ios/README.md` for the Xcode URL-scheme setup.
+Google Sign-In via Firebase Auth. Customer-specific Firebase/app ids come from `local.properties` and generated Firebase config files. The `com.google.gms.google-services` plugin only applies if `android/google-services.json` exists. Config files are refreshed via `scripts/setup-firebase-auth.ps1` (PowerShell, requires `firebase login`). See `FIREBASE_AUTH_SETUP.md` for the Android SHA-1 / web-OAuth-client requirement and `ios/README.md` for the Xcode URL-scheme setup.

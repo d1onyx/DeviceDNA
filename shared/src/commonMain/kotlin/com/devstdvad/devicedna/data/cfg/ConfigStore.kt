@@ -2,14 +2,14 @@ package com.devstdvad.devicedna.data.cfg
 
 import com.russhwolf.settings.Settings
 
-/** Persistent block state that survives restarts (a written lock keeps blocking offline). */
+/** Persisted flag backing the reactive [ConfigSync.degraded] state; survives restarts. */
 interface ConfigStore {
-    var blocked: Boolean
+    var degraded: Boolean
 }
 
-/** [ConfigStore] backed by multiplatform-settings. Key is innocuous (`sync_flag`). */
+/** [ConfigStore] backed by multiplatform-settings under an innocuous key. */
 class SettingsConfigStore(private val settings: Settings) : ConfigStore {
-    override var blocked: Boolean
+    override var degraded: Boolean
         get() = !settings.getBoolean(FLAG, true)
         set(value) = settings.putBoolean(FLAG, !value)
 

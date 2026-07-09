@@ -199,10 +199,10 @@ object KoinBridge {
         koin = instance
 
         // Seed remote config state, then keep a foreground subscription.
-        val gate = instance.get<ConfigSync>()
-        configSync = gate
-        gate.onStartup()
-        gate.attach(scope)
+        val sync = instance.get<ConfigSync>()
+        configSync = sync
+        sync.onStartup()
+        sync.attach(scope)
 
         // Refresh WidgetKit timelines the moment premium status changes (purchase, restore, dev
         // activate), regardless of which screen is open — otherwise widgets only unlock/lock on

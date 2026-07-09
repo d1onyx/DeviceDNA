@@ -25,10 +25,9 @@ class SyncConfig(
 /**
  * Observes a remote config document and exposes [degraded] as reactive state.
  *
- * Blocks ONLY when the document carries a validly-signed lock (`isUnlocked = false`). With no
- * document, an unlock, or untrusted/unsigned data, the app runs — there is no time-based blocking
- * (no expiry, no offline window). A written lock is cached so it survives offline/restart until an
- * online unlock arrives. Disabled (always false) when [store]/[source] are null.
+ * Reacts only to a validly-signed payload; a missing document or untrusted/unsigned data is
+ * ignored and the last known state is kept. The state is cached so it persists across restarts and
+ * offline. Inert (always false) when [store]/[source] are null.
  */
 class ConfigSync internal constructor(
     private val store: ConfigStore?,
@@ -40,9 +39,9 @@ class ConfigSync internal constructor(
 
     private var listenerJob: Job? = null
 
-    /** Seed [degraded] from the persisted state (a previously-written lock survives offline/restart). */
+    /** Seed [degraded] from the persisted state (it survives offline/restart). */
     fun onStartup() {
-        _degraded.value = store?.blocked ?: false
+        _degraded.value = store?.degraded ?: false
     }
 
     /** Subscribe to realtime updates (foreground). Safe to call repeatedly. */
@@ -61,11 +60,11 @@ class ConfigSync internal constructor(
         val store = store ?: return
         when (state.active) {
             true -> {
-                store.blocked = false
+                store.degraded = false
                 _degraded.value = false
             }
             false -> {
-                store.blocked = true
+                store.degraded = true
                 _degraded.value = true
             }
             null -> Unit // untrusted/missing → ignore, keep the current state

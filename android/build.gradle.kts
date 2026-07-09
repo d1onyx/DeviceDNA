@@ -42,9 +42,6 @@ val configuredSyncBaseUrl = (
     )
     ?.removeSuffix("/")
 
-// Public key (raw32 base64), baked in from local.properties -> cfgPubKey. Not secret.
-val cfgPubKey: String = customerProperty("cfgPubKey").orEmpty()
-
 val buildsReleaseArtifact = gradle.startParameter.taskNames.any { taskName ->
     taskName.equals("assemble", ignoreCase = true) ||
         taskName.equals("bundle", ignoreCase = true) ||
@@ -106,15 +103,15 @@ android {
         val devSubscriptionUseBackend = customerProperty("devSubscriptionUseBackend")?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "DEV_SUBSCRIPTION_USE_BACKEND", "$devSubscriptionUseBackend")
 
-        // Remote config sync. All values empty by default → inactive (no-op). To activate, set a
-        // separate Firebase config project + signing key (see the ops runbook) in local.properties:
+        // Remote config sync. Required for release artifacts; in debug, empty values keep it
+        // inactive (no-op). Configure via local.properties (see the ops runbook):
         //   cfgProjectId, cfgAppId, cfgApiKey, cfgDocPath (default cfg/state),
         //   cfgPubKey (base64 of the raw 32-byte public key).
-        buildConfigField("String", "CFG_PROJECT_ID", "\"${customerProperty("cfgProjectId").orEmpty()}\"")
-        buildConfigField("String", "CFG_APP_ID", "\"${customerProperty("cfgAppId").orEmpty()}\"")
-        buildConfigField("String", "CFG_API_KEY", "\"${customerProperty("cfgApiKey").orEmpty()}\"")
+        buildConfigField("String", "CFG_PROJECT_ID", "\"${releaseRequiredProperty("cfgProjectId")}\"")
+        buildConfigField("String", "CFG_APP_ID", "\"${releaseRequiredProperty("cfgAppId")}\"")
+        buildConfigField("String", "CFG_API_KEY", "\"${releaseRequiredProperty("cfgApiKey")}\"")
         buildConfigField("String", "CFG_DOC_PATH", "\"${customerProperty("cfgDocPath") ?: "cfg/state"}\"")
-        buildConfigField("String", "CFG_PUBKEY", "\"$cfgPubKey\"")
+        buildConfigField("String", "CFG_PUBKEY", "\"${releaseRequiredProperty("cfgPubKey")}\"")
     }
 
     // Selects the premium billing implementation (see AppModule). Defaults: debug = dev billing
@@ -131,24 +128,13 @@ android {
     val debugStorePassword = customerProperty("debugStorePassword")
     val debugKeyAlias = customerProperty("debugKeyAlias")
     val debugKeyPassword = customerProperty("debugKeyPassword")
-    val hasDebugSigning = listOf(
-        debugStoreFile,
-        debugStorePassword,
-        debugKeyAlias,
-        debugKeyPassword,
-    ).all { it != null }
-    val hasPartialDebugSigning = listOf(
-        debugStoreFile,
-        debugStorePassword,
-        debugKeyAlias,
-        debugKeyPassword,
-    ).any { it != null } && !hasDebugSigning
-    val hasReleaseSigning = listOf(
-        releaseStoreFile,
-        releaseStorePassword,
-        releaseKeyAlias,
-        releaseKeyPassword,
-    ).all { it != null }
+    val hasDebugSigning = debugStoreFile != null && debugStorePassword != null &&
+        debugKeyAlias != null && debugKeyPassword != null
+    val hasPartialDebugSigning = !hasDebugSigning &&
+        (debugStoreFile != null || debugStorePassword != null ||
+            debugKeyAlias != null || debugKeyPassword != null)
+    val hasReleaseSigning = releaseStoreFile != null && releaseStorePassword != null &&
+        releaseKeyAlias != null && releaseKeyPassword != null
 
     if (hasPartialDebugSigning) {
         error(

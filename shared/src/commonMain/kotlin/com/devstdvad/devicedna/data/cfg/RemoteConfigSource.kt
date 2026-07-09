@@ -8,19 +8,20 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** Validated remote state: true = active, false = locked, null = untrusted/missing (ignored). */
+/** Validated remote state: true = active, false = degraded, null = untrusted/missing (ignored). */
 data class RemoteState(val active: Boolean?)
 
 @Serializable
-private data class Payload(val isUnlocked: Boolean)
+private data class Payload(@SerialName("isUnlocked") val active: Boolean)
 
 /**
- * Reads a signed document from Firestore (GitLive) and validates it. The document carries a base64
- * payload plus a base64 signature over the raw payload bytes; only a valid signature is trusted, so
- * the value cannot be spoofed by controlling the network or the backend.
+ * Reads a signed config document from Firestore (GitLive) and validates its signature before
+ * trusting the payload. The document carries a base64 payload plus a base64 signature over the raw
+ * payload bytes; the value is only used when the signature verifies.
  */
 @OptIn(ExperimentalEncodingApi::class)
 class RemoteConfigSource(
@@ -54,6 +55,6 @@ class RemoteConfigSource(
         if (!check.verify(payloadBytes, sigBytes)) return RemoteState(null)
         val parsed = runCatching { json.decodeFromString<Payload>(payloadBytes.decodeToString()) }
             .getOrNull() ?: return RemoteState(null)
-        return RemoteState(parsed.isUnlocked)
+        return RemoteState(parsed.active)
     }
 }

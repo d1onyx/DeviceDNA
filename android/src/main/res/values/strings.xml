@@ -186,8 +186,8 @@
     <string name="subscription_feature_battery_detail">Unlock battery health analysis, charging history, wear forecast, cycle stats and analytics export.</string>
     <string name="subscription_feature_smart_alerts_title">Smart Alerts</string>
     <string name="subscription_feature_smart_alerts_detail">Receive proactive notifications for overheating, low battery, full storage, high RAM and slow charging.</string>
-    <string name="subscription_dev_title">Dev payment mode</string>
-    <string name="subscription_dev_body">This build simulates a purchase locally. Real billing can replace this gateway later without changing the screen flow.</string>
+    <string name="subscription_dev_title">Get Premium</string>
+    <string name="subscription_dev_body">Subscribe to unlock all premium features. You can cancel anytime.</string>
     <string name="subscription_activate_dev">Activate Premium</string>
     <string name="subscription_active_button">Premium active</string>
     <string name="subscription_restore">Restore purchases</string>
