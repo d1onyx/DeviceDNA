@@ -58,8 +58,8 @@ targets:
         buildPhase: resources
       # Secondary Firebase plist. Uncomment once DeviceDNAApp/GoogleService-Info-CfgSync.plist exists
       # (XcodeGen fails on a missing path) so it ships in the bundle like the primary plist.
-       - path: DeviceDNAApp/GoogleService-Info-CfgSync.plist
-         buildPhase: resources
+      - path: DeviceDNAApp/GoogleService-Info-CfgSync.plist
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IOS_APP_BUNDLE_ID)
