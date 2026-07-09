@@ -4,6 +4,7 @@ import { getDb } from "../db/client";
 import { userSubscriptions, users, type UserSubscriptionRow } from "../db/schema";
 import type { AppBindings } from "../types";
 import {
+  cancelGooglePlaySubscription,
   mapGooglePlayStatus,
   parseNullableDate,
   verifyGooglePlaySubscription,
@@ -21,6 +22,8 @@ const allowedSubscriptionStatuses = new Set([
 ]);
 
 export type Db = ReturnType<typeof getDb>;
+
+const cancelBeforeAccountDeleteStatuses = new Set(["active", "trialing", "grace_period"]);
 
 export interface SubscriptionView {
   premium: boolean;
@@ -353,4 +356,79 @@ export async function findUserUidByPurchaseToken(db: Db, purchaseToken: string):
     .limit(1);
 
   return rows[0]?.userUid ?? null;
+}
+
+export type AccountSubscriptionCancellationResult =
+  | { ok: true; canceled: boolean }
+  | {
+      ok: false;
+      error:
+        | "google_play_not_configured"
+        | "google_play_purchase_token_missing"
+        | "subscription_cancellation_failed";
+      detail?: string;
+    };
+
+export async function cancelAccountSubscriptionBeforeDelete(
+  db: Db,
+  env: AppBindings["Bindings"],
+  userUid: string,
+): Promise<AccountSubscriptionCancellationResult> {
+  const rows = await db
+    .select({
+      provider: userSubscriptions.provider,
+      status: userSubscriptions.status,
+      latestPurchaseToken: userSubscriptions.latestPurchaseToken,
+    })
+    .from(userSubscriptions)
+    .where(eq(userSubscriptions.userUid, userUid))
+    .limit(1);
+  const subscription = rows[0];
+
+  if (!subscription) {
+    return { ok: true, canceled: false };
+  }
+
+  if (
+    subscription.provider !== "google_play" ||
+    !cancelBeforeAccountDeleteStatuses.has(subscription.status)
+  ) {
+    return { ok: true, canceled: false };
+  }
+
+  const packageName = env.GOOGLE_PLAY_PACKAGE_NAME;
+  const serviceAccountEmail = env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = env.GOOGLE_PLAY_PRIVATE_KEY;
+  if (!packageName || !serviceAccountEmail || !privateKey) {
+    return { ok: false, error: "google_play_not_configured" };
+  }
+
+  const purchaseToken = subscription.latestPurchaseToken?.trim();
+  if (!purchaseToken) {
+    return { ok: false, error: "google_play_purchase_token_missing" };
+  }
+
+  try {
+    await cancelGooglePlaySubscription({
+      packageName,
+      serviceAccountEmail,
+      privateKey,
+      purchaseToken,
+      // Account deletion is permanent, so do not leave a restoreable Play subscription behind.
+      cancellationType: "DEVELOPER_REQUESTED_STOP_PAYMENTS",
+    });
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      error: "subscription_cancellation_failed",
+      detail: error instanceof Error ? error.message : "Google Play cancellation failed.",
+    };
+  }
+
+  await db
+    .update(userSubscriptions)
+    .set({ status: "canceled", updatedAt: new Date() })
+    .where(eq(userSubscriptions.userUid, userUid));
+
+  return { ok: true, canceled: true };
 }

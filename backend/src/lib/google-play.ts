@@ -26,6 +26,15 @@ export interface VerifyGooglePlaySubscriptionParams extends GooglePlayCredential
   purchaseToken: string;
 }
 
+export type GooglePlaySubscriptionCancellationType =
+  | "USER_REQUESTED_STOP_RENEWALS"
+  | "DEVELOPER_REQUESTED_STOP_PAYMENTS";
+
+export interface CancelGooglePlaySubscriptionParams extends GooglePlayCredentials {
+  purchaseToken: string;
+  cancellationType: GooglePlaySubscriptionCancellationType;
+}
+
 export async function verifyGooglePlaySubscription(
   params: VerifyGooglePlaySubscriptionParams,
 ): Promise<GooglePlaySubscriptionPurchase> {
@@ -47,6 +56,34 @@ export async function verifyGooglePlaySubscription(
   }
 
   return await res.json() as GooglePlaySubscriptionPurchase;
+}
+
+export async function cancelGooglePlaySubscription(
+  params: CancelGooglePlaySubscriptionParams,
+): Promise<void> {
+  const accessToken = await getGoogleAccessToken(params.serviceAccountEmail, params.privateKey);
+  const packageName = encodeURIComponent(params.packageName);
+  const purchaseToken = encodeURIComponent(params.purchaseToken);
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}/purchases/subscriptionsv2/tokens/${purchaseToken}:cancel`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      cancellationContext: {
+        cancellationType: params.cancellationType,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Google Play subscription cancellation failed: HTTP ${res.status} ${detail}`);
+  }
 }
 
 async function getGoogleAccessToken(serviceAccountEmail: string, privateKey: string): Promise<string> {

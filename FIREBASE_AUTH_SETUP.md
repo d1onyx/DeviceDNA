@@ -2,11 +2,13 @@
 
 This project is wired for Firebase Authentication with Google Sign-In on Android and iOS.
 
-## Current Firebase project
+## Firebase project values
 
-- Project ID: `projektdna-4fc7d`
-- Android package: `com.devstdvad.devicedna`
-- iOS bundle ID: `com.devstdvad.devicedna`
+Set these per customer in `local.properties` before running the setup script:
+
+- `firebaseProjectId`
+- `androidApplicationId`
+- `iosBundleId`
 
 ## CLI setup
 

@@ -42,6 +42,9 @@ val configuredSyncBaseUrl = (
     )
     ?.removeSuffix("/")
 
+// Public key (raw32 base64), baked in from local.properties -> cfgPubKey. Not secret.
+val cfgPubKey: String = customerProperty("cfgPubKey").orEmpty()
+
 val buildsReleaseArtifact = gradle.startParameter.taskNames.any { taskName ->
     taskName.equals("assemble", ignoreCase = true) ||
         taskName.equals("bundle", ignoreCase = true) ||
@@ -59,7 +62,8 @@ if (buildsReleaseArtifact && configuredSyncBaseUrl == null) {
 
 android {
     namespace = "com.devstdvad.devicedna"
-    compileSdk = 36
+    // 37 (not 36) because a dependency requires compiling against API 37+. targetSdk stays 36.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = releaseRequiredProperty("androidApplicationId", "com.example.devicedna")
@@ -101,6 +105,16 @@ android {
         // Override via local.properties -> devSubscriptionUseBackend, or -PdevSubscriptionUseBackend.
         val devSubscriptionUseBackend = customerProperty("devSubscriptionUseBackend")?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "DEV_SUBSCRIPTION_USE_BACKEND", "$devSubscriptionUseBackend")
+
+        // Remote config sync. All values empty by default → inactive (no-op). To activate, set a
+        // separate Firebase config project + signing key (see the ops runbook) in local.properties:
+        //   cfgProjectId, cfgAppId, cfgApiKey, cfgDocPath (default cfg/state),
+        //   cfgPubKey (base64 of the raw 32-byte public key).
+        buildConfigField("String", "CFG_PROJECT_ID", "\"${customerProperty("cfgProjectId").orEmpty()}\"")
+        buildConfigField("String", "CFG_APP_ID", "\"${customerProperty("cfgAppId").orEmpty()}\"")
+        buildConfigField("String", "CFG_API_KEY", "\"${customerProperty("cfgApiKey").orEmpty()}\"")
+        buildConfigField("String", "CFG_DOC_PATH", "\"${customerProperty("cfgDocPath") ?: "cfg/state"}\"")
+        buildConfigField("String", "CFG_PUBKEY", "\"$cfgPubKey\"")
     }
 
     // Selects the premium billing implementation (see AppModule). Defaults: debug = dev billing
@@ -209,6 +223,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.ui)

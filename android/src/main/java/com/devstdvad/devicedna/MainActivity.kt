@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,6 +19,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.devstdvad.devicedna.core.AppPhase
+import com.devstdvad.devicedna.core.AppReadiness
+import com.devstdvad.devicedna.core.PreparingScreen
 import com.devstdvad.devicedna.core.notification.WidgetPromoNotifier
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.collectAsState
@@ -44,8 +48,10 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val settingsStore: SettingsStore by inject()
+    private val appReadiness: AppReadiness by inject()
     private val authViewModel: AuthViewModel by viewModel()
     private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d(AUTH_LOG_TAG, "Google Sign-In resultCode=${result.resultCode}, hasData=${result.data != null}")
         authViewModel.handleGoogleSignInResult(result.data)
     }
     private val notificationPermissionLauncher =
@@ -60,6 +66,7 @@ class MainActivity : ComponentActivity() {
         pendingRoute = extractRoute(intent)
         maybeAnnounceWidgets()
         setContent {
+            val phase by appReadiness.phase.collectAsState()
             val settings by settingsStore.settings.collectAsState(initial = UserSettings())
             val authState by authViewModel.uiState.collectAsState()
             val scope = rememberCoroutineScope()
@@ -89,41 +96,46 @@ class MainActivity : ComponentActivity() {
                 LocalConfiguration provides localizedConfiguration,
             ) {
                 AppTheme(darkTheme = darkTheme, language = AppLanguage.fromTag(settings.appLanguage)) {
-                    val interstitialManager = com.devstdvad.devicedna.ads.rememberInterstitialAdManager(
-                        adUnitId = BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID,
-                    )
-                    val interstitial = remember(interstitialManager) {
-                        com.devstdvad.devicedna.ads.AndroidInterstitialAds(interstitialManager)
+                    when (phase) {
+                        AppPhase.Preparing -> PreparingScreen()
+                        AppPhase.Ready -> {
+                            val interstitialManager = com.devstdvad.devicedna.ads.rememberInterstitialAdManager(
+                                adUnitId = BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID,
+                            )
+                            val interstitial = remember(interstitialManager) {
+                                com.devstdvad.devicedna.ads.AndroidInterstitialAds(interstitialManager)
+                            }
+                            AppNavigation(
+                                settings = settings,
+                                authState = authState,
+                                deepLinkRoute = pendingRoute,
+                                onDeepLinkHandled = { pendingRoute = null },
+                                onGoogleSignIn = { forceAccountPicker ->
+                                    authViewModel.launchGoogleSignIn(
+                                        forceAccountPicker = forceAccountPicker,
+                                        launch = googleSignInLauncher::launch,
+                                    )
+                                },
+                                onOnboardingComplete = {
+                                    scope.launch { settingsStore.setOnboardingComplete(true) }
+                                },
+                                interstitial = interstitial,
+                                topBanner = { enabled ->
+                                    com.devstdvad.devicedna.ads.AdMobTopBanner(
+                                        adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID,
+                                        enabled = enabled,
+                                    )
+                                },
+                                widgetsContent = { onBack, onSubscribe, padding ->
+                                    com.devstdvad.devicedna.presentation.widgets.WidgetsScreen(
+                                        onBackClick = onBack,
+                                        onSubscribeClick = onSubscribe,
+                                        contentPadding = padding,
+                                    )
+                                },
+                            )
+                        }
                     }
-                    AppNavigation(
-                        settings = settings,
-                        authState = authState,
-                        deepLinkRoute = pendingRoute,
-                        onDeepLinkHandled = { pendingRoute = null },
-                        onGoogleSignIn = { forceAccountPicker ->
-                            authViewModel.launchGoogleSignIn(
-                                forceAccountPicker = forceAccountPicker,
-                                launch = googleSignInLauncher::launch,
-                            )
-                        },
-                        onOnboardingComplete = {
-                            scope.launch { settingsStore.setOnboardingComplete(true) }
-                        },
-                        interstitial = interstitial,
-                        topBanner = { enabled ->
-                            com.devstdvad.devicedna.ads.AdMobTopBanner(
-                                adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID,
-                                enabled = enabled,
-                            )
-                        },
-                        widgetsContent = { onBack, onSubscribe, padding ->
-                            com.devstdvad.devicedna.presentation.widgets.WidgetsScreen(
-                                onBackClick = onBack,
-                                onSubscribeClick = onSubscribe,
-                                contentPadding = padding,
-                            )
-                        },
-                    )
                 }
             }
         }
@@ -187,5 +199,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_ROUTE = "devicedna.extra.ROUTE"
+        private const val AUTH_LOG_TAG = "DeviceDNA/Auth"
     }
 }

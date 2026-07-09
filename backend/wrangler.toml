@@ -18,7 +18,7 @@ PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"
 # (or automatically via ./setup-cloudflare.sh)
 [[kv_namespaces]]
 binding = "PUBLIC_JWK_CACHE_KV"
-id = "REPLACE_AFTER_wrangler_kv_namespace_create"
+id = "6a1cf461e6554ee99ee8b87ae4425d41"
 
 # [MIGRATE] The DATABASE_URL (Neon) secret is set separately, NOT here:
 #   wrangler secret put DATABASE_URL

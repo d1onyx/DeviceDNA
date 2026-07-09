@@ -13,11 +13,12 @@ kotlin {
 
     android {
         namespace = "com.devstdvad.devicedna.shared"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
 
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            // 17 (not 11) because GitLive Firestore's inline functions are built for JVM 17.
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 
@@ -60,9 +61,17 @@ kotlin {
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+
+            // Remote config: GitLive Firestore + multiplatform-settings for the persistent store.
+            implementation(libs.firebase.gitlive.firestore)
+            implementation(libs.multiplatform.settings)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
+            // Firebase BOM supplies the versions for the native Firestore SDK that GitLive wraps.
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            // Ed25519 verification (works on minSdk 26, unlike java.security "Ed25519" which needs API 33).
+            implementation(libs.bouncycastle.prov)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

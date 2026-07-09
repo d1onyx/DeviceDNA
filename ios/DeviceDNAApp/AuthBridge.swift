@@ -39,6 +39,33 @@ final class AuthBridge: NSObject {
                 GIDSignIn.sharedInstance.signOut()
                 done()
             }
+        },
+        deleteAccountAction: { onResult in
+            guard let user = Auth.auth().currentUser else { onResult("deleted"); return }
+            let deleteNow: () -> Void = {
+                user.delete { error in
+                    if let ns = error as NSError?, ns.code == AuthErrorCode.requiresRecentLogin.rawValue {
+                        onResult("reauth")
+                    } else if error != nil {
+                        onResult("failed")
+                    } else {
+                        GIDSignIn.sharedInstance.signOut()
+                        onResult("deleted")
+                    }
+                }
+            }
+            // Refresh the Google credential first so delete isn't rejected for a stale login.
+            GIDSignIn.sharedInstance.restorePreviousSignIn { gUser, _ in
+                if let gUser = gUser, let idToken = gUser.idToken?.tokenString {
+                    let credential = GoogleAuthProvider.credential(
+                        withIDToken: idToken,
+                        accessToken: gUser.accessToken.tokenString
+                    )
+                    user.reauthenticate(with: credential) { _, _ in deleteNow() }
+                } else {
+                    deleteNow()
+                }
+            }
         }
     )
 

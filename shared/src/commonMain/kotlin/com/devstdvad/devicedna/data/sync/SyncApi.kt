@@ -9,12 +9,14 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
 
 enum class AccountStatus {
@@ -48,8 +50,8 @@ class SyncApi(
                     error("Account check failed: $error.")
                 }
             }
-            HttpStatusCode.NotFound,
-            HttpStatusCode.Unauthorized -> AccountStatus.NotFound
+            HttpStatusCode.NotFound -> AccountStatus.NotFound
+            HttpStatusCode.Unauthorized -> error("Account check unauthorized: ${response.errorCode()}.")
             else -> error("Account check failed with HTTP ${response.status.value}.")
         }
     }
@@ -85,6 +87,12 @@ class SyncApi(
         client.get("$baseUrl/v1/subscription") {
             bearerAuth(idToken)
         }.body()
+
+    /** Delete the account and all associated backend data. Returns true on a 2xx response. */
+    suspend fun deleteAccountData(idToken: String): Boolean =
+        client.delete("$baseUrl/v1/me") {
+            bearerAuth(idToken)
+        }.status.isSuccess()
 }
 
 private suspend fun HttpResponse.errorCode(): String =

@@ -97,6 +97,12 @@ import com.devstdvad.devicedna.presentation.subscription.SubscriptionViewModel
 import com.devstdvad.devicedna.presentation.system.SystemViewModel
 import com.devstdvad.devicedna.presentation.tests.TestsViewModel
 import com.devstdvad.devicedna.presentation.thermal.ThermalViewModel
+import com.devstdvad.devicedna.core.AppReadiness
+import com.devstdvad.devicedna.data.cfg.ConfigSync
+import com.devstdvad.devicedna.data.cfg.buildAndroidConfigSync
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -108,6 +114,16 @@ val appModule = module {
     single { AuthRepository(androidContext()) }
     single<com.devstdvad.devicedna.data.auth.AuthGateway> { get<AuthRepository>() }
     viewModelOf(::AuthViewModel)
+
+    single<ConfigSync> {
+        buildAndroidConfigSync(
+            context = androidContext(),
+            cfgProjectId = BuildConfig.CFG_PROJECT_ID,
+            cfgDocPath = BuildConfig.CFG_DOC_PATH,
+            publicKeyBase64 = BuildConfig.CFG_PUBKEY,
+        )
+    }
+    single { AppReadiness(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
 
     // Feedback
     single<HapticManager> { com.devstdvad.devicedna.core.feedback.AndroidHapticManager(androidContext()) }

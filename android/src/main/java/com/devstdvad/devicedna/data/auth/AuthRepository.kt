@@ -4,12 +4,16 @@ package com.devstdvad.devicedna.data.auth
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.channels.awaitClose
@@ -77,14 +81,25 @@ class AuthRepository(private val context: Context) : AuthGateway {
         val account = try {
             GoogleSignIn.getSignedInAccountFromIntent(data).await()
         } catch (exception: ApiException) {
+            Log.w(AUTH_LOG_TAG, "Google Sign-In failed with status ${exception.statusCode}.", exception)
+            if (exception.statusCode == GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
+                throw GoogleSignInCancelledException(exception)
+            }
             throw IllegalStateException(
-                "Google sign-in failed with status ${exception.statusCode}. " +
-                    "If this is 10, refresh android/google-services.json after adding the SHA-1 in Firebase.",
+                exception.googleSignInMessage(),
                 exception,
             )
         }
         val token = account.idToken ?: error("Google did not return an ID token.")
-        auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
+        try {
+            auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).await()
+        } catch (exception: Exception) {
+            Log.w(AUTH_LOG_TAG, "Firebase rejected the Google credential.", exception)
+            throw IllegalStateException(
+                "Firebase sign-in failed. Check that the Google provider is enabled in Firebase.",
+                exception,
+            )
+        }
     }
 
     override suspend fun signOut() {
@@ -107,12 +122,56 @@ class AuthRepository(private val context: Context) : AuthGateway {
         }
     }
 
+    override suspend fun deleteAccount(): AccountDeletionResult {
+        val auth = firebaseAuth ?: return AccountDeletionResult.Failed
+        val user = auth.currentUser ?: return AccountDeletionResult.Deleted
+        return try {
+            // Delete needs a recent login; refresh the credential silently first.
+            reauthenticateSilently(user)
+            user.delete().await()
+            // Revoke Google access so a later sign-in shows the account picker.
+            clearLocalSession(removeGoogleAccount = true)
+            AccountDeletionResult.Deleted
+        } catch (_: FirebaseAuthRecentLoginRequiredException) {
+            AccountDeletionResult.ReauthRequired
+        } catch (_: Exception) {
+            AccountDeletionResult.Failed
+        }
+    }
+
+    private suspend fun reauthenticateSilently(user: FirebaseUser) {
+        val clientId = webClientId.takeIf { it.isNotBlank() } ?: return
+        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(clientId)
+            .requestEmail()
+            .build()
+        val account = runCatching {
+            GoogleSignIn.getClient(context, options).silentSignIn().await()
+        }.getOrNull() ?: return
+        val token = account.idToken ?: return
+        runCatching { user.reauthenticate(GoogleAuthProvider.getCredential(token, null)).await() }
+    }
+
     private fun FirebaseUser.toAuthUser(): AuthUser = AuthUser(
         uid = uid,
         displayName = displayName.orEmpty().ifBlank { "DeviceDNA user" },
         email = email.orEmpty(),
         photoUrl = photoUrl?.toString(),
     )
+}
+
+class GoogleSignInCancelledException(cause: Throwable) :
+    Exception("Google sign-in was canceled before Google returned an account.", cause)
+
+private fun ApiException.googleSignInMessage(): String = when (statusCode) {
+    CommonStatusCodes.DEVELOPER_ERROR ->
+        "Google sign-in is not configured for this app. " +
+            "Refresh android/google-services.json after adding the SHA-1 in Firebase, then rebuild."
+    GoogleSignInStatusCodes.SIGN_IN_FAILED ->
+        "Google sign-in failed. Check that the Google provider is enabled in Firebase."
+    GoogleSignInStatusCodes.SIGN_IN_CURRENTLY_IN_PROGRESS ->
+        "Google sign-in is already in progress."
+    else -> "Google sign-in failed with status $statusCode."
 }
 
 private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
@@ -124,3 +183,5 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
         }
     }
 }
+
+private const val AUTH_LOG_TAG = "DeviceDNA/Auth"

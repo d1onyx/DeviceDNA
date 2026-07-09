@@ -4,6 +4,14 @@ package com.devstdvad.devicedna.resources
 // Regenerate via scripts if source strings change.
 internal object StringCatalog {
     val default: Map<String, String> = mapOf(
+        "settings_delete_account" to "Delete account",
+        "settings_delete_account_title" to "Delete account?",
+        "settings_delete_account_message" to "This permanently deletes your account and all associated data. This action cannot be undone.",
+        "settings_delete_account_confirm" to "Delete",
+        "settings_delete_account_cancel" to "Cancel",
+        "settings_delete_account_reauth" to "Please sign in again, then try deleting your account.",
+        "settings_delete_account_failed" to "Couldn't delete your account. Please try again.",
+
         "alert_cpu_overheating_body" to "Device temperature is high. Let it cool down to avoid throttling and battery stress.",
         "alert_cpu_overheating_title" to "CPU is overheating",
         "alert_high_ram_body" to "RAM usage is above 90%. Close heavy apps if the device feels slow.",
@@ -676,6 +684,14 @@ internal object StringCatalog {
         "subscription_operation_failed" to "Subscription operation failed.",
     )
     val en: Map<String, String> = mapOf(
+        "settings_delete_account" to "Delete account",
+        "settings_delete_account_title" to "Delete account?",
+        "settings_delete_account_message" to "This permanently deletes your account and all associated data. This action cannot be undone.",
+        "settings_delete_account_confirm" to "Delete",
+        "settings_delete_account_cancel" to "Cancel",
+        "settings_delete_account_reauth" to "Please sign in again, then try deleting your account.",
+        "settings_delete_account_failed" to "Couldn't delete your account. Please try again.",
+
         "alert_cpu_overheating_body" to "Device temperature is high. Let it cool down to avoid throttling and battery stress.",
         "alert_cpu_overheating_title" to "CPU is overheating",
         "alert_high_ram_body" to "RAM usage is above 90%. Close heavy apps if the device feels slow.",
@@ -1348,6 +1364,14 @@ internal object StringCatalog {
         "subscription_operation_failed" to "Subscription operation failed.",
     )
     val de: Map<String, String> = mapOf(
+        "settings_delete_account" to "Konto löschen",
+        "settings_delete_account_title" to "Konto löschen?",
+        "settings_delete_account_message" to "Damit werden dein Konto und alle zugehörigen Daten dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "settings_delete_account_confirm" to "Löschen",
+        "settings_delete_account_cancel" to "Abbrechen",
+        "settings_delete_account_reauth" to "Bitte melde dich erneut an und versuche dann, dein Konto zu löschen.",
+        "settings_delete_account_failed" to "Konto konnte nicht gelöscht werden. Bitte versuche es erneut.",
+
         "alert_cpu_overheating_body" to "Die Gerätetemperatur ist hoch. Lassen Sie es abkühlen, um Drosselung und Akkustress zu vermeiden.",
         "alert_cpu_overheating_title" to "CPU überhitzt",
         "alert_high_ram_body" to "Die RAM-Nutzung liegt über 90%. Schließen Sie schwere Apps, wenn das Gerät langsam wirkt.",
@@ -2005,6 +2029,14 @@ internal object StringCatalog {
         "subscription_operation_failed" to "Abo-Vorgang fehlgeschlagen.",
     )
     val ru: Map<String, String> = mapOf(
+        "settings_delete_account" to "Удалить аккаунт",
+        "settings_delete_account_title" to "Удалить аккаунт?",
+        "settings_delete_account_message" to "Это навсегда удалит ваш аккаунт и все связанные данные. Действие необратимо.",
+        "settings_delete_account_confirm" to "Удалить",
+        "settings_delete_account_cancel" to "Отмена",
+        "settings_delete_account_reauth" to "Пожалуйста, войдите снова, затем повторите удаление аккаунта.",
+        "settings_delete_account_failed" to "Не удалось удалить аккаунт. Попробуйте ещё раз.",
+
         "alert_cpu_overheating_body" to "Температура устройства высокая. Дайте ему остыть, чтобы избежать троттлинга и нагрузки на батарею.",
         "alert_cpu_overheating_title" to "CPU перегревается",
         "alert_high_ram_body" to "RAM занята более чем на 90%. Закройте тяжёлые приложения, если устройство работает медленно.",

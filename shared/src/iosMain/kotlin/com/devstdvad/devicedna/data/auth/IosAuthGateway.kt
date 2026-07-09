@@ -26,6 +26,7 @@ class IosAuthGateway(
     private val tokenFetcher: (onResult: (String?) -> Unit) -> Unit,
     private val signOutAction: (onDone: () -> Unit) -> Unit,
     private val clearSessionAction: (removeGoogleAccount: Boolean, onDone: () -> Unit) -> Unit,
+    private val deleteAccountAction: (onResult: (String) -> Unit) -> Unit,
 ) : AuthGateway {
 
     private val userFlow = MutableStateFlow<AuthUser?>(null)
@@ -68,4 +69,18 @@ class IosAuthGateway(
         suspendCancellableCoroutine { cont ->
             clearSessionAction(removeGoogleAccount) { if (cont.isActive) cont.resume(Unit) }
         }
+
+    override suspend fun deleteAccount(): AccountDeletionResult = suspendCancellableCoroutine { cont ->
+        deleteAccountAction { result ->
+            if (cont.isActive) {
+                cont.resume(
+                    when (result) {
+                        "deleted" -> AccountDeletionResult.Deleted
+                        "reauth" -> AccountDeletionResult.ReauthRequired
+                        else -> AccountDeletionResult.Failed
+                    },
+                )
+            }
+        }
+    }
 }

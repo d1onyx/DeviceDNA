@@ -66,6 +66,19 @@ class DeviceSyncManager(
         }
     }
 
+    /**
+     * Best-effort server-side purge of the account's data, called (while still authenticated) just
+     * before the Firebase Auth user is deleted. Returns true when the backend confirmed the delete.
+     */
+    suspend fun deleteAccountData(): Boolean {
+        val idToken = runCatching {
+            withTimeoutOrNull(ACCOUNT_CHECK_TIMEOUT_MS) { authRepository.getIdToken() }
+        }.getOrNull() ?: return false
+        return runCatching {
+            withTimeoutOrNull(ACCOUNT_CHECK_TIMEOUT_MS) { api.deleteAccountData(idToken) } ?: false
+        }.getOrDefault(false)
+    }
+
     suspend fun syncIfNeeded(force: Boolean = false): SyncOutcome {
         if (authRepository.uid == null) return SyncOutcome.NotSignedIn
         val idToken = authRepository.getIdToken() ?: return SyncOutcome.NotSignedIn

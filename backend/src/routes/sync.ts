@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { devices, users } from "../db/schema";
-import { getSubscriptionView } from "./subscriptions";
+import { cancelAccountSubscriptionBeforeDelete, getSubscriptionView } from "./subscriptions";
 import type { AppBindings } from "../types";
 
 export const syncRoutes = new Hono<AppBindings>();
@@ -24,6 +24,29 @@ syncRoutes.get("/me", async (c) => {
     premium: subscription.premium,
     subscription: subscription.subscription,
   });
+});
+
+// Delete the account and all associated data (App Store 5.1.1(v) / Google Play requirement).
+// The app calls this while still authenticated, right before it deletes the Firebase Auth user.
+// Removing the users row cascades to devices + user_subscriptions via their onDelete FKs.
+syncRoutes.delete("/me", async (c) => {
+  const claims = c.get("claims");
+  const db = getDb(c.env.DATABASE_URL);
+
+  const cancellation = await cancelAccountSubscriptionBeforeDelete(db, c.env, claims.uid);
+  if (!cancellation.ok) {
+    const status = cancellation.error === "subscription_cancellation_failed" ? 502 : 503;
+    return c.json(
+      {
+        error: cancellation.error,
+        detail: cancellation.detail ?? null,
+      },
+      status,
+    );
+  }
+
+  await db.delete(users).where(eq(users.firebaseUid, claims.uid));
+  return c.json({ deleted: true, subscriptionCanceled: cancellation.canceled });
 });
 
 // Cheap sync-status check for a specific device

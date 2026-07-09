@@ -34,4 +34,23 @@ interface AuthGateway {
 
     /** Clear the local session, optionally revoking the linked provider account. */
     suspend fun clearLocalSession(removeGoogleAccount: Boolean = false)
+
+    /**
+     * Permanently delete the signed-in account (App Store 5.1.1(v) / Google Play requirement).
+     * Deleting requires a recent login; when the cached credential is too old the caller must sign
+     * in again and retry ([AccountDeletionResult.ReauthRequired]).
+     */
+    suspend fun deleteAccount(): AccountDeletionResult
+}
+
+/** Outcome of [AuthGateway.deleteAccount]. */
+enum class AccountDeletionResult {
+    /** Account (and auth session) removed; the user flow returns to sign-in automatically. */
+    Deleted,
+
+    /** Credential too old — the user must sign in again, then retry. */
+    ReauthRequired,
+
+    /** Deletion failed for another reason (network, backend). */
+    Failed,
 }

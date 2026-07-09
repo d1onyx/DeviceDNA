@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.data.auth.AccountDeletionResult
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.AuthUser
 import com.devstdvad.devicedna.data.settings.AppThemeMode
@@ -10,14 +11,18 @@ import com.devstdvad.devicedna.data.settings.ExportFormat
 import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.data.settings.TemperatureUnit
 import com.devstdvad.devicedna.data.settings.UserSettings
+import com.devstdvad.devicedna.data.sync.DeviceSyncManager
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val settingsStore: SettingsStore,
     private val authRepository: AuthGateway,
+    private val syncManager: DeviceSyncManager,
 ) : ViewModel() {
 
     val settings: StateFlow<UserSettings> = settingsStore.settings.stateIn(
@@ -95,4 +100,36 @@ class SettingsViewModel(
     fun signOut() {
         viewModelScope.launch { authRepository.signOut() }
     }
+
+    private val _accountDeletion = MutableStateFlow(AccountDeletionUi.Idle)
+
+    /** Drives the delete-account button/dialog. On success the auth listener returns to sign-in. */
+    val accountDeletion: StateFlow<AccountDeletionUi> = _accountDeletion.asStateFlow()
+
+    fun deleteAccount() {
+        if (_accountDeletion.value == AccountDeletionUi.Deleting) return
+        _accountDeletion.value = AccountDeletionUi.Deleting
+        viewModelScope.launch {
+            // Purge server-side data first, while still authenticated. The backend also cancels
+            // any active Google Play subscription before deleting the account row.
+            if (!syncManager.deleteAccountData()) {
+                _accountDeletion.value = AccountDeletionUi.Failed
+                return@launch
+            }
+
+            _accountDeletion.value = when (authRepository.deleteAccount()) {
+                AccountDeletionResult.Deleted -> AccountDeletionUi.Idle
+                AccountDeletionResult.ReauthRequired -> AccountDeletionUi.ReauthRequired
+                AccountDeletionResult.Failed -> AccountDeletionUi.Failed
+            }
+        }
+    }
+
+    fun dismissDeletionError() {
+        if (_accountDeletion.value != AccountDeletionUi.Deleting) {
+            _accountDeletion.value = AccountDeletionUi.Idle
+        }
+    }
 }
+
+enum class AccountDeletionUi { Idle, Deleting, ReauthRequired, Failed }

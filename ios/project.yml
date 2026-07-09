@@ -29,6 +29,9 @@ settings:
     IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID: ca-app-pub-3940256099942544/4411468910
     # Must match Android's syncBaseUrl (local.properties) — same Cloudflare Worker backend.
     SYNC_BASE_URL: https://devicedna-sync.ravehent.workers.dev
+    # Remote config. Public key (raw32 base64) is not secret. CFG_DOC_PATH must match Android.
+    CFG_PUBKEY: e29neD6eZhhbkr1ZJDCOUfw4ylXttEOaaBnW5qMGAxc=
+    CFG_DOC_PATH: cfg/state
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
@@ -53,6 +56,10 @@ targets:
       # fix was written, since the code path was simply never reached at runtime.
       - path: DeviceDNAApp/GoogleService-Info.plist
         buildPhase: resources
+      # Secondary Firebase plist. Uncomment once DeviceDNAApp/GoogleService-Info-CfgSync.plist exists
+      # (XcodeGen fails on a missing path) so it ships in the bundle like the primary plist.
+       - path: DeviceDNAApp/GoogleService-Info-CfgSync.plist
+         buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IOS_APP_BUNDLE_ID)

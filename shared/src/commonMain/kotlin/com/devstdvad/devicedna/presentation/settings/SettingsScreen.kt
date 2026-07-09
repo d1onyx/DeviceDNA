@@ -49,6 +49,7 @@ import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.common.MetricStatus
@@ -165,6 +167,67 @@ fun SettingsScreen(
                         Spacer(Modifier.size(6.dp))
                         Text(stringRes("settings_sign_out"), color = colors.accent)
                     }
+                }
+
+                val deletion by viewModel.accountDeletion.collectAsState()
+                var showDeleteDialog by remember { mutableStateOf(false) }
+
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { showDeleteDialog = true },
+                    enabled = deletion != AccountDeletionUi.Deleting,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.critical,
+                        contentColor = Color.White,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (deletion == AccountDeletionUi.Deleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(stringRes("settings_delete_account"))
+                    }
+                }
+
+                if (showDeleteDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteDialog = false },
+                        title = { Text(stringRes("settings_delete_account_title")) },
+                        text = { Text(stringRes("settings_delete_account_message")) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showDeleteDialog = false
+                                viewModel.deleteAccount()
+                            }) {
+                                Text(stringRes("settings_delete_account_confirm"), color = colors.critical)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDeleteDialog = false }) {
+                                Text(stringRes("settings_delete_account_cancel"))
+                            }
+                        },
+                    )
+                }
+
+                val deletionError = when (deletion) {
+                    AccountDeletionUi.ReauthRequired -> stringRes("settings_delete_account_reauth")
+                    AccountDeletionUi.Failed -> stringRes("settings_delete_account_failed")
+                    else -> null
+                }
+                if (deletionError != null) {
+                    AlertDialog(
+                        onDismissRequest = viewModel::dismissDeletionError,
+                        title = { Text(stringRes("settings_delete_account_title")) },
+                        text = { Text(deletionError) },
+                        confirmButton = {
+                            TextButton(onClick = viewModel::dismissDeletionError) { Text("OK") }
+                        },
+                    )
                 }
             }
         }

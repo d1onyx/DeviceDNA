@@ -1,0 +1,59 @@
+package com.devstdvad.devicedna.data.cfg
+
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.app
+import dev.gitlive.firebase.firestore.DocumentSnapshot
+import dev.gitlive.firebase.firestore.firestore
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+/** Validated remote state: true = active, false = locked, null = untrusted/missing (ignored). */
+data class RemoteState(val active: Boolean?)
+
+@Serializable
+private data class Payload(val isUnlocked: Boolean)
+
+/**
+ * Reads a signed document from Firestore (GitLive) and validates it. The document carries a base64
+ * payload plus a base64 signature over the raw payload bytes; only a valid signature is trusted, so
+ * the value cannot be spoofed by controlling the network or the backend.
+ */
+@OptIn(ExperimentalEncodingApi::class)
+class RemoteConfigSource(
+    private val documentPath: String,
+    private val check: SignatureCheck,
+    private val appName: String? = null,
+    private val payloadField: String = "payload",
+    private val sigField: String = "sig",
+) {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    private val document
+        get() = (appName?.let { Firebase.firestore(Firebase.app(it)) } ?: Firebase.firestore)
+            .document(documentPath)
+
+    /** Cold stream from the realtime document listener. */
+    fun updates(): Flow<RemoteState> = document.snapshots.map(::evaluate)
+
+    private fun evaluate(snapshot: DocumentSnapshot): RemoteState {
+        if (!snapshot.exists || !snapshot.contains(payloadField) || !snapshot.contains(sigField)) {
+            return RemoteState(null)
+        }
+        return evaluate(snapshot.get<String>(payloadField), snapshot.get<String>(sigField))
+    }
+
+    /** Pure validation of the raw field strings. `internal` for unit testing without live Firestore. */
+    internal fun evaluate(payload: String?, sig: String?): RemoteState {
+        if (payload == null || sig == null) return RemoteState(null)
+        val payloadBytes = runCatching { Base64.decode(payload) }.getOrNull() ?: return RemoteState(null)
+        val sigBytes = runCatching { Base64.decode(sig) }.getOrNull() ?: return RemoteState(null)
+        if (!check.verify(payloadBytes, sigBytes)) return RemoteState(null)
+        val parsed = runCatching { json.decodeFromString<Payload>(payloadBytes.decodeToString()) }
+            .getOrNull() ?: return RemoteState(null)
+        return RemoteState(parsed.isUnlocked)
+    }
+}

@@ -1,12 +1,18 @@
 package com.devstdvad.devicedna
 
 import android.app.Application
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.devstdvad.devicedna.core.CurrentActivityHolder
+import com.devstdvad.devicedna.data.cfg.ConfigSync
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.di.appModule
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
 import com.google.android.gms.ads.MobileAds
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,11 +34,21 @@ class DeviceDnaApp : Application() {
         applicationScope.launch {
             MobileAds.initialize(this@DeviceDnaApp) {}
         }
+        // Secondary "cfg-sync" Firebase app (no-op unless configured).
+        initConfigSyncApp()
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@DeviceDnaApp)
             modules(appModule)
         }
+        // Seed remote config state before the first frame, then keep a foreground subscription.
+        val configSync = GlobalContext.get().get<ConfigSync>()
+        configSync.onStartup()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) = configSync.attach(applicationScope)
+            override fun onStop(owner: LifecycleOwner) = configSync.detach()
+        })
+
         // Track the foreground Activity so the Play Billing gateway can launch the purchase flow.
         GlobalContext.get().get<CurrentActivityHolder>().register(this)
 
@@ -47,5 +63,21 @@ class DeviceDnaApp : Application() {
                 .drop(1)
                 .collect { WidgetRefreshScheduler.refreshNow(this@DeviceDnaApp) }
         }
+    }
+
+    /** Initializes the secondary "cfg-sync" [FirebaseApp] from BuildConfig. Skipped when unset. */
+    private fun initConfigSyncApp() {
+        if (BuildConfig.CFG_PROJECT_ID.isBlank()) return
+        if (FirebaseApp.getApps(this).any { it.name == CFG_APP_NAME }) return
+        val options = FirebaseOptions.Builder()
+            .setProjectId(BuildConfig.CFG_PROJECT_ID)
+            .setApplicationId(BuildConfig.CFG_APP_ID)
+            .setApiKey(BuildConfig.CFG_API_KEY)
+            .build()
+        FirebaseApp.initializeApp(this, options, CFG_APP_NAME)
+    }
+
+    private companion object {
+        const val CFG_APP_NAME = "cfg-sync"
     }
 }

@@ -6,6 +6,13 @@ import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.IosAuthGateway
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
 import com.devstdvad.devicedna.data.batteryintelligence.IosBatteryIntelligenceHistoryStore
+import com.devstdvad.devicedna.core.AppReadiness
+import com.devstdvad.devicedna.data.cfg.ConfigSync
+import com.devstdvad.devicedna.data.cfg.SignatureCheck
+import com.devstdvad.devicedna.data.cfg.SyncConfig
+import com.devstdvad.devicedna.data.cfg.buildConfigSync
+import com.russhwolf.settings.NSUserDefaultsSettings
+import platform.Foundation.NSUserDefaults
 import com.devstdvad.devicedna.data.settings.IosSettingsStore
 import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.data.source.IosAppsRepository
@@ -74,6 +81,10 @@ class IosAppDependencies(
     val syncBaseUrl: String,
     val appGroupId: String,
     val reloadWidgetTimelines: () -> Unit,
+    // Remote config sync. [verifySignature] is provided by Swift; disabled while [cfgEnabled] is false.
+    val cfgEnabled: Boolean = false,
+    val cfgDocPath: String = "cfg/state",
+    val verifySignature: (message: ByteArray, signature: ByteArray) -> Boolean = { _, _ -> false },
 )
 
 private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module {
@@ -131,6 +142,20 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
         )
     }
 
+    single<ConfigSync> {
+        val verifier: SignatureCheck? =
+            if (deps.cfgEnabled) SignatureCheck(deps.verifySignature) else null
+        val config = SyncConfig(
+            enabled = deps.cfgEnabled,
+            documentPath = deps.cfgDocPath,
+            appName = "cfg-sync",
+            publicKeyBase64 = "",
+        )
+        val settings = NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
+        buildConfigSync(config, settings, verifier)
+    }
+    single { AppReadiness(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+
     // Widgets / alerts / background
     single { IosSmartAlertNotifier() }
     single {
@@ -165,12 +190,19 @@ fun initKoin(deps: IosAppDependencies): Koin {
 /** Swift-friendly accessors for objects the host needs directly. */
 object KoinBridge {
     private var koin: Koin? = null
+    private var configSync: ConfigSync? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     fun start(deps: IosAppDependencies) {
         if (koin != null) return
         val instance = initKoin(deps)
         koin = instance
+
+        // Seed remote config state, then keep a foreground subscription.
+        val gate = instance.get<ConfigSync>()
+        configSync = gate
+        gate.onStartup()
+        gate.attach(scope)
 
         // Refresh WidgetKit timelines the moment premium status changes (purchase, restore, dev
         // activate), regardless of which screen is open — otherwise widgets only unlock/lock on
@@ -187,6 +219,16 @@ object KoinBridge {
         // NOTE: Battery Intelligence is deactivated on iOS (see BatteryIntelligence tab gating in
         // navigation/NavRoutes.kt), so there is no app-wide battery-history recorder here. The
         // feature's code stays compiled but unwired on iOS; it remains fully active on Android.
+    }
+
+    /** Re-subscribe on foreground (scenePhase == .active). */
+    fun attachConfigSync() {
+        configSync?.attach(scope)
+    }
+
+    /** Drop the subscription on background. */
+    fun detachConfigSync() {
+        configSync?.detach()
     }
 
     fun backgroundWorker(): IosBackgroundWorker = requireNotNull(koin).get()
