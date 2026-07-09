@@ -197,7 +197,15 @@ fun SettingsScreen(
                     AlertDialog(
                         onDismissRequest = { showDeleteDialog = false },
                         title = { Text(stringRes("settings_delete_account_title")) },
-                        text = { Text(stringRes("settings_delete_account_message")) },
+                        text = {
+                            val message = stringRes("settings_delete_account_message") +
+                                if (premiumActive) {
+                                    "\n\n" + stringRes("settings_delete_account_subscription_note")
+                                } else {
+                                    ""
+                                }
+                            Text(message)
+                        },
                         confirmButton = {
                             TextButton(onClick = {
                                 showDeleteDialog = false

@@ -4,6 +4,7 @@ package com.devstdvad.devicedna.resources
 // Regenerate via scripts if source strings change.
 internal object StringCatalog {
     val default: Map<String, String> = mapOf(
+        "settings_delete_account_subscription_note" to "Deleting your account does not cancel your subscription — manage or cancel it in Google Play / the App Store.",
         "settings_delete_account" to "Delete account",
         "settings_delete_account_title" to "Delete account?",
         "settings_delete_account_message" to "This permanently deletes your account and all associated data. This action cannot be undone.",
@@ -684,6 +685,7 @@ internal object StringCatalog {
         "subscription_operation_failed" to "Subscription operation failed.",
     )
     val en: Map<String, String> = mapOf(
+        "settings_delete_account_subscription_note" to "Deleting your account does not cancel your subscription — manage or cancel it in Google Play / the App Store.",
         "settings_delete_account" to "Delete account",
         "settings_delete_account_title" to "Delete account?",
         "settings_delete_account_message" to "This permanently deletes your account and all associated data. This action cannot be undone.",
@@ -1364,6 +1366,7 @@ internal object StringCatalog {
         "subscription_operation_failed" to "Subscription operation failed.",
     )
     val de: Map<String, String> = mapOf(
+        "settings_delete_account_subscription_note" to "Das Löschen deines Kontos kündigt dein Abo nicht — verwalte oder kündige es in Google Play / im App Store.",
         "settings_delete_account" to "Konto löschen",
         "settings_delete_account_title" to "Konto löschen?",
         "settings_delete_account_message" to "Damit werden dein Konto und alle zugehörigen Daten dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
@@ -2029,6 +2032,7 @@ internal object StringCatalog {
         "subscription_operation_failed" to "Abo-Vorgang fehlgeschlagen.",
     )
     val ru: Map<String, String> = mapOf(
+        "settings_delete_account_subscription_note" to "Удаление аккаунта не отменяет подписку — управляйте ею или отмените в Google Play / App Store.",
         "settings_delete_account" to "Удалить аккаунт",
         "settings_delete_account_title" to "Удалить аккаунт?",
         "settings_delete_account_message" to "Это навсегда удалит ваш аккаунт и все связанные данные. Действие необратимо.",

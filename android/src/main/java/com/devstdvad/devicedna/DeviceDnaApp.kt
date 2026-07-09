@@ -5,6 +5,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.devstdvad.devicedna.core.CurrentActivityHolder
+import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.cfg.ConfigSync
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
@@ -18,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
@@ -62,6 +64,21 @@ class DeviceDnaApp : Application() {
                 .distinctUntilChanged()
                 .drop(1)
                 .collect { WidgetRefreshScheduler.refreshNow(this@DeviceDnaApp) }
+        }
+
+        // Reconcile entitlements with Google Play on every sign-in. Play is the source of truth, so
+        // this re-grants a still-active subscription even after an account deletion wiped the backend
+        // record (deleting the app account never cancels the store subscription). Real billing only —
+        // dev billing would grant a fake unlock on each sign-in.
+        if (BuildConfig.USE_REAL_BILLING) {
+            val authGateway = GlobalContext.get().get<AuthGateway>()
+            applicationScope.launch {
+                authGateway.currentUser
+                    .map { it?.uid }
+                    .distinctUntilChanged()
+                    .filterNotNull()
+                    .collect { runCatching { subscriptionRepository.restorePurchases() } }
+            }
         }
     }
 
