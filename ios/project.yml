@@ -54,12 +54,17 @@ targets:
       # never runs, and GIDSignIn.sharedInstance.configuration never gets set —
       # producing the exact same "no active configuration" NSException as before that
       # fix was written, since the code path was simply never reached at runtime.
+      # The Firebase plists hold real keys, so they are gitignored and provided per environment
+      # (locally by scripts/setup-firebase-auth.sh; on CI decoded from a secret before the build).
+      # `optional: true` lets `xcodegen generate` succeed when a plist is absent; when present it
+      # still ships in the bundle. Matches the app's runtime tolerance (FirebaseApp.configure() is
+      # gated on the plist existing).
       - path: DeviceDNAApp/GoogleService-Info.plist
         buildPhase: resources
-      # Secondary Firebase plist. Uncomment once DeviceDNAApp/GoogleService-Info-CfgSync.plist exists
-      # (XcodeGen fails on a missing path) so it ships in the bundle like the primary plist.
+        optional: true
       - path: DeviceDNAApp/GoogleService-Info-CfgSync.plist
         buildPhase: resources
+        optional: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IOS_APP_BUNDLE_ID)
