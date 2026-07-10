@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { accountRegistry } from "./middleware/account-registry";
 import { firebaseAuth } from "./middleware/auth";
 import { firebaseAccountExists } from "./middleware/firebase-account";
+import { accountDeletionRoutes } from "./routes/account-deletion";
 import { authRoutes } from "./routes/auth";
 import { playRtdnRoutes } from "./routes/play-rtdn";
 import { internalSubscriptionRoutes, subscriptionRoutes } from "./routes/subscriptions";
@@ -13,6 +14,9 @@ const v1Routes = new Hono<AppBindings>();
 
 // Health-check (no auth)
 app.get("/", (c) => c.json({ ok: true, service: "devicedna-sync" }));
+
+// Public account-deletion page (no auth) — required by Google Play; put the URL in Play Console.
+app.route("/account-deletion", accountDeletionRoutes);
 
 // All /v1 routes require a valid Firebase ID token and a live Firebase account.
 v1Routes.use("*", firebaseAuth);

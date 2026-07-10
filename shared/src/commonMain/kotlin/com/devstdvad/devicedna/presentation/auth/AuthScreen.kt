@@ -3,6 +3,8 @@ package com.devstdvad.devicedna.presentation.auth
 import com.devstdvad.devicedna.resources.stringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -231,6 +233,11 @@ private fun PrivacyConsentRow(
             .clip(RoundedCornerShape(16.dp))
             .background(colors.surfaceElevated)
             .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { onAcceptedChange(!accepted) },
+            )
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

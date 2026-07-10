@@ -13,15 +13,15 @@ options:
 
 settings:
   base:
-    IOS_APP_BUNDLE_ID: com.example.devicedna
-    IOS_WIDGET_BUNDLE_ID: com.example.devicedna.widgets
-    IOS_APP_GROUP_ID: group.com.example.devicedna
-    IOS_BACKGROUND_TASK_ID: com.example.devicedna.refresh
+    IOS_APP_BUNDLE_ID: com.devstdvad.devicedna
+    IOS_WIDGET_BUNDLE_ID: com.devstdvad.devicedna.widgets
+    IOS_APP_GROUP_ID: group.com.devstdvad.devicedna
+    IOS_BACKGROUND_TASK_ID: com.devstdvad.devicedna.refresh
     IOS_DEEP_LINK_SCHEME: devicedna
     # Must match REVERSED_CLIENT_ID in DeviceDNAApp/GoogleService-Info.plist —
     # registers the OAuth redirect URL scheme Google Sign-In needs at runtime.
     GOOGLE_REVERSED_CLIENT_ID: com.googleusercontent.apps.871047083437-4rj58iqogjt6jv6tj3478bu15emk0fb9
-    IOS_STOREKIT_PREMIUM_PRODUCT_ID: YOUR_IOS_STOREKIT_PREMIUM_PRODUCT_ID
+    IOS_STOREKIT_PREMIUM_PRODUCT_ID: com.devstdvad.devicedna.premium.yearly
     # Google's official test IDs (safe for dev/testing — always serve test ads,
     # never earn revenue). Replace with real AdMob console values before release.
     IOS_ADMOB_APP_ID: ca-app-pub-3940256099942544~1458002511

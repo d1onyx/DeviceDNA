@@ -95,25 +95,41 @@ final class AuthBridge: NSObject {
     /// Launches the Google Sign-In sheet and exchanges the Google credential for Firebase.
     func signIn(forceAccountPicker: Bool) {
         DispatchQueue.main.async {
+            NSLog("DeviceDNA/Auth: Google sign-in requested forceAccountPicker=%@", forceAccountPicker ? "true" : "false")
             // GIDSignIn.signIn(withPresenting:) raises an uncatchable NSException (not a
             // Swift error) if `.configuration` was never set — e.g. because Firebase
             // failed to configure. Guard on it explicitly so a misconfigured build fails
             // silently instead of crashing the whole app.
-            guard GIDSignIn.sharedInstance.configuration != nil else { return }
-            guard let presenter = Self.topViewController() else { return }
+            guard GIDSignIn.sharedInstance.configuration != nil else {
+                NSLog("DeviceDNA/Auth: Google sign-in ignored because GIDSignIn configuration is missing")
+                return
+            }
+            guard let presenter = Self.topViewController() else {
+                NSLog("DeviceDNA/Auth: Google sign-in ignored because no presenting view controller was found")
+                return
+            }
             if forceAccountPicker {
                 GIDSignIn.sharedInstance.signOut()
             }
             GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { result, error in
-                guard error == nil,
-                      let idToken = result?.user.idToken?.tokenString,
+                if let error {
+                    NSLog("DeviceDNA/Auth: Google sign-in failed: %@", error.localizedDescription)
+                    return
+                }
+                guard let idToken = result?.user.idToken?.tokenString,
                       let accessToken = result?.user.accessToken.tokenString
-                else { return }
+                else {
+                    NSLog("DeviceDNA/Auth: Google sign-in did not return both ID and access tokens")
+                    return
+                }
                 let credential = GoogleAuthProvider.credential(
                     withIDToken: idToken,
                     accessToken: accessToken
                 )
-                Auth.auth().signIn(with: credential) { _, _ in
+                Auth.auth().signIn(with: credential) { _, error in
+                    if let error {
+                        NSLog("DeviceDNA/Auth: Firebase rejected Google credential: %@", error.localizedDescription)
+                    }
                     // State listener publishes the result into the Kotlin gateway.
                 }
             }
@@ -125,6 +141,7 @@ final class AuthBridge: NSObject {
     /// Apple enabled as a provider in Firebase Auth (see ios/README.md).
     func signInWithApple() {
         DispatchQueue.main.async {
+            NSLog("DeviceDNA/Auth: Apple sign-in requested")
             let nonce = Self.randomNonceString()
             self.currentAppleNonce = nonce
             let request = ASAuthorizationAppleIDProvider().createRequest()
@@ -182,14 +199,20 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
               let nonce = currentAppleNonce,
               let tokenData = appleIDCredential.identityToken,
               let idToken = String(data: tokenData, encoding: .utf8)
-        else { return }
+        else {
+            NSLog("DeviceDNA/Auth: Apple sign-in did not return a usable identity token")
+            return
+        }
 
         let credential = OAuthProvider.appleCredential(
             withIDToken: idToken,
             rawNonce: nonce,
             fullName: appleIDCredential.fullName
         )
-        Auth.auth().signIn(with: credential) { _, _ in
+        Auth.auth().signIn(with: credential) { _, error in
+            if let error {
+                NSLog("DeviceDNA/Auth: Firebase rejected Apple credential: %@", error.localizedDescription)
+            }
             // State listener publishes the result into the Kotlin gateway.
         }
         currentAppleNonce = nil
@@ -200,6 +223,7 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
         didCompleteWithError error: Error
     ) {
         // User cancelled or the request failed; leave auth state untouched.
+        NSLog("DeviceDNA/Auth: Apple sign-in failed: %@", error.localizedDescription)
         currentAppleNonce = nil
     }
 
