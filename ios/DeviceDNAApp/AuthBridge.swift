@@ -75,6 +75,10 @@ final class AuthBridge: NSObject {
     /// value when exchanging the Apple identity token for a Firebase credential.
     private var currentAppleNonce: String?
 
+    /// Keeps the in-flight controller alive: `performRequests()` does not retain it, and a
+    /// deallocated controller drops the request without ever showing the sheet or calling back.
+    private var appleAuthController: ASAuthorizationController?
+
     /// Pushes every Firebase auth-state change into the Kotlin gateway. The first callback
     /// clears `isInitializing`, letting the Compose shell leave the loading gate.
     func startListening() {
@@ -92,20 +96,29 @@ final class AuthBridge: NSObject {
         }
     }
 
+    /// Every failure path also pushes the reason into the Kotlin gateway: the shared auth screen
+    /// renders `AuthUiState.errorMessage`, and a silent `return` here is indistinguishable from a
+    /// dead button on screen.
+    private func fail(_ message: String) {
+        NSLog("DeviceDNA/Auth: %@", message)
+        gateway.signInFailed(message: message)
+    }
+
     /// Launches the Google Sign-In sheet and exchanges the Google credential for Firebase.
     func signIn(forceAccountPicker: Bool) {
         DispatchQueue.main.async {
             NSLog("DeviceDNA/Auth: Google sign-in requested forceAccountPicker=%@", forceAccountPicker ? "true" : "false")
+            self.gateway.signInStarted()
             // GIDSignIn.signIn(withPresenting:) raises an uncatchable NSException (not a
             // Swift error) if `.configuration` was never set — e.g. because Firebase
             // failed to configure. Guard on it explicitly so a misconfigured build fails
             // silently instead of crashing the whole app.
             guard GIDSignIn.sharedInstance.configuration != nil else {
-                NSLog("DeviceDNA/Auth: Google sign-in ignored because GIDSignIn configuration is missing")
+                self.fail("Google Sign-In is not configured (missing GoogleService-Info.plist).")
                 return
             }
             guard let presenter = Self.topViewController() else {
-                NSLog("DeviceDNA/Auth: Google sign-in ignored because no presenting view controller was found")
+                self.fail("Google sign-in could not find a window to present from.")
                 return
             }
             if forceAccountPicker {
@@ -113,13 +126,17 @@ final class AuthBridge: NSObject {
             }
             GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { result, error in
                 if let error {
-                    NSLog("DeviceDNA/Auth: Google sign-in failed: %@", error.localizedDescription)
+                    if (error as NSError).code == GIDSignInError.canceled.rawValue {
+                        self.gateway.signInCancelled()
+                    } else {
+                        self.fail("Google sign-in failed: \(error.localizedDescription)")
+                    }
                     return
                 }
                 guard let idToken = result?.user.idToken?.tokenString,
                       let accessToken = result?.user.accessToken.tokenString
                 else {
-                    NSLog("DeviceDNA/Auth: Google sign-in did not return both ID and access tokens")
+                    self.fail("Google sign-in did not return both ID and access tokens.")
                     return
                 }
                 let credential = GoogleAuthProvider.credential(
@@ -128,9 +145,10 @@ final class AuthBridge: NSObject {
                 )
                 Auth.auth().signIn(with: credential) { _, error in
                     if let error {
-                        NSLog("DeviceDNA/Auth: Firebase rejected Google credential: %@", error.localizedDescription)
+                        self.fail("Firebase rejected the Google credential: \(error.localizedDescription)")
                     }
-                    // State listener publishes the result into the Kotlin gateway.
+                    // On success the state listener publishes the user into the Kotlin gateway,
+                    // which clears isSigningIn.
                 }
             }
         }
@@ -142,6 +160,11 @@ final class AuthBridge: NSObject {
     func signInWithApple() {
         DispatchQueue.main.async {
             NSLog("DeviceDNA/Auth: Apple sign-in requested")
+            self.gateway.signInStarted()
+            guard Self.keyWindow() != nil else {
+                self.fail("Apple sign-in could not find a window to present from.")
+                return
+            }
             let nonce = Self.randomNonceString()
             self.currentAppleNonce = nonce
             let request = ASAuthorizationAppleIDProvider().createRequest()
@@ -151,14 +174,23 @@ final class AuthBridge: NSObject {
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
+            self.appleAuthController = controller
             controller.performRequests()
         }
     }
 
-    private static func topViewController() -> UIViewController? {
+    /// `isKeyWindow` is not guaranteed to be set on the window hosting the Compose UI (a SwiftUI
+    /// `WindowGroup` scene can be foreground-active with no key window yet). Falling back to the
+    /// active scene's first window keeps both provider flows presentable instead of failing.
+    static func keyWindow() -> UIWindow? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let window = scenes.flatMap(\.windows).first { $0.isKeyWindow }
-        var top = window?.rootViewController
+        if let key = scenes.flatMap(\.windows).first(where: \.isKeyWindow) { return key }
+        let active = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        return active?.windows.first
+    }
+
+    private static func topViewController() -> UIViewController? {
+        var top = keyWindow()?.rootViewController
         while let presented = top?.presentedViewController { top = presented }
         return top
     }
@@ -200,7 +232,8 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
               let tokenData = appleIDCredential.identityToken,
               let idToken = String(data: tokenData, encoding: .utf8)
         else {
-            NSLog("DeviceDNA/Auth: Apple sign-in did not return a usable identity token")
+            fail("Apple sign-in did not return a usable identity token.")
+            appleAuthController = nil
             return
         }
 
@@ -211,24 +244,30 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
         )
         Auth.auth().signIn(with: credential) { _, error in
             if let error {
-                NSLog("DeviceDNA/Auth: Firebase rejected Apple credential: %@", error.localizedDescription)
+                self.fail("Firebase rejected the Apple credential: \(error.localizedDescription)")
             }
-            // State listener publishes the result into the Kotlin gateway.
+            // On success the state listener publishes the user into the Kotlin gateway.
         }
         currentAppleNonce = nil
+        appleAuthController = nil
     }
 
     func authorizationController(
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        // User cancelled or the request failed; leave auth state untouched.
-        NSLog("DeviceDNA/Auth: Apple sign-in failed: %@", error.localizedDescription)
+        if (error as? ASAuthorizationError)?.code == .canceled {
+            gateway.signInCancelled()
+        } else {
+            fail("Apple sign-in failed: \(error.localizedDescription)")
+        }
         currentAppleNonce = nil
+        appleAuthController = nil
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        return scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        // Never hand back a detached `ASPresentationAnchor()`: the sheet would be presented into
+        // a window that is not on screen, i.e. nothing visibly happens.
+        Self.keyWindow() ?? ASPresentationAnchor()
     }
 }

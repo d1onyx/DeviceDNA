@@ -53,6 +53,8 @@ fun MainViewController(
     val settings by settingsStore.settings.collectAsState(initial = UserSettings())
     val user by authGateway.user.collectAsState()
     val isInitializing by authGateway.isInitializing.collectAsState()
+    val isSigningIn by authGateway.isSigningIn.collectAsState()
+    val authError by authGateway.errorMessage.collectAsState()
     val deepLink by DeepLinkHolder.route.collectAsState()
 
     val systemDark = isSystemInDarkTheme()
@@ -65,8 +67,8 @@ fun MainViewController(
     val authState = AuthUiState(
         user = user,
         isConfigured = authGateway.isConfigured,
-        isLoading = false,
-        errorMessage = null,
+        isLoading = isSigningIn,
+        errorMessage = authError,
         isInitializing = isInitializing,
     )
 

@@ -34,11 +34,20 @@ class IosAuthGateway(
     /** True until Swift pushes the first auth state (session restore in progress). */
     private val initializingFlow = MutableStateFlow(true)
 
+    private val signingInFlow = MutableStateFlow(false)
+    private val errorFlow = MutableStateFlow<String?>(null)
+
     override val currentUser: Flow<AuthUser?> = userFlow
 
     /** Extra state for the host UI gate (mirrors AuthUiState.isInitializing). */
     val isInitializing: StateFlow<Boolean> = initializingFlow
     val user: StateFlow<AuthUser?> = userFlow
+
+    /** A provider sheet is open or its credential is being exchanged (AuthUiState.isLoading). */
+    val isSigningIn: StateFlow<Boolean> = signingInFlow
+
+    /** Last sign-in failure, surfaced on the auth screen (AuthUiState.errorMessage). */
+    val errorMessage: StateFlow<String?> = errorFlow
 
     /** Called from the Swift FirebaseAuth state listener on every auth change. */
     fun updateUser(uid: String?, displayName: String?, email: String?, photoUrl: String?) {
@@ -51,6 +60,30 @@ class IosAuthGateway(
             )
         }
         initializingFlow.value = false
+        if (uid != null) {
+            signingInFlow.value = false
+            errorFlow.value = null
+        }
+    }
+
+    /** Swift: a provider flow was launched. */
+    fun signInStarted() {
+        errorFlow.value = null
+        signingInFlow.value = true
+    }
+
+    /** Swift: the user dismissed the provider sheet — not an error, just release the spinner. */
+    fun signInCancelled() {
+        signingInFlow.value = false
+    }
+
+    /**
+     * Swift: the flow failed. Without this the iOS auth screen had no way to render a failure,
+     * so every misconfiguration looked like a dead button.
+     */
+    fun signInFailed(message: String) {
+        signingInFlow.value = false
+        errorFlow.value = message
     }
 
     override val isConfigured: Boolean get() = configured
