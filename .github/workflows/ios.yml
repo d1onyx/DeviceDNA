@@ -44,6 +44,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ios/project.yml `include:`s ios/settings.local.yml (bundle ids, SYNC_BASE_URL,
+      # AdMob unit ids, CFG_*), which sync-config.sh renders from the gitignored
+      # secrets.properties. No fallback: a placeholder SYNC_BASE_URL would produce an
+      # .ipa that installs, launches and silently fails every backend call.
+      - name: Render generated config from secrets.properties
+        env:
+          SECRETS_PROPERTIES_B64: ${{ secrets.SECRETS_PROPERTIES_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SECRETS_PROPERTIES_B64" ]; then
+            echo "::error::Repository secret SECRETS_PROPERTIES_BASE64 is not set. Create it from your local file: base64 -i secrets.properties | tr -d '\n'"
+            exit 1
+          fi
+          printf '%s' "$SECRETS_PROPERTIES_B64" | base64 --decode > secrets.properties
+          ./scripts/sync-config.sh
+
       # The Firebase plists hold real keys, so they are gitignored (not in the checkout).
       # Materialize them before xcodegen/xcodebuild: from a base64 secret when configured
       # (real Firebase), otherwise from the committed placeholder template so the unsigned
