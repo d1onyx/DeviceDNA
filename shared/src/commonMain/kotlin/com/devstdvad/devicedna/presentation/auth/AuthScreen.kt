@@ -72,6 +72,16 @@ fun AuthScreen(
     val colors = AppTheme.colors
     var privacyAccepted by rememberSaveable(requirePrivacyConsent) { mutableStateOf(!requirePrivacyConsent) }
     var showPolicy by rememberSaveable { mutableStateOf(false) }
+    var localMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    val privacyRequiredMessage = stringRes("auth_privacy_required")
+    val runAfterPrivacyConsent = { action: () -> Unit ->
+        if (requirePrivacyConsent && !privacyAccepted) {
+            localMessage = privacyRequiredMessage
+        } else {
+            localMessage = null
+            action()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -140,8 +150,8 @@ fun AuthScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 val message = state.errorMessage
-                    ?: stringRes("auth_privacy_required")
-                        .takeIf { requirePrivacyConsent && !privacyAccepted }
+                    ?: localMessage
+                    ?: privacyRequiredMessage.takeIf { requirePrivacyConsent && !privacyAccepted }
                 if (message != null) {
                     Text(
                         text = message,
@@ -153,32 +163,33 @@ fun AuthScreen(
             }
 
             if (showAppleSignIn) {
-                // iOS: Google + Apple side by side.
-                Row(
+                // iOS: keep provider buttons full-width; this avoids small hit boxes on
+                // Compose Multiplatform and makes blocked taps show the consent message.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     ProviderButton(
-                        onClick = onGoogleSignIn,
-                        enabled = privacyAccepted && !state.isLoading,
+                        onClick = { runAfterPrivacyConsent(onGoogleSignIn) },
+                        enabled = !state.isLoading,
                         loading = state.isLoading,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         mark = { GoogleMark() },
-                        label = "Google",
+                        label = stringRes("auth_google"),
                     )
                     ProviderButton(
-                        onClick = onAppleSignIn,
-                        enabled = privacyAccepted && !state.isLoading,
+                        onClick = { runAfterPrivacyConsent(onAppleSignIn) },
+                        enabled = !state.isLoading,
                         loading = false,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         mark = { AppleMark() },
-                        label = "Apple",
+                        label = stringRes("auth_apple"),
                     )
                 }
             } else {
                 ProviderButton(
-                    onClick = onGoogleSignIn,
-                    enabled = privacyAccepted && !state.isLoading,
+                    onClick = { runAfterPrivacyConsent(onGoogleSignIn) },
+                    enabled = !state.isLoading,
                     loading = state.isLoading,
                     modifier = Modifier.fillMaxWidth(),
                     mark = { GoogleMark() },
