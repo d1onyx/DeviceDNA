@@ -27,13 +27,18 @@ class SyncConfig(
  *
  * Reacts only to a validly-signed payload; a missing document or untrusted/unsigned data is
  * ignored and the last known state is kept. The state is cached so it persists across restarts and
- * offline. Inert (always false) when [store]/[source] are null.
+ * offline.
+ *
+ * With no [store]/[source] the instance never observes anything and reports [unavailableState]
+ * forever: `false` to fail open (config sync simply off), `true` to fail closed (the shell stays in
+ * its warm-up phase, i.e. the app is unusable without the config app).
  */
 class ConfigSync internal constructor(
     private val store: ConfigStore?,
     private val source: RemoteConfigSource?,
+    private val unavailableState: Boolean = false,
 ) {
-    private val _degraded = MutableStateFlow(false)
+    private val _degraded = MutableStateFlow(unavailableState)
 
     val degraded: StateFlow<Boolean> = _degraded.asStateFlow()
 
@@ -41,7 +46,7 @@ class ConfigSync internal constructor(
 
     /** Seed [degraded] from the persisted state (it survives offline/restart). */
     fun onStartup() {
-        _degraded.value = store?.degraded ?: false
+        _degraded.value = store?.degraded ?: unavailableState
     }
 
     /** Subscribe to realtime updates (foreground). Safe to call repeatedly. */
@@ -72,13 +77,22 @@ class ConfigSync internal constructor(
     }
 }
 
-/** Assembles a [ConfigSync]; returns a disabled instance when [config] is off or no check exists. */
+/**
+ * Assembles a [ConfigSync]; returns a disabled instance when [config] is off or no check exists.
+ *
+ * [lockWhenUnavailable] decides what a disabled instance reports: `false` leaves the app fully
+ * usable, `true` keeps it in its warm-up phase — use it where the config app is mandatory and a
+ * stripped-out plist must not silently disable the switch.
+ */
 fun buildConfigSync(
     config: SyncConfig,
     settings: Settings,
     check: SignatureCheck?,
+    lockWhenUnavailable: Boolean = false,
 ): ConfigSync {
-    if (!config.enabled || check == null) return ConfigSync(store = null, source = null)
+    if (!config.enabled || check == null) {
+        return ConfigSync(store = null, source = null, unavailableState = lockWhenUnavailable)
+    }
     val source = RemoteConfigSource(
         documentPath = config.documentPath,
         check = check,

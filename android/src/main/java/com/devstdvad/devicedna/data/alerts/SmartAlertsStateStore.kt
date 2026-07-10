@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.devstdvad.devicedna.data.account.ClearableStore
 import kotlinx.coroutines.flow.first
 
 private val Context.smartAlertsDataStore by preferencesDataStore("device_dna_smart_alerts")
@@ -12,7 +13,7 @@ private val Context.smartAlertsDataStore by preferencesDataStore("device_dna_sma
 data class AlertState(val lastNotifiedMillis: Long = 0L, val wasActive: Boolean = false)
 
 /** Persists per-alert notification state so the same condition does not spam every 15 min. */
-class SmartAlertsStateStore(private val context: Context) {
+class SmartAlertsStateStore(private val context: Context) : ClearableStore {
 
     suspend fun state(type: SmartAlertType): AlertState {
         val prefs = context.smartAlertsDataStore.data.first()
@@ -27,6 +28,10 @@ class SmartAlertsStateStore(private val context: Context) {
             it[lastKey(type)] = lastNotifiedMillis
             it[activeKey(type)] = wasActive
         }
+    }
+
+    override suspend fun clear() {
+        context.smartAlertsDataStore.edit { it.clear() }
     }
 
     private fun lastKey(type: SmartAlertType) = longPreferencesKey("smart_${type.key}_last")

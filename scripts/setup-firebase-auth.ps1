@@ -28,17 +28,11 @@ if ($LASTEXITCODE -eq 0 -and $repoRoot) {
     Set-Location -LiteralPath $repoRoot.Trim()
 }
 
+. (Join-Path $PSScriptRoot "lib/Config.ps1")
+
 function Get-LocalProperty {
     param([Parameter(Mandatory = $true)][string]$Name)
-
-    if (-not (Test-Path -LiteralPath "local.properties")) { return "" }
-    foreach ($line in Get-Content -LiteralPath "local.properties") {
-        $trimmed = $line.Trim()
-        if ($trimmed.StartsWith("#") -or -not $trimmed.Contains("=")) { continue }
-        $parts = $trimmed.Split("=", 2)
-        if ($parts[0].Trim() -eq $Name) { return $parts[1].Trim() }
-    }
-    return ""
+    return Get-ConfigProperty -Name $Name
 }
 
 if ([string]::IsNullOrWhiteSpace($ProjectId)) { $ProjectId = Get-LocalProperty -Name "firebaseProjectId" }
@@ -52,11 +46,11 @@ if ([string]::IsNullOrWhiteSpace($ProjectId)) {
     exit 1
 }
 if ([string]::IsNullOrWhiteSpace($AndroidPackageName)) {
-    Write-Error "Set androidApplicationId in local.properties or pass -AndroidPackageName before creating Firebase Android config."
+    Write-Error "Set androidApplicationId in secrets.properties or pass -AndroidPackageName before creating Firebase Android config."
     exit 1
 }
 if (-not $NoIos -and [string]::IsNullOrWhiteSpace($IosBundleId)) {
-    Write-Error "Set iosBundleId in local.properties, pass -IosBundleId, or use -NoIos."
+    Write-Error "Set iosBundleId in secrets.properties, pass -IosBundleId, or use -NoIos."
     exit 1
 }
 
@@ -227,5 +221,5 @@ Write-Host "  1. (if Google Sign-In not enabled yet) Enable it in Firebase Conso
 Write-Host "  2. Get Web API key: Firebase Console > Project settings > General > Web API key"
 Write-Host "  3. Deploy Worker:"
 Write-Host "     cd backend; `$env:FIREBASE_WEB_API_KEY='AIzaSy...'; ./setup-cloudflare.ps1"
-Write-Host "  4. Set backend URL in android/local.properties:"
+Write-Host "  4. Set the backend URL in secrets.properties:"
 Write-Host "     syncBaseUrl=https://<worker>.<subdomain>.workers.dev"

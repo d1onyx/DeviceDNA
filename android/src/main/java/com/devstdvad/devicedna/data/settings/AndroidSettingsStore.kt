@@ -106,6 +106,10 @@ class AndroidSettingsStore(private val context: Context) : SettingsStore {
         }
     }
 
+    override suspend fun clear() {
+        context.settingsDataStore.edit { it.clear() }
+    }
+
     private inline fun <reified T : Enum<T>> String.toEnumOrDefault(default: T): T =
         enumValues<T>().firstOrNull { it.name == this } ?: default
 

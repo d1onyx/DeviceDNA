@@ -5,6 +5,7 @@ import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.SoundManager
 import com.devstdvad.devicedna.core.notification.SmartAlertNotifier
 import com.devstdvad.devicedna.data.alerts.SmartAlertsManager
+import com.devstdvad.devicedna.data.account.LocalDataWiper
 import com.devstdvad.devicedna.data.alerts.SmartAlertsStateStore
 import com.devstdvad.devicedna.data.auth.AuthRepository
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
@@ -241,6 +242,20 @@ val appModule = module {
     single { SmartAlertsStateStore(androidContext()) }
     single { SmartAlertNotifier(androidContext()) }
     single { SmartAlertsManager(get(), get(), get(), get()) }
+
+    // Account deletion: every on-device store holding user data, cleared after the account is gone.
+    single {
+        LocalDataWiper(
+            listOf(
+                get<SettingsStore>(),
+                get<SyncStateStore>(),
+                get<SubscriptionStore>(),
+                get<BatteryIntelligenceHistoryStore>(),
+                get<SmartAlertsStateStore>(),
+                get<WidgetSnapshotCache>(),
+            ),
+        )
+    }
 
     // ViewModels
     viewModelOf(::OverviewViewModel)

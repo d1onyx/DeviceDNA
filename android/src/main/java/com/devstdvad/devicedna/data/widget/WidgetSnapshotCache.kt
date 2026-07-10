@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.devstdvad.devicedna.data.account.ClearableStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.map
 private val Context.widgetDataStore by preferencesDataStore("device_dna_widget_cache")
 
 /** Persists the latest [WidgetSnapshot] for home-screen widgets. */
-class WidgetSnapshotCache(private val context: Context) {
+class WidgetSnapshotCache(private val context: Context) : ClearableStore {
 
     val snapshot: Flow<WidgetSnapshot> = context.widgetDataStore.data.map { p ->
         WidgetSnapshot(
@@ -60,6 +61,10 @@ class WidgetSnapshotCache(private val context: Context) {
     }
 
     suspend fun current(): WidgetSnapshot = snapshot.first()
+
+    override suspend fun clear() {
+        context.widgetDataStore.edit { it.clear() }
+    }
 
     suspend fun save(s: WidgetSnapshot) {
         context.widgetDataStore.edit { p ->

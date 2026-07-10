@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.di
 
 import com.devstdvad.devicedna.background.IosBackgroundWorker
+import com.devstdvad.devicedna.data.account.LocalDataWiper
 import com.devstdvad.devicedna.data.alerts.IosSmartAlertNotifier
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.IosAuthGateway
@@ -120,6 +121,19 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
     single<BatteryIntelligenceHistoryStore> { IosBatteryIntelligenceHistoryStore(deps.appGroupId) }
     single<SyncStateStore> { IosSyncStateStore() }
 
+    // Account deletion: every on-device store holding user data, cleared after the account is gone.
+    single {
+        LocalDataWiper(
+            listOf(
+                get<SettingsStore>(),
+                get<PremiumEntitlementsStore>(),
+                get<BatteryIntelligenceHistoryStore>(),
+                get<SyncStateStore>(),
+                get<IosWidgetBridge>(),
+            ),
+        )
+    }
+
     // Platform services
     single<FileSharer> { IosFileSharer() }
     single<FileImporter> { IosFileImporter() }
@@ -152,7 +166,9 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
             publicKeyBase64 = "",
         )
         val settings = NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
-        buildConfigSync(config, settings, verifier)
+        // Fail closed: cfgEnabled is false whenever GoogleService-Info-CfgSync.plist is absent from
+        // the bundle, and without it the app must not run at all.
+        buildConfigSync(config, settings, verifier, lockWhenUnavailable = true)
     }
     single { AppReadiness(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
 

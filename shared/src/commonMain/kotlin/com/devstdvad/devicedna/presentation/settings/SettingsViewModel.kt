@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.devstdvad.devicedna.data.account.LocalDataWiper
 import com.devstdvad.devicedna.data.auth.AccountDeletionResult
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.AuthUser
@@ -12,17 +13,20 @@ import com.devstdvad.devicedna.data.settings.SettingsStore
 import com.devstdvad.devicedna.data.settings.TemperatureUnit
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.data.sync.DeviceSyncManager
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingsViewModel(
     private val settingsStore: SettingsStore,
     private val authRepository: AuthGateway,
     private val syncManager: DeviceSyncManager,
+    private val localDataWiper: LocalDataWiper,
 ) : ViewModel() {
 
     val settings: StateFlow<UserSettings> = settingsStore.settings.stateIn(
@@ -117,7 +121,14 @@ class SettingsViewModel(
                 return@launch
             }
 
-            _accountDeletion.value = when (authRepository.deleteAccount()) {
+            val result = authRepository.deleteAccount()
+            if (result == AccountDeletionResult.Deleted) {
+                // Deleting the Firebase user makes the auth listener navigate away, which clears
+                // this ViewModel — NonCancellable keeps the wipe running to completion.
+                withContext(NonCancellable) { localDataWiper.wipeAll() }
+            }
+
+            _accountDeletion.value = when (result) {
                 AccountDeletionResult.Deleted -> AccountDeletionUi.Idle
                 AccountDeletionResult.ReauthRequired -> AccountDeletionUi.ReauthRequired
                 AccountDeletionResult.Failed -> AccountDeletionUi.Failed

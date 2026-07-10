@@ -3,3 +3,6 @@ node_modules/
 .dev.vars
 dist/
 *.log
+
+# Generated from wrangler.toml.template by scripts/sync-config.sh
+wrangler.toml

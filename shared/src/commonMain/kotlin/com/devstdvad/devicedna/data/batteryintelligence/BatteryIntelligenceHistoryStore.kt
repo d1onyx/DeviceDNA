@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.data.batteryintelligence
 
 import com.devstdvad.devicedna.core.common.currentTimeMillis
+import com.devstdvad.devicedna.data.account.ClearableStore
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import kotlinx.coroutines.flow.Flow
 
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
  *   • iOS     → NSUserDefaults/file-backed, later
  * Shared ViewModels observe [snapshots] and feed them into the shared BatteryIntelligence analytics.
  */
-interface BatteryIntelligenceHistoryStore {
+interface BatteryIntelligenceHistoryStore : ClearableStore {
     val snapshots: Flow<List<BatteryHistorySnapshot>>
     val chargingTrackingEnabled: Flow<Boolean>
 

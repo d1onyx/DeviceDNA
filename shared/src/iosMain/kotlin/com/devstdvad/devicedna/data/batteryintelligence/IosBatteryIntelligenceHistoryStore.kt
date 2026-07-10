@@ -50,6 +50,15 @@ class IosBatteryIntelligenceHistoryStore(
         trackingFlow.value = value
     }
 
+    override suspend fun clear() {
+        mutex.withLock {
+            defaults.removeObjectForKey(SNAPSHOTS_KEY)
+            defaults.removeObjectForKey(TRACKING_KEY)
+            snapshotsFlow.value = emptyList()
+            trackingFlow.value = loadTracking()
+        }
+    }
+
     override suspend fun record(info: BatteryInfo, timestampMillis: Long) = mutex.withLock {
         if (!trackingFlow.value) return@withLock
         // Never persist an invalid reading (iOS reports -1% until battery monitoring warms up, e.g.

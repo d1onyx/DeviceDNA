@@ -2,6 +2,7 @@ package com.devstdvad.devicedna.data.widget
 
 import com.devstdvad.devicedna.core.common.getOrNull
 import com.devstdvad.devicedna.core.common.currentTimeMillis
+import com.devstdvad.devicedna.data.account.ClearableStore
 import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.domain.usecase.GetDeviceInfoUseCase
@@ -62,8 +63,13 @@ class IosWidgetBridge(
     private val reloadWidgetTimelines: () -> Unit,
     appGroupId: String,
     private val defaults: NSUserDefaults = NSUserDefaults(suiteName = appGroupId) ?: NSUserDefaults.standardUserDefaults,
-) {
+) : ClearableStore {
     private val json = Json { encodeDefaults = true }
+
+    override suspend fun clear() {
+        defaults.removeObjectForKey(PAYLOAD_KEY)
+        reloadWidgetTimelines()
+    }
 
     suspend fun refresh(): WidgetSnapshot {
         val nowMillis = currentTimeMillis()

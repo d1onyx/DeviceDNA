@@ -39,6 +39,10 @@ class AndroidBatteryIntelligenceHistoryStore(
         }
     }
 
+    override suspend fun clear() {
+        context.batteryIntelligenceDataStore.edit { it.clear() }
+    }
+
     override suspend fun record(info: BatteryInfo, timestampMillis: Long) {
         context.batteryIntelligenceDataStore.edit { prefs ->
             if (prefs[CHARGING_TRACKING_ENABLED] == false) return@edit

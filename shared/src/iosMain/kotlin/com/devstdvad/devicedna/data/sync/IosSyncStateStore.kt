@@ -33,4 +33,10 @@ class IosSyncStateStore(
         defaults.setObject(androidId, LAST_SYNC_ANDROID_ID)
         stateFlow.value = load()
     }
+
+    override suspend fun clear() {
+        listOf(LAST_SYNC_TIME, LAST_SYNC_HASH, LAST_SYNC_ANDROID_ID)
+            .forEach { defaults.removeObjectForKey(it) }
+        stateFlow.value = load()
+    }
 }

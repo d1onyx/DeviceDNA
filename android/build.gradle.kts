@@ -6,23 +6,33 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
+fun loadProperties(name: String): Properties = Properties().apply {
+    val file = rootProject.file(name)
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
-val keystoreProperties = Properties().apply {
-    val file = rootProject.file("keystore.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
-}
+// secrets.properties is the single source of truth (see secrets.properties.example).
+// local.properties / keystore.properties remain as a fallback so checkouts that predate
+// the migration keep building; local.properties otherwise holds only sdk.dir.
+val secretsProperties = loadProperties("secrets.properties")
+val localProperties = loadProperties("local.properties")
+val keystoreProperties = loadProperties("keystore.properties")
 
 fun customerProperty(name: String): String? =
-    (localProperties.getProperty(name) ?: (project.findProperty(name) as String?))
+    (
+        secretsProperties.getProperty(name)
+            ?: localProperties.getProperty(name)
+            ?: (project.findProperty(name) as String?)
+        )
         ?.trim()
         ?.takeUnless { it.isBlank() }
 
 fun signingProperty(name: String, envName: String): String? =
-    (keystoreProperties.getProperty(name) ?: System.getenv(envName))
+    (
+        secretsProperties.getProperty(name)
+            ?: keystoreProperties.getProperty(name)
+            ?: System.getenv(envName)
+        )
         ?.trim()
         ?.takeUnless { it.isBlank() }
 
@@ -30,7 +40,7 @@ fun releaseRequiredProperty(name: String, debugDefault: String? = null): String 
     val value = customerProperty(name)
     if (buildsReleaseArtifact && value == null) {
         error(
-            "Missing $name. Add $name=... to local.properties or pass -P$name=... " +
+            "Missing $name. Add $name=... to secrets.properties or pass -P$name=... " +
                 "before building release artifacts.",
         )
     }
@@ -53,7 +63,7 @@ val buildsReleaseArtifact = gradle.startParameter.taskNames.any { taskName ->
 if (buildsReleaseArtifact && configuredSyncBaseUrl == null) {
     error(
         "Missing syncBaseUrl. Add syncBaseUrl=https://<worker>.<subdomain>.workers.dev " +
-            "to local.properties or pass -PsyncBaseUrl=... before building release artifacts.",
+            "to secrets.properties or pass -PsyncBaseUrl=... before building release artifacts.",
     )
 }
 
@@ -71,7 +81,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Deployed Cloudflare Worker URL. Release builds require an explicit value.
-        // Override via local.properties -> syncBaseUrl, or a -PsyncBaseUrl Gradle property.
+        // Override via secrets.properties -> syncBaseUrl, or a -PsyncBaseUrl Gradle property.
         val syncBaseUrl = configuredSyncBaseUrl ?: "https://example.invalid"
         buildConfigField("String", "SYNC_BASE_URL", "\"$syncBaseUrl\"")
 
@@ -92,19 +102,19 @@ android {
         buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"$adMobInterstitialAdUnitId\"")
 
         // Google Play subscription Product ID (must match the one created in Play Console).
-        // Override via local.properties -> premiumSubProductId, or a -PpremiumSubProductId Gradle property.
+        // Override via secrets.properties -> premiumSubProductId, or a -PpremiumSubProductId Gradle property.
         val premiumSubProductId = releaseRequiredProperty("premiumSubProductId", "devicedna_premium")
         buildConfigField("String", "PREMIUM_SUB_PRODUCT_ID", "\"$premiumSubProductId\"")
 
         // Dev subscription mode: false (default) unlocks Premium locally with no network; true
         // activates the dev purchase through the backend so it is persisted to Neon end-to-end
         // (for testing the real flow). Has no effect on release (dev billing is debug-only).
-        // Override via local.properties -> devSubscriptionUseBackend, or -PdevSubscriptionUseBackend.
+        // Override via secrets.properties -> devSubscriptionUseBackend, or -PdevSubscriptionUseBackend.
         val devSubscriptionUseBackend = customerProperty("devSubscriptionUseBackend")?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "DEV_SUBSCRIPTION_USE_BACKEND", "$devSubscriptionUseBackend")
 
         // Remote config sync. Required for release artifacts; in debug, empty values keep it
-        // inactive (no-op). Configure via local.properties (see the ops runbook):
+        // inactive (no-op). Configure via secrets.properties (see the ops runbook):
         //   cfgProjectId, cfgAppId, cfgApiKey, cfgDocPath (default cfg/state),
         //   cfgPubKey (base64 of the raw 32-byte public key).
         buildConfigField("String", "CFG_PROJECT_ID", "\"${releaseRequiredProperty("cfgProjectId")}\"")
@@ -116,7 +126,7 @@ android {
 
     // Selects the premium billing implementation (see AppModule). Defaults: debug = dev billing
     // (instant unlock, no Play needed), release = real Google Play Billing. Override either build
-    // type with `-PrealBilling=true|false` (or realBilling=... in local.properties) to, e.g., build
+    // type with `-PrealBilling=true|false` (or realBilling=... in secrets.properties) to, e.g., build
     // a debug variant wired to real Play Billing for testing on an internal test track.
     val realBillingOverride = customerProperty("realBilling")?.toBooleanStrictOrNull()
 
@@ -139,14 +149,14 @@ android {
     if (hasPartialDebugSigning) {
         error(
             "Incomplete Android debug signing. Add debugStoreFile, debugStorePassword, " +
-                "debugKeyAlias and debugKeyPassword to local.properties, or remove all debug signing values.",
+                "debugKeyAlias and debugKeyPassword to secrets.properties, or remove all debug signing values.",
         )
     }
 
     if (buildsReleaseArtifact && !hasReleaseSigning) {
         error(
-            "Missing Android release signing. Create keystore.properties with " +
-                "releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword " +
+            "Missing Android release signing. Add releaseStoreFile, releaseStorePassword, " +
+                "releaseKeyAlias and releaseKeyPassword to secrets.properties, " +
                 "or set ANDROID_RELEASE_STORE_FILE, ANDROID_RELEASE_STORE_PASSWORD, " +
                 "ANDROID_RELEASE_KEY_ALIAS, ANDROID_RELEASE_KEY_PASSWORD.",
         )

@@ -15,20 +15,7 @@ $PSNativeCommandUseErrorActionPreference = $false
 Set-Location -LiteralPath $PSScriptRoot
 
 $Wt = "wrangler.toml"
-$RootProperties = Join-Path (Split-Path -Parent $PSScriptRoot) "local.properties"
-
-function Get-LocalProperty {
-    param([Parameter(Mandatory = $true)][string]$Name)
-
-    if (-not (Test-Path -LiteralPath $RootProperties)) { return "" }
-    foreach ($line in Get-Content -LiteralPath $RootProperties) {
-        $trimmed = $line.Trim()
-        if ($trimmed.StartsWith("#") -or -not $trimmed.Contains("=")) { continue }
-        $parts = $trimmed.Split("=", 2)
-        if ($parts[0].Trim() -eq $Name) { return $parts[1].Trim() }
-    }
-    return ""
-}
+. (Join-Path (Split-Path -Parent $PSScriptRoot) "scripts/lib/Config.ps1")
 
 function Set-EnvFromProperty {
     param(
@@ -38,10 +25,7 @@ function Set-EnvFromProperty {
     )
 
     if (-not [string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable($EnvName))) { return }
-    $value = Get-LocalProperty -Name $PropertyName
-    if ([string]::IsNullOrWhiteSpace($value) -and -not [string]::IsNullOrWhiteSpace($FallbackPropertyName)) {
-        $value = Get-LocalProperty -Name $FallbackPropertyName
-    }
+    $value = Get-ConfigProperty -Name $PropertyName -FallbackName $FallbackPropertyName
     if (-not [string]::IsNullOrWhiteSpace($value)) {
         [Environment]::SetEnvironmentVariable($EnvName, $value, "Process")
     }
@@ -52,6 +36,10 @@ Set-EnvFromProperty -EnvName "FIREBASE_WEB_API_KEY" -PropertyName "firebaseWebAp
 Set-EnvFromProperty -EnvName "DATABASE_URL" -PropertyName "databaseUrl"
 Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PACKAGE_NAME" -PropertyName "googlePlayPackageName" -FallbackPropertyName "androidApplicationId"
 Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PREMIUM_PRODUCT_ID" -PropertyName "googlePlayPremiumProductId" -FallbackPropertyName "premiumSubProductId"
+Set-EnvFromProperty -EnvName "INTERNAL_API_KEY" -PropertyName "internalApiKey"
+Set-EnvFromProperty -EnvName "GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL" -PropertyName "googlePlayServiceAccountEmail"
+Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PRIVATE_KEY" -PropertyName "googlePlayPrivateKey"
+Set-EnvFromProperty -EnvName "PLAY_RTDN_VERIFICATION_TOKEN" -PropertyName "playRtdnVerificationToken"
 
 # 0) Login check
 & npx wrangler whoami *> $null
@@ -60,8 +48,11 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# 1) KV namespace for the Google JWKS cache (create only if id not yet filled in)
-if (Select-String -Path $Wt -Pattern "REPLACE_AFTER_wrangler_kv_namespace_create" -Quiet) {
+# 1) KV namespace for the Google JWKS cache. wrangler.toml is generated, so the id is
+#    stored in secrets.properties and the file re-rendered - never patched in place.
+if (-not (Test-Path -LiteralPath $Wt)) { Invoke-SyncConfig }
+
+if ([string]::IsNullOrWhiteSpace((Get-ConfigProperty -Name "cloudflareKvId"))) {
     Write-Host "==> Creating KV namespace PUBLIC_JWK_CACHE_KV"
     $out = & npx wrangler kv namespace create PUBLIC_JWK_CACHE_KV 2>&1 | Out-String
     Write-Host $out
@@ -69,16 +60,15 @@ if (Select-String -Path $Wt -Pattern "REPLACE_AFTER_wrangler_kv_namespace_create
 
     $match = [regex]::Match($out, 'id = "([a-f0-9]+)"')
     if (-not $match.Success) {
-        Write-Error "Could not parse the KV id. Set it manually in $Wt (kv_namespaces.id)."
+        Write-Error "Could not parse the KV id. Set cloudflareKvId=... in secrets.properties."
         exit 1
     }
     $kvId = $match.Groups[1].Value
-    (Get-Content -LiteralPath $Wt -Raw) `
-        -replace "REPLACE_AFTER_wrangler_kv_namespace_create", $kvId `
-        | Set-Content -LiteralPath $Wt -NoNewline
-    Write-Host "    KV id=$kvId written to $Wt"
+    Set-ConfigProperty -Name "cloudflareKvId" -Value $kvId
+    Invoke-SyncConfig
+    Write-Host "    KV id=$kvId written to secrets.properties; $Wt regenerated"
 } else {
-    Write-Host "==> KV id already configured in $Wt - skipping"
+    Write-Host "==> KV id already set in secrets.properties - skipping"
 }
 
 function Set-WorkerSecret {
@@ -110,7 +100,7 @@ Set-WorkerSecret -Name "FIREBASE_PROJECT_ID"
 Set-WorkerSecret -Name "DATABASE_URL"
 Set-WorkerSecret -Name "FIREBASE_WEB_API_KEY"
 
-# 3) Optional production secrets. Set them as environment variables or in ../local.properties.
+# 3) Optional production secrets. Set them as environment variables or in ../secrets.properties.
 Set-WorkerSecret -Name "INTERNAL_API_KEY" -Optional
 Set-WorkerSecret -Name "GOOGLE_PLAY_PACKAGE_NAME" -Optional
 Set-WorkerSecret -Name "GOOGLE_PLAY_PREMIUM_PRODUCT_ID" -Optional
@@ -124,4 +114,5 @@ Write-Host "==> Deploying the worker"
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host ""
-Write-Host "Done. Copy the worker URL above into android: local.properties -> syncBaseUrl=..."
+Write-Host "Done. Copy the worker URL above into secrets.properties -> syncBaseUrl=..."
+Write-Host "Then rerun ./scripts/sync-config.sh so iOS and .dev.vars pick it up."

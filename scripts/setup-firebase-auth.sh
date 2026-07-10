@@ -12,20 +12,9 @@ cd "$(git rev-parse --show-toplevel)"
 PROJECT_ID="${1:-}"
 SHA1=""
 DO_IOS=1
-PROPERTIES_FILE="local.properties"
-
-read_property() {
-    local name="$1"
-    [ -f "$PROPERTIES_FILE" ] || return 0
-    awk -F= -v key="$name" '
-        $0 !~ /^[[:space:]]*#/ && $1 == key {
-            sub(/^[^=]*=/, "")
-            gsub(/^[[:space:]]+|[[:space:]]+$/, "")
-            print
-            exit
-        }
-    ' "$PROPERTIES_FILE"
-}
+# shellcheck source=lib/config.sh
+source "$(git rev-parse --show-toplevel)/scripts/lib/config.sh"
+read_property() { cfg "$1"; }
 
 DISPLAY_NAME="$(read_property appDisplayName)"
 DISPLAY_NAME="${DISPLAY_NAME:-DeviceDNA}"
@@ -50,11 +39,11 @@ if [ -z "$PROJECT_ID" ]; then
     exit 1
 fi
 if [ -z "$ANDROID_PACKAGE" ]; then
-    echo "Set androidApplicationId in local.properties before creating Firebase Android config." >&2
+    echo "Set androidApplicationId in secrets.properties before creating Firebase Android config." >&2
     exit 1
 fi
 if [ "$DO_IOS" = "1" ] && [ -z "$IOS_BUNDLE_ID" ]; then
-    echo "Set iosBundleId in local.properties or pass --no-ios." >&2
+    echo "Set iosBundleId in secrets.properties or pass --no-ios." >&2
     exit 1
 fi
 
@@ -211,5 +200,6 @@ echo "  1. (if Google Sign-In not enabled yet) Enable it in Firebase Console + r
 echo "  2. Get Web API key: Firebase Console > Project settings > General > Web API key"
 echo "  3. Deploy Worker:"
 echo "     cd backend && FIREBASE_WEB_API_KEY='AIzaSy...' bash setup-cloudflare.sh"
-echo "  4. Set backend URL in android/local.properties:"
+echo "  4. Set the backend URL in secrets.properties:"
 echo "     syncBaseUrl=https://<worker>.<subdomain>.workers.dev"
+echo "  5. Fan the values out:  ./scripts/sync-config.sh"

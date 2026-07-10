@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TEMPLATE — edit this file, never backend/wrangler.toml.
+#
+# wrangler.toml is generated from here by ../scripts/sync-config.sh, which fills the
+# {{PLACEHOLDERS}} from the repo-root secrets.properties. wrangler has no variable
+# interpolation of its own, hence the generator.
+#
+# Secrets (Firebase, Neon, Play, RTDN) never appear here — ./setup-cloudflare.sh
+# uploads them as Worker secrets, and local `wrangler dev` reads .dev.vars.
+# See ../SECRETS.md.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# secrets.properties -> cloudflareWorkerName. Determines the URL:
+#   <name>.<subdomain>.workers.dev
+name = "{{CLOUDFLARE_WORKER_NAME}}"
+main = "src/index.ts"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Public (non-secret) variables
+[vars]
+PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"
+
+# KV namespace caching Google's public keys (JWKS).
+# secrets.properties -> cloudflareKvId, created once by:
+#   wrangler kv namespace create PUBLIC_JWK_CACHE_KV
+# ./setup-cloudflare.sh does this for you and writes the id back to secrets.properties.
+[[kv_namespaces]]
+binding = "PUBLIC_JWK_CACHE_KV"
+id = "{{CLOUDFLARE_KV_ID}}"

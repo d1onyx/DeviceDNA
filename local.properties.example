@@ -1,54 +1,14 @@
 ## This file must *NOT* be checked into Version Control Systems,
 # as it contains information specific to your local configuration.
 #
-# Location of the SDK. This is only used by Gradle.
-# For customization when using a Version Control System, please read the
-# header note.
-#Thu Jun 25 13:43:13 CEST 2026
+# Android Studio generates and rewrites local.properties on its own, so it now holds
+# only the SDK location. Every account-specific value — application ids, Firebase,
+# AdMob, signing, backend URL, remote config — lives in secrets.properties:
+#
+#     cp secrets.properties.example secrets.properties
+#     ./scripts/sync-config.sh
+#
+# Values still present in local.properties keep working as a fallback, but new ones
+# belong in secrets.properties.
+
 sdk.dir=
-
-# customer / store identity
-# ----------------------------------------------
-# Required for release builds. Must match Firebase, Play Console and backend config.
-#androidApplicationId=com.example.devicedna
-
-# Android debug signing. Optional, but useful when you want a stable project-specific SHA-1.
-# Generate once with keytool, then add this SHA-1 to Firebase for local Google Sign-In.
-#debugStoreFile=android/debug.keystore
-#debugStorePassword=android
-#debugKeyAlias=androiddebugkey
-#debugKeyPassword=android
-
-# cloudflare
-# ----------------------------------------------
-# Required for release builds. Must not end with a slash.
-# syncBaseUrl=https://<worker-name>.<subdomain>.workers.dev
-
-# ads
-# ----------------------------------------------
-#adMobAppId=
-#adMobBannerAdUnitId=
-#adMobInterstitialAdUnitId=
-
-# Google Play subscription Product ID (must match Play Console). Default: devicedna_premium
-# ----------------------------------------------
-#premiumSubProductId=devicedna_premium
-
-# Backend Google Play verification. Defaults to androidApplicationId/premiumSubProductId
-# in setup scripts when omitted.
-# ----------------------------------------------
-#googlePlayPackageName=com.example.devicedna
-#googlePlayPremiumProductId=devicedna_premium
-
-# iOS / App Store values used as Xcode build settings.
-# ----------------------------------------------
-#iosBundleId=com.example.devicedna
-#iosWidgetBundleId=com.example.devicedna.widgets
-#iosAppGroupId=group.com.example.devicedna
-#iosBackgroundTaskId=com.example.devicedna.refresh
-#iosDeepLinkScheme=devicedna
-#iosGoogleReversedClientId=com.googleusercontent.apps.xxxxx
-#iosStoreKitPremiumProductId=com.example.devicedna.premium.yearly
-#iosAdMobAppId=ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy
-#iosAdMobBannerAdUnitId=ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy
-#iosAdMobInterstitialAdUnitId=ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy

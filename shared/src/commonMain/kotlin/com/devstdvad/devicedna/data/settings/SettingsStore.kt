@@ -1,5 +1,6 @@
 package com.devstdvad.devicedna.data.settings
 
+import com.devstdvad.devicedna.data.account.ClearableStore
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -8,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  *   • iOS     → IosSettingsStore (NSUserDefaults), later
  * Lets shared ViewModels observe/mutate [UserSettings] without touching platform storage.
  */
-interface SettingsStore {
+interface SettingsStore : ClearableStore {
     val settings: Flow<UserSettings>
 
     suspend fun setMaskSensitive(value: Boolean)

@@ -5,6 +5,14 @@
 
 name: DeviceDNAApp
 
+# Every account-specific build setting (bundle ids, AdMob unit ids, SYNC_BASE_URL,
+# GOOGLE_REVERSED_CLIENT_ID, CFG_*) lives in the repo-root secrets.properties and is
+# rendered into settings.local.yml. That file is gitignored — generate it before
+# `xcodegen generate`, otherwise this include fails:
+#     ./scripts/sync-config.sh
+include:
+  - settings.local.yml
+
 options:
   bundleIdPrefix: com.example
   deploymentTarget:
@@ -13,25 +21,6 @@ options:
 
 settings:
   base:
-    IOS_APP_BUNDLE_ID: com.devstdvad.devicedna
-    IOS_WIDGET_BUNDLE_ID: com.devstdvad.devicedna.widgets
-    IOS_APP_GROUP_ID: group.com.devstdvad.devicedna
-    IOS_BACKGROUND_TASK_ID: com.devstdvad.devicedna.refresh
-    IOS_DEEP_LINK_SCHEME: devicedna
-    # Must match REVERSED_CLIENT_ID in DeviceDNAApp/GoogleService-Info.plist —
-    # registers the OAuth redirect URL scheme Google Sign-In needs at runtime.
-    GOOGLE_REVERSED_CLIENT_ID: com.googleusercontent.apps.871047083437-4rj58iqogjt6jv6tj3478bu15emk0fb9
-    IOS_STOREKIT_PREMIUM_PRODUCT_ID: com.devstdvad.devicedna.premium.yearly
-    # Google's official test IDs (safe for dev/testing — always serve test ads,
-    # never earn revenue). Replace with real AdMob console values before release.
-    IOS_ADMOB_APP_ID: ca-app-pub-3940256099942544~1458002511
-    IOS_ADMOB_BANNER_AD_UNIT_ID: ca-app-pub-3940256099942544/2934735716
-    IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID: ca-app-pub-3940256099942544/4411468910
-    # Must match Android's syncBaseUrl (local.properties) — same Cloudflare Worker backend.
-    SYNC_BASE_URL: https://devicedna-sync.ravehent.workers.dev
-    # Remote config. Public key (raw32 base64) is not secret. CFG_DOC_PATH must match Android.
-    CFG_PUBKEY: e29neD6eZhhbkr1ZJDCOUfw4ylXttEOaaBnW5qMGAxc=
-    CFG_DOC_PATH: cfg/state
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
@@ -72,8 +61,8 @@ targets:
         CODE_SIGN_ENTITLEMENTS: DeviceDNAApp/DeviceDNAApp.entitlements
         # Cloudflare Worker sync backend (no trailing slash), read by Info.plist's
         # SyncBaseUrl key via $(SYNC_BASE_URL) substitution — see DeviceDNAApp.swift's
-        # AppConfig.syncBaseUrl. Must match Android's `syncBaseUrl` (local.properties /
-        # -PsyncBaseUrl, see android/build.gradle.kts). Deliberately a plain build
+        # AppConfig.syncBaseUrl. Shares Android's `syncBaseUrl` via secrets.properties
+        # (see android/build.gradle.kts). Deliberately a plain build
         # setting rather than a separate xcconfig via `configFiles:` — that approach
         # replaced the target's CocoaPods-managed base xcconfig wholesale, breaking
         # PODS_ROOT and every Pods embed-frameworks/resources file list.

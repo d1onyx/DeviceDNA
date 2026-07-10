@@ -101,4 +101,31 @@ class IosSettingsStore(
         defaults.setObject(next.toList(), Key.SMART_ALERT_TYPES)
         state.value = load()
     }
+
+    override suspend fun clear() {
+        ALL_KEYS.forEach { defaults.removeObjectForKey(it) }
+        state.value = load()
+    }
+
+    private companion object {
+        val ALL_KEYS = listOf(
+            Key.MASK_SENSITIVE,
+            Key.REDUCED_MOTION,
+            Key.FAST_REFRESH,
+            Key.TEMPERATURE_UNIT,
+            Key.DATA_UNIT,
+            Key.THEME,
+            Key.PUBLIC_IP_ENABLED,
+            Key.SHOW_IMEI,
+            Key.BACKGROUND_MONITORING,
+            Key.ONBOARDING_COMPLETE,
+            Key.APP_LANGUAGE,
+            Key.HAPTIC_FEEDBACK,
+            Key.SOUND_EFFECTS,
+            Key.EXPORT_FORMAT,
+            Key.WIDGETS_PROMO_SHOWN,
+            Key.SMART_ALERTS_ENABLED,
+            Key.SMART_ALERT_TYPES,
+        )
+    }
 }

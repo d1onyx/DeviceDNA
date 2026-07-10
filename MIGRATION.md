@@ -15,14 +15,14 @@ credentials.
 | Firebase project id for Worker token checks | `FIREBASE_PROJECT_ID` | Cloudflare secret and `backend/.dev.vars` | Yes |
 | Firebase Web API key for `/auth/google` and `/auth/refresh` | `FIREBASE_WEB_API_KEY` | Cloudflare secret and `backend/.dev.vars` | Yes |
 | Neon Postgres connection string | `DATABASE_URL` | Cloudflare secret and `backend/.dev.vars` | Yes |
-| Cloudflare Worker URL used by Android | `syncBaseUrl` | `local.properties` or `-PsyncBaseUrl=...` | Yes for release |
+| Cloudflare Worker URL used by Android | `syncBaseUrl` | `secrets.properties` or `-PsyncBaseUrl=...` | Yes for release |
 | Cloudflare KV namespace for Firebase public-key cache | `PUBLIC_JWK_CACHE_KV` id | `backend/wrangler.toml` | Yes |
 | Google Play package name | `GOOGLE_PLAY_PACKAGE_NAME` | Cloudflare secret and `backend/.dev.vars` | Yes for real subscriptions |
-| Google Play subscription product id | `GOOGLE_PLAY_PREMIUM_PRODUCT_ID` and `premiumSubProductId` | Cloudflare secret, `backend/.dev.vars`, and `local.properties` | Yes for real subscriptions |
+| Google Play subscription product id | `premiumSubProductId` | `secrets.properties` (fans out to the Cloudflare secret and `backend/.dev.vars`) | Yes for real subscriptions |
 | Google Play service account | `GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PLAY_PRIVATE_KEY` | Cloudflare secrets and `backend/.dev.vars` | Yes for real subscriptions |
 | Internal manual subscription API key | `INTERNAL_API_KEY` | Cloudflare secret and `backend/.dev.vars` | Optional |
 | Google Play RTDN webhook secret | `PLAY_RTDN_VERIFICATION_TOKEN` | Cloudflare secret + Google Cloud Pub/Sub push URL | Optional |
-| AdMob ids | `adMobAppId`, `adMobBannerAdUnitId`, `adMobInterstitialAdUnitId` | `local.properties` or Gradle properties | Optional, but needed before release with real ads |
+| AdMob ids | `adMobAppId`, `adMobBannerAdUnitId`, `adMobInterstitialAdUnitId` | `secrets.properties` or Gradle properties | Optional, but needed before release with real ads |
 
 Do not mix Firebase projects. These three values must come from the same Firebase
 project:
@@ -197,7 +197,7 @@ changed. Generated SQL migrations are already committed in `backend/drizzle/`.
 
 ## 4. Point Android to the Worker
 
-Create or edit root `local.properties`:
+Create or edit root `secrets.properties`:
 
 ```properties
 sdk.dir=/path/to/android/sdk
@@ -219,7 +219,7 @@ Build:
 
 For release or CI:
 
-Create `keystore.properties` from `keystore.properties.example`, or set the same
+Add the four `release*` keys to `secrets.properties`, or set the same
 values as CI secrets:
 
 ```properties
@@ -328,7 +328,7 @@ Create `backend/.dev.vars` from the example:
 
 ```bash
 cd backend
-cp .dev.vars.example .dev.vars
+../scripts/sync-config.sh   # generates .dev.vars from ../secrets.properties
 ```
 
 Fill at least:
@@ -416,7 +416,7 @@ there before local auth tests.
 | `/auth/google` returns `auth_failed` | Wrong or missing `FIREBASE_WEB_API_KEY` | Set Cloudflare secret from the same Firebase project |
 | `/v1/*` returns `invalid_token` | `FIREBASE_PROJECT_ID` does not match `google-services.json` | Update `backend/wrangler.toml` and redeploy |
 | Worker deploy succeeds but auth fails | Old script/deploy did not set `FIREBASE_WEB_API_KEY` | Run current `backend/setup-cloudflare.sh` or `wrangler secret put FIREBASE_WEB_API_KEY` |
-| Release build fails with missing `syncBaseUrl` | Backend URL was not configured | Add `syncBaseUrl` to `local.properties` or pass `-PsyncBaseUrl=...` |
+| Release build fails with missing `syncBaseUrl` | Backend URL was not configured | Add `syncBaseUrl` to `secrets.properties` or pass `-PsyncBaseUrl=...` |
 | Premium verification returns `google_play_not_configured` | Google Play service account secrets are missing | Set `GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PLAY_PRIVATE_KEY` |
 | Dev subscription endpoint returns `dev_subscriptions_disabled` | `DEV_SUBSCRIPTIONS_ENABLED` is not set locally | Set it only in `backend/.dev.vars` for local testing |
 | RTDN webhook returns `play_rtdn_not_configured` (503) | `PLAY_RTDN_VERIFICATION_TOKEN` secret is not set | Set it via `wrangler secret put` (RTDN is optional) |
@@ -440,7 +440,7 @@ The repository contains placeholders for handover:
 
 - `.firebaserc` uses `YOUR_FIREBASE_PROJECT_ID`
 - `backend/wrangler.toml` uses `REPLACE_AFTER_wrangler_kv_namespace_create`
-- `local.properties.example` has no machine-specific paths
+- `secrets.properties.example` has no machine-specific paths
 
 After handover, the new owner should rotate any credentials that were ever
 visible to the old owner.

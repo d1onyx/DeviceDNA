@@ -32,6 +32,10 @@ class AndroidSyncStateStore(private val context: Context) : SyncStateStore {
         }
     }
 
+    override suspend fun clear() {
+        context.syncDataStore.edit { it.clear() }
+    }
+
     private companion object {
         val LAST_SYNC_TIME = longPreferencesKey("last_sync_time")
         val LAST_SYNC_HASH = stringPreferencesKey("last_sync_hash")
