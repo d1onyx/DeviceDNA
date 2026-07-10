@@ -62,7 +62,7 @@ jobs:
               echo "Wrote $dest from secret."
             else
               cp GoogleService-Info.plist.example "$dest"
-              echo "Wrote $dest from placeholder template (Firebase inactive in this build)."
+              echo "::warning::$dest came from the placeholder template — Firebase is INACTIVE in this build, so Google/Apple sign-in will fail with \"not configured\". Set the matching base64 secret to fix."
             fi
           }
           write_plist "$GOOGLE_SERVICE_PLIST_B64" GoogleService-Info.plist
