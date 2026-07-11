@@ -17,7 +17,13 @@ export const firebaseAccountExists = createMiddleware<AppBindings>(async (c, nex
   const kv = c.env.PUBLIC_JWK_CACHE_KV;
   const cacheKey = `firebase-account:${claims.uid}`;
 
-  const cached = await kv.get<FirebaseAccount>(cacheKey, "json");
+  // GET/DELETE /v1/me is the explicit "is this account still alive" probe the app runs on
+  // startup and resume. Serving it from the 5-minute cache would let a device stay signed in
+  // for up to 5 minutes after the account was deleted on another device, so always do a live
+  // lookup here. The cache still shortcuts the high-frequency /sync and /subscription calls.
+  const isAccountProbe = c.req.path === "/v1/me";
+
+  const cached = isAccountProbe ? null : await kv.get<FirebaseAccount>(cacheKey, "json");
   if (cached) {
     c.set("firebaseUser", cached);
     await next();
