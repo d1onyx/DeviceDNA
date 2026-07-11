@@ -5,7 +5,7 @@
 # {{PLACEHOLDERS}} from the repo-root secrets.properties. wrangler has no variable
 # interpolation of its own, hence the generator.
 #
-# Secrets (Firebase, Neon, Play, RTDN) never appear here — ./setup-cloudflare.sh
+# Secrets (Firebase, Play, RTDN) never appear here — ./setup-cloudflare.sh
 # uploads them as Worker secrets, and local `wrangler dev` reads .dev.vars.
 # See ../SECRETS.md.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -28,3 +28,12 @@ PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"
 [[kv_namespaces]]
 binding = "PUBLIC_JWK_CACHE_KV"
 id = "{{CLOUDFLARE_KV_ID}}"
+
+# D1 (SQLite) database holding users, devices, subscriptions and the normalized
+# device snapshot. secrets.properties -> cloudflareD1Id, created once by
+# ./setup-cloudflare.sh, which writes the id back. The name is a fixed label.
+[[d1_databases]]
+binding = "DB"
+database_name = "DeviceDNA_DB"
+database_id = "{{CLOUDFLARE_D1_ID}}"
+migrations_dir = "drizzle"

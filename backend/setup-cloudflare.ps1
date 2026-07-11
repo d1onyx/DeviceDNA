@@ -5,7 +5,7 @@
 # Full migration checklist: ../MIGRATION.md
 #
 # Pass secrets as environment variables to avoid interactive prompts, e.g.:
-#   $env:DATABASE_URL="postgresql://..."; $env:FIREBASE_WEB_API_KEY="AIzaSy..."
+#   $env:FIREBASE_PROJECT_ID="..."; $env:FIREBASE_WEB_API_KEY="AIzaSy..."
 #   ./setup-cloudflare.ps1
 
 $ErrorActionPreference = "Stop"
@@ -33,7 +33,6 @@ function Set-EnvFromProperty {
 
 Set-EnvFromProperty -EnvName "FIREBASE_PROJECT_ID" -PropertyName "firebaseProjectId"
 Set-EnvFromProperty -EnvName "FIREBASE_WEB_API_KEY" -PropertyName "firebaseWebApiKey"
-Set-EnvFromProperty -EnvName "DATABASE_URL" -PropertyName "databaseUrl"
 Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PACKAGE_NAME" -PropertyName "googlePlayPackageName" -FallbackPropertyName "androidApplicationId"
 Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PREMIUM_PRODUCT_ID" -PropertyName "googlePlayPremiumProductId" -FallbackPropertyName "premiumSubProductId"
 Set-EnvFromProperty -EnvName "INTERNAL_API_KEY" -PropertyName "internalApiKey"
@@ -71,6 +70,26 @@ if ([string]::IsNullOrWhiteSpace((Get-ConfigProperty -Name "cloudflareKvId"))) {
     Write-Host "==> KV id already set in secrets.properties - skipping"
 }
 
+# 1b) D1 database. Same pattern as KV: create once, store the id and re-render wrangler.toml.
+if ([string]::IsNullOrWhiteSpace((Get-ConfigProperty -Name "cloudflareD1Id"))) {
+    Write-Host "==> Creating D1 database DeviceDNA_DB"
+    $out = & npx wrangler d1 create DeviceDNA_DB 2>&1 | Out-String
+    Write-Host $out
+    if ($LASTEXITCODE -ne 0) { exit 1 }
+
+    $match = [regex]::Match($out, '([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})')
+    if (-not $match.Success) {
+        Write-Error "Could not parse the D1 id. Set cloudflareD1Id=... in secrets.properties."
+        exit 1
+    }
+    $d1Id = $match.Groups[1].Value
+    Set-ConfigProperty -Name "cloudflareD1Id" -Value $d1Id
+    Invoke-SyncConfig
+    Write-Host "    D1 id=$d1Id written to secrets.properties; $Wt regenerated"
+} else {
+    Write-Host "==> D1 id already set in secrets.properties - skipping"
+}
+
 function Set-WorkerSecret {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
@@ -97,7 +116,6 @@ function Set-WorkerSecret {
 
 # 2) Required production secrets.
 Set-WorkerSecret -Name "FIREBASE_PROJECT_ID"
-Set-WorkerSecret -Name "DATABASE_URL"
 Set-WorkerSecret -Name "FIREBASE_WEB_API_KEY"
 
 # 3) Optional production secrets. Set them as environment variables or in ../secrets.properties.
@@ -108,7 +126,12 @@ Set-WorkerSecret -Name "GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL" -Optional
 Set-WorkerSecret -Name "GOOGLE_PLAY_PRIVATE_KEY" -Optional
 Set-WorkerSecret -Name "PLAY_RTDN_VERIFICATION_TOKEN" -Optional
 
-# 4) Deploy
+# 4) Apply D1 migrations to the remote database before deploying.
+Write-Host "==> Applying D1 migrations (remote)"
+& npx wrangler d1 migrations apply DeviceDNA_DB --remote
+if ($LASTEXITCODE -ne 0) { exit 1 }
+
+# 5) Deploy
 Write-Host "==> Deploying the worker"
 & npx wrangler deploy
 if ($LASTEXITCODE -ne 0) { exit 1 }

@@ -1,11 +1,10 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
 
-// Neon HTTP driver works in Cloudflare Workers (no TCP/WebSocket).
-export function getDb(databaseUrl: string) {
-  const sql = neon(databaseUrl);
-  return drizzle(sql, { schema });
+// Cloudflare D1 (SQLite) driver. The D1Database binding comes from wrangler.toml
+// ([[d1_databases]]) and is exposed to the Worker as c.env.DB.
+export function getDb(d1: D1Database) {
+  return drizzle(d1, { schema });
 }
 
 export type Db = ReturnType<typeof getDb>;

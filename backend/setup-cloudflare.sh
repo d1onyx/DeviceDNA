@@ -16,13 +16,16 @@ set_from_property() {
 
     if [ -z "${!env_name:-}" ]; then
         value="$(cfg "$prop_name" "$fallback")"
-        [ -n "$value" ] && export "$env_name=$value"
+        # A plain `[ -n "$value" ] && export` returns 1 when value is empty, which
+        # under `set -e` aborts the whole script silently. Keep the function at exit 0.
+        if [ -n "$value" ]; then
+            export "$env_name=$value"
+        fi
     fi
 }
 
 set_from_property FIREBASE_PROJECT_ID firebaseProjectId
 set_from_property FIREBASE_WEB_API_KEY firebaseWebApiKey
-set_from_property DATABASE_URL databaseUrl
 set_from_property GOOGLE_PLAY_PACKAGE_NAME googlePlayPackageName androidApplicationId
 set_from_property GOOGLE_PLAY_PREMIUM_PRODUCT_ID googlePlayPremiumProductId premiumSubProductId
 set_from_property INTERNAL_API_KEY internalApiKey
@@ -56,6 +59,26 @@ else
     echo "==> KV id already set in secrets.properties — skipping"
 fi
 
+# 1b) D1 database. Same pattern as KV: create once, store the id in secrets.properties
+#     and re-render wrangler.toml.
+if [ -z "$(cfg cloudflareD1Id)" ]; then
+    echo "==> Creating D1 database DeviceDNA_DB"
+    OUT="$(npx wrangler d1 create DeviceDNA_DB 2>&1)" || { echo "$OUT"; exit 1; }
+    echo "$OUT"
+    # `|| true` so a no-match under `set -o pipefail` surfaces via the explicit
+    # empty-id check below instead of aborting the script.
+    D1_ID="$(printf '%s\n' "$OUT" | grep -oE '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' | head -1 || true)"
+    if [ -z "${D1_ID:-}" ]; then
+        echo "Could not parse the D1 id. Set cloudflareD1Id=... in secrets.properties." >&2
+        exit 1
+    fi
+    set_property cloudflareD1Id "$D1_ID"
+    "$REPO_ROOT/scripts/sync-config.sh" >/dev/null
+    echo "    D1 id=$D1_ID written to secrets.properties; $WT regenerated"
+else
+    echo "==> D1 id already set in secrets.properties — skipping"
+fi
+
 put_secret() {
     local name="$1"
     local value="${!name:-}"
@@ -81,7 +104,6 @@ put_optional_secret_from_env() {
 
 # 2) Required production secrets.
 put_secret FIREBASE_PROJECT_ID
-put_secret DATABASE_URL
 put_secret FIREBASE_WEB_API_KEY
 
 # 3) Optional production secrets. Pass them as env vars or set them in ../secrets.properties.
@@ -92,7 +114,11 @@ put_optional_secret_from_env GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
 put_optional_secret_from_env GOOGLE_PLAY_PRIVATE_KEY
 put_optional_secret_from_env PLAY_RTDN_VERIFICATION_TOKEN
 
-# 4) Deploy
+# 4) Apply D1 migrations to the remote database before deploying.
+echo "==> Applying D1 migrations (remote)"
+npx wrangler d1 migrations apply DeviceDNA_DB --remote
+
+# 5) Deploy
 echo "==> Deploying the worker"
 npx wrangler deploy
 

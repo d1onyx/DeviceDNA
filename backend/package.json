@@ -7,10 +7,10 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate:local": "wrangler d1 migrations apply DeviceDNA_DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DeviceDNA_DB --remote"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4",
     "drizzle-orm": "^0.38.3",
     "firebase-auth-cloudflare-workers": "^2.0.6",
     "hono": "^4.6.14"

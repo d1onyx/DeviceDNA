@@ -53,12 +53,12 @@ export const internalSubscriptionRoutes = new Hono<AppBindings>();
 
 subscriptionRoutes.get("/subscription", async (c) => {
   const claims = c.get("claims");
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
 
   return c.json(await getSubscriptionView(db, claims.uid));
 });
 
-// Dev-only: grant a non-expiring Premium subscription persisted to Neon, mirroring the
+// Dev-only: grant a non-expiring Premium subscription persisted to D1, mirroring the
 // real verify flow (writes to user_subscriptions, returns the same SubscriptionView).
 // Gated behind DEV_SUBSCRIPTIONS_ENABLED so it can never be reached in production.
 subscriptionRoutes.post("/subscription/dev/activate", async (c) => {
@@ -73,7 +73,7 @@ subscriptionRoutes.post("/subscription/dev/activate", async (c) => {
   }
   const now = new Date();
   const expiresAt = null;
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
 
   const values = {
     userUid: claims.uid,
@@ -145,7 +145,7 @@ subscriptionRoutes.post("/subscription/google-play/verify", async (c) => {
   if (purchase instanceof Response) {
     return purchase;
   }
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
   const result = await upsertGooglePlaySubscription(db, {
     userUid: claims.uid,
     productId,
@@ -194,7 +194,7 @@ internalSubscriptionRoutes.put("/users/:firebaseUid/subscription", async (c) => 
     return c.json({ error: "invalid_expires_at" }, 400);
   }
 
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
   const existingUser = await db
     .select({ firebaseUid: users.firebaseUid })
     .from(users)

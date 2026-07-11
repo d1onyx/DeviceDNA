@@ -6,7 +6,7 @@ import type { AppBindings } from "../types";
 
 export const accountRegistry = createMiddleware<AppBindings>(async (c, next) => {
   const claims = c.get("claims");
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
   const now = new Date();
 
   const existingUid = await db

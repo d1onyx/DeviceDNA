@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { devices, users } from "../db/schema";
+import { writeSnapshot, type DeviceSnapshot } from "../lib/snapshot";
 import { cancelAccountSubscriptionBeforeDelete, getSubscriptionView } from "./subscriptions";
 import type { AppBindings } from "../types";
 
@@ -12,7 +13,7 @@ export const syncRoutes = new Hono<AppBindings>();
 syncRoutes.get("/me", async (c) => {
   const user = c.get("firebaseUser");
   const claims = c.get("claims");
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
   const subscription = await getSubscriptionView(db, claims.uid);
 
   return c.json({
@@ -31,7 +32,7 @@ syncRoutes.get("/me", async (c) => {
 // Removing the users row cascades to devices + user_subscriptions via their onDelete FKs.
 syncRoutes.delete("/me", async (c) => {
   const claims = c.get("claims");
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
 
   const cancellation = await cancelAccountSubscriptionBeforeDelete(db, c.env, claims.uid);
   if (!cancellation.ok) {
@@ -53,7 +54,7 @@ syncRoutes.delete("/me", async (c) => {
 syncRoutes.get("/devices/:androidId/status", async (c) => {
   const claims = c.get("claims");
   const androidId = c.req.param("androidId");
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
 
   const rows = await db
     .select({ snapshotHash: devices.snapshotHash, lastSyncedAt: devices.lastSyncedAt })
@@ -79,7 +80,7 @@ interface SyncBody {
   osVersion?: string;
   appVersion?: string;
   snapshotHash?: string;
-  snapshot?: unknown;
+  snapshot?: DeviceSnapshot;
 }
 
 // Full device snapshot push. Upserts user + device by (uid, androidId).
@@ -91,7 +92,7 @@ syncRoutes.post("/sync", async (c) => {
     return c.json({ error: "android_id_required" }, 400);
   }
 
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
   const now = new Date();
 
   // 1) User (data comes from VERIFIED claims, not from the request body)
@@ -114,8 +115,9 @@ syncRoutes.post("/sync", async (c) => {
       },
     });
 
-  // 2) Device — one row per (user, androidId)
-  await db
+  // 2) Device — one row per (user, androidId). Keep the row id stable across
+  // re-syncs so the normalized snapshot tables can be re-keyed to it.
+  const [device] = await db
     .insert(devices)
     .values({
       userUid: claims.uid,
@@ -125,7 +127,6 @@ syncRoutes.post("/sync", async (c) => {
       model: body.model ?? null,
       osVersion: body.osVersion ?? null,
       appVersion: body.appVersion ?? null,
-      snapshot: body.snapshot ?? null,
       snapshotHash: body.snapshotHash ?? null,
       lastSyncedAt: now,
     })
@@ -137,11 +138,16 @@ syncRoutes.post("/sync", async (c) => {
         model: body.model ?? null,
         osVersion: body.osVersion ?? null,
         appVersion: body.appVersion ?? null,
-        snapshot: body.snapshot ?? null,
         snapshotHash: body.snapshotHash ?? null,
         lastSyncedAt: now,
       },
-    });
+    })
+    .returning({ id: devices.id });
+
+  // 3) Full diagnostics snapshot, exploded into the normalized tables.
+  if (body.snapshot) {
+    await writeSnapshot(db, device.id, body.snapshot);
+  }
 
   return c.json({ synced: true, lastSyncedAt: now.toISOString() });
 });

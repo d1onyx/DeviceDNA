@@ -4,7 +4,7 @@ export interface Env {
   FIREBASE_PROJECT_ID: string;
   PUBLIC_JWK_CACHE_KEY: string;
   PUBLIC_JWK_CACHE_KV: KVNamespace;
-  DATABASE_URL: string;
+  DB: D1Database;
   FIREBASE_WEB_API_KEY: string;
   INTERNAL_API_KEY?: string;
   GOOGLE_PLAY_PACKAGE_NAME?: string;

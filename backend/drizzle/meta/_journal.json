@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1782576178384,
-      "tag": "0000_right_blue_marvel",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1782757970538,
-      "tag": "0001_modern_loki",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1782759233844,
-      "tag": "0002_faithful_legion",
+      "version": "6",
+      "when": 1783791251694,
+      "tag": "0000_spicy_captain_marvel",
       "breakpoints": true
     }
   ]

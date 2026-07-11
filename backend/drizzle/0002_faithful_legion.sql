@@ -1,1 +1,0 @@
-ALTER TABLE "user_subscriptions" ADD COLUMN "latest_purchase_token" text;

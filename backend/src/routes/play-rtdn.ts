@@ -12,7 +12,7 @@ import type { AppBindings } from "../types";
 // …) and Pub/Sub pushes it here. We do NOT trust the notification's type blindly: every
 // actionable notification triggers a fresh verification against the Play Developer API, and we
 // persist whatever authoritative state Google returns. This is what makes a Google-Play-side
-// cancellation/refund propagate to Neon (and therefore revoke premium) without the user having
+// cancellation/refund propagate to D1 (and therefore revoke premium) without the user having
 // to reopen the app.
 //
 // Auth: Pub/Sub push cannot send custom headers, so the endpoint is protected by a shared
@@ -96,7 +96,7 @@ playRtdnRoutes.post("/notifications", async (c) => {
     return c.json({ error: "google_play_not_configured" }, 503);
   }
 
-  const db = getDb(c.env.DATABASE_URL);
+  const db = getDb(c.env.DB);
   const userUid = await findUserUidByPurchaseToken(db, purchaseToken);
   if (!userUid) {
     // The client hasn't verified this token yet (or it's an upgraded token). Nothing to update.
