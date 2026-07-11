@@ -1,7 +1,10 @@
 package com.devstdvad.devicedna.di
 
 import com.devstdvad.devicedna.background.IosBackgroundWorker
+import com.devstdvad.devicedna.data.account.AccountOwnerStore
+import com.devstdvad.devicedna.data.account.AccountScopeGuard
 import com.devstdvad.devicedna.data.account.LocalDataWiper
+import com.devstdvad.devicedna.data.account.SettingsAccountOwnerStore
 import com.devstdvad.devicedna.data.alerts.IosSmartAlertNotifier
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.IosAuthGateway
@@ -121,6 +124,9 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
     single<BatteryIntelligenceHistoryStore> { IosBatteryIntelligenceHistoryStore(deps.appGroupId) }
     single<SyncStateStore> { IosSyncStateStore() }
 
+    // Account-owner marker for the local-data scope guard. Separate NSUserDefaults key, never wiped.
+    single<AccountOwnerStore> { SettingsAccountOwnerStore(NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)) }
+
     // Account deletion: every on-device store holding user data, cleared after the account is gone.
     single {
         LocalDataWiper(
@@ -219,6 +225,11 @@ object KoinBridge {
         configSync = sync
         sync.onStartup()
         sync.attach(scope)
+
+        // Wipe local data when the signed-in account changes, so one account's premium/history/etc.
+        // never leaks into another's session on the same device.
+        val accountScopeGuard = instance.get<AccountScopeGuard>()
+        scope.launch { accountScopeGuard.observe() }
 
         // Refresh WidgetKit timelines the moment premium status changes (purchase, restore, dev
         // activate), regardless of which screen is open — otherwise widgets only unlock/lock on

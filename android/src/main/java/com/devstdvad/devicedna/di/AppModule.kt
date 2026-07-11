@@ -5,7 +5,9 @@ import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.SoundManager
 import com.devstdvad.devicedna.core.notification.SmartAlertNotifier
 import com.devstdvad.devicedna.data.alerts.SmartAlertsManager
+import com.devstdvad.devicedna.data.account.AccountScopeGuard
 import com.devstdvad.devicedna.data.account.LocalDataWiper
+import com.devstdvad.devicedna.data.account.buildAndroidAccountOwnerStore
 import com.devstdvad.devicedna.data.alerts.SmartAlertsStateStore
 import com.devstdvad.devicedna.data.auth.AuthRepository
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
@@ -204,7 +206,12 @@ val appModule = module {
             get(), get(), get(), get(), get(), get(), get(),
         )
     }
-    single { DeviceSyncManager(get(), get(), get(), get()) }
+    single { DeviceSyncManager(get(), get(), get(), get(), get(), get()) }
+
+    // Account-owner marker for the local-data scope guard. Dedicated SharedPreferences file, never
+    // part of LocalDataWiper — the device must remember which account its local data belongs to.
+    single { buildAndroidAccountOwnerStore(androidContext()) }
+    single { AccountScopeGuard(get(), get(), get()) }
 
     // Subscription. Real Google Play Billing when USE_REAL_BILLING (release), dev gateway otherwise.
     single { CurrentActivityHolder() }
