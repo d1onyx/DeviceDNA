@@ -56,6 +56,7 @@ kotlin {
             implementation(libs.compose.components.ui.tooling.preview)
             implementation(libs.compose.material.icons.extended)
             api(libs.jetbrains.lifecycle.viewmodel.compose)
+            implementation(libs.jetbrains.lifecycle.runtime.compose)
             implementation(libs.jetbrains.navigation.compose)
             // Koin Multiplatform for shared ViewModels + koinViewModel() in commonMain
             api(libs.koin.core)
@@ -70,7 +71,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             // Firebase BOM supplies the versions for the native Firestore SDK that GitLive wraps.
             implementation(project.dependencies.platform(libs.firebase.bom))
-            // Ed25519 verification (works on minSdk 26, unlike java.security "Ed25519" which needs API 33).
             implementation(libs.bouncycastle.prov)
         }
         iosMain.dependencies {

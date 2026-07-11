@@ -55,6 +55,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.devstdvad.devicedna.ads.InterstitialAds
@@ -130,6 +132,13 @@ fun AppNavigation(
 
     LaunchedEffect(authState.user?.uid) {
         syncViewModel.verifyAccountOnce(authState.user?.uid)
+    }
+
+    // Re-verify against the backend every time the app returns to the foreground, so an account
+    // deleted on another device drops this one to the sign-in screen the next time it's opened.
+    // Silent: the initial gate above owns the loading state; this only reacts to Removed/Disabled.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        syncViewModel.recheckAccount()
     }
 
     val accountCheckPending = syncState.accountCheckKey != authState.user?.uid ||

@@ -57,6 +57,27 @@ class SyncViewModel(
         }
     }
 
+    /**
+     * Silent re-check for app resume: catches an account deleted/disabled on another device while
+     * this one stayed signed in. Unlike [verifyAccountOnce] it never flips the UI to the loading
+     * gate. It is deliberately one-way — only a conclusive Removed/Disabled overwrites the state
+     * (dropping AppNavigation to the sign-in screen); a transient network Failed (e.g. resuming
+     * offline) is ignored so a verified user is never bounced out by a blip. No-ops until the
+     * initial check has run.
+     */
+    fun recheckAccount() {
+        if (checkedAccountKey == null) return
+        viewModelScope.launch {
+            when (manager.ensureAccountExists()) {
+                AccountCheckOutcome.Removed ->
+                    _state.update { it.copy(lastAccountCheck = AccountCheckOutcome.Removed) }
+                AccountCheckOutcome.Disabled ->
+                    _state.update { it.copy(lastAccountCheck = AccountCheckOutcome.Disabled) }
+                else -> Unit
+            }
+        }
+    }
+
     /** Called on startup — syncs only once per ViewModel lifetime. */
     fun triggerOnce() {
         if (autoTriggered) return

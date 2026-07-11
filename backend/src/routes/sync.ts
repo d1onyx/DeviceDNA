@@ -47,6 +47,11 @@ syncRoutes.delete("/me", async (c) => {
   }
 
   await db.delete(users).where(eq(users.firebaseUid, claims.uid));
+
+  // Drop the cached "account exists" entry so another device signed into the same account sees
+  // the deletion on its next /v1/me check instead of the (up to 5-minute) stale cache.
+  await c.env.PUBLIC_JWK_CACHE_KV.delete(`firebase-account:${claims.uid}`);
+
   return c.json({ deleted: true, subscriptionCanceled: cancellation.canceled });
 });
 
