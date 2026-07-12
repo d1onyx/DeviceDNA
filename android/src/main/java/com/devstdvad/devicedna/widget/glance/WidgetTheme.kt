@@ -33,6 +33,7 @@ import com.devstdvad.devicedna.MainActivity
 import com.devstdvad.devicedna.R
 import com.devstdvad.devicedna.core.design.DesignTokens
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
+import com.devstdvad.devicedna.data.auth.AuthRepository
 import com.devstdvad.devicedna.data.subscription.SubscriptionStore
 import com.devstdvad.devicedna.data.widget.WidgetSnapshot
 import com.devstdvad.devicedna.data.widget.WidgetSnapshotCache
@@ -161,7 +162,7 @@ suspend fun loadWidgetSnapshotForRender(context: Context): WidgetSnapshot {
     val cache = WidgetSnapshotCache(context)
     val cached = cache.current()
     val nowMillis = System.currentTimeMillis()
-    val widgetsUnlocked = SubscriptionStore(context).entitlements
+    val widgetsUnlocked = SubscriptionStore(context, AuthRepository(context)).entitlements
         .first()
         .hasFeature(PremiumFeature.Widgets, nowMillis)
 

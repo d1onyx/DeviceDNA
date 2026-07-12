@@ -1,6 +1,5 @@
 package com.devstdvad.devicedna.di
 
-import com.devstdvad.devicedna.data.account.AccountScopeGuard
 import com.devstdvad.devicedna.data.export.DiagnosticsExporter
 import com.devstdvad.devicedna.data.subscription.BackendSubscriptionVerifier
 import com.devstdvad.devicedna.data.subscription.SubscriptionVerifier
@@ -93,12 +92,8 @@ fun commonModule(useRealBilling: Boolean): Module = module {
             get(), get(), get(), get(), get(), get(), get(),
         )
     }
-    single { DeviceSyncManager(get(), get(), get(), get(), get(), get()) }
+    single { DeviceSyncManager(get(), get(), get(), get()) }
     single<SubscriptionVerifier> { BackendSubscriptionVerifier(get(), get()) }
-
-    // Wipes local data when the signed-in account changes (AccountOwnerStore comes from the
-    // platform module — it needs a platform Settings not in any wiped store).
-    single { AccountScopeGuard(get(), get(), get()) }
 
     // Shared decision point for writing battery-history samples (screen VM + iOS app-wide recorder + BGTask).
     single { com.devstdvad.devicedna.data.batteryintelligence.BatteryHistoryTracker(get()) }

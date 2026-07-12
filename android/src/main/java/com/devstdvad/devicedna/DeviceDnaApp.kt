@@ -5,7 +5,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.devstdvad.devicedna.core.CurrentActivityHolder
-import com.devstdvad.devicedna.data.account.AccountScopeGuard
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.cfg.ConfigSync
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
@@ -20,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
@@ -66,24 +66,19 @@ class DeviceDnaApp : Application() {
                 .collect { WidgetRefreshScheduler.refreshNow(this@DeviceDnaApp) }
         }
 
-        // On every account change: first enforce one-account-one-store (wipe the previous account's
-        // local data when a different account signs in), THEN reconcile Play entitlements — in that
-        // order so a wipe never erases a premium we just restored. The scope guard runs in every
-        // build; the Play restore runs only in real-billing (release) builds. Play is the source of
-        // truth, so restore re-grants a still-active subscription even after an account deletion
-        // wiped the backend record (deleting the app account never cancels the store subscription).
-        val authGateway = GlobalContext.get().get<AuthGateway>()
-        val accountScopeGuard = GlobalContext.get().get<AccountScopeGuard>()
-        applicationScope.launch {
-            authGateway.currentUser
-                .map { it?.uid }
-                .distinctUntilChanged()
-                .collect { uid ->
-                    accountScopeGuard.onAccountChanged(uid)
-                    if (BuildConfig.USE_REAL_BILLING && uid != null) {
-                        runCatching { subscriptionRepository.restorePurchases() }
-                    }
-                }
+        // Reconcile entitlements with Google Play on every sign-in. Play is the source of truth, so
+        // this re-grants a still-active subscription for the current account (premium is stored
+        // per-account, so switching accounts shows each account's own premium). Real billing only —
+        // dev billing would grant a fake unlock on each sign-in.
+        if (BuildConfig.USE_REAL_BILLING) {
+            val authGateway = GlobalContext.get().get<AuthGateway>()
+            applicationScope.launch {
+                authGateway.currentUser
+                    .map { it?.uid }
+                    .distinctUntilChanged()
+                    .filterNotNull()
+                    .collect { runCatching { subscriptionRepository.restorePurchases() } }
+            }
         }
     }
 

@@ -1,8 +1,6 @@
 package com.devstdvad.devicedna.data.sync
 
 import com.devstdvad.devicedna.core.common.currentTimeMillis
-import com.devstdvad.devicedna.data.account.AccountOwnerStore
-import com.devstdvad.devicedna.data.account.LocalDataWiper
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.sync.model.DeviceSyncPayload
 import kotlinx.coroutines.withTimeoutOrNull
@@ -33,8 +31,6 @@ class DeviceSyncManager(
     private val snapshotBuilder: DeviceSnapshotProvider,
     private val api: SyncApi,
     private val stateStore: SyncStateStore,
-    private val localDataWiper: LocalDataWiper,
-    private val accountOwnerStore: AccountOwnerStore,
     private val now: () -> Long = { currentTimeMillis() },
 ) {
     suspend fun ensureAccountExists(): AccountCheckOutcome {
@@ -57,12 +53,10 @@ class DeviceSyncManager(
             when (status) {
                 AccountStatus.Exists -> AccountCheckOutcome.Verified
                 AccountStatus.NotFound -> {
-                    wipeLocalAccountData()
                     authRepository.clearLocalSession(removeGoogleAccount = true)
                     AccountCheckOutcome.Removed
                 }
                 AccountStatus.Disabled -> {
-                    wipeLocalAccountData()
                     authRepository.clearLocalSession(removeGoogleAccount = true)
                     AccountCheckOutcome.Disabled
                 }
@@ -70,16 +64,6 @@ class DeviceSyncManager(
         } catch (e: Exception) {
             AccountCheckOutcome.Failed(e.message)
         }
-    }
-
-    /**
-     * Erases this device's local copy of the account's data when the backend reports the account is
-     * gone (deleted or disabled on another device). Clearing the owner too lets the next sign-in
-     * start clean without an extra wipe. Best-effort, mirroring [LocalDataWiper.wipeAll].
-     */
-    private suspend fun wipeLocalAccountData() {
-        localDataWiper.wipeAll()
-        accountOwnerStore.clear()
     }
 
     /**

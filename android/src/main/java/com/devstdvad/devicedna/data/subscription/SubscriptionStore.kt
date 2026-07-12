@@ -4,15 +4,20 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.devstdvad.devicedna.data.auth.AuthGateway
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -21,8 +26,15 @@ import kotlinx.serialization.json.Json
 
 private val Context.subscriptionDataStore by preferencesDataStore("device_dna_subscription")
 
+/**
+ * Premium is scoped to the signed-in account: the encrypted entitlement is stored under a per-uid
+ * key, so switching accounts (and back) preserves each account's premium and one account never sees
+ * another's. [entitlements] tracks the current account via [AuthGateway.currentUser]; when signed
+ * out it reports Empty.
+ */
 class SubscriptionStore(
     private val context: Context,
+    private val authGateway: AuthGateway,
 ) : PremiumEntitlementsStore {
 
     private val json = Json {
@@ -30,23 +42,35 @@ class SubscriptionStore(
         ignoreUnknownKeys = true
     }
 
-    override val entitlements: Flow<PremiumEntitlements> = context.subscriptionDataStore.data.map { prefs ->
-        val encrypted = prefs[ENCRYPTED_ENTITLEMENTS] ?: return@map PremiumEntitlements.Empty
-        runCatching {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val entitlements: Flow<PremiumEntitlements> = authGateway.currentUser
+        .map { it?.uid }
+        .distinctUntilChanged()
+        .flatMapLatest { uid ->
+            context.subscriptionDataStore.data.map { prefs -> readEntitlements(uid, prefs) }
+        }
+
+    private fun readEntitlements(uid: String?, prefs: Preferences): PremiumEntitlements {
+        val key = uid?.let { entitlementsKey(it) } ?: return PremiumEntitlements.Empty
+        val encrypted = prefs[key] ?: return PremiumEntitlements.Empty
+        return runCatching {
             json.decodeFromString<StoredEntitlements>(decrypt(encrypted)).toEntitlements()
         }.getOrDefault(PremiumEntitlements.Empty)
     }
 
     override suspend fun save(entitlements: PremiumEntitlements) {
+        val uid = authGateway.uid ?: return
         context.subscriptionDataStore.edit { prefs ->
-            prefs.clear()
-            prefs[ENCRYPTED_ENTITLEMENTS] = encrypt(json.encodeToString(entitlements.toStored()))
+            prefs[entitlementsKey(uid)] = encrypt(json.encodeToString(entitlements.toStored()))
         }
     }
 
     override suspend fun clear() {
-        context.subscriptionDataStore.edit { it.clear() }
+        val uid = authGateway.uid ?: return
+        context.subscriptionDataStore.edit { it.remove(entitlementsKey(uid)) }
     }
+
+    private fun entitlementsKey(uid: String) = stringPreferencesKey("$ENCRYPTED_ENTITLEMENTS_PREFIX$uid")
 
     private fun encrypt(plainText: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -139,6 +163,6 @@ class SubscriptionStore(
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val GCM_TAG_BITS = 128
         const val PAYLOAD_PREFIX = "v1:"
-        val ENCRYPTED_ENTITLEMENTS = stringPreferencesKey("encrypted_entitlements")
+        const val ENCRYPTED_ENTITLEMENTS_PREFIX = "encrypted_entitlements_"
     }
 }

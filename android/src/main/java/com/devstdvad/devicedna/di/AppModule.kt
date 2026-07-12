@@ -5,9 +5,7 @@ import com.devstdvad.devicedna.core.feedback.HapticManager
 import com.devstdvad.devicedna.core.feedback.SoundManager
 import com.devstdvad.devicedna.core.notification.SmartAlertNotifier
 import com.devstdvad.devicedna.data.alerts.SmartAlertsManager
-import com.devstdvad.devicedna.data.account.AccountScopeGuard
 import com.devstdvad.devicedna.data.account.LocalDataWiper
-import com.devstdvad.devicedna.data.account.buildAndroidAccountOwnerStore
 import com.devstdvad.devicedna.data.alerts.SmartAlertsStateStore
 import com.devstdvad.devicedna.data.auth.AuthRepository
 import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHistoryStore
@@ -106,9 +104,11 @@ import com.devstdvad.devicedna.data.cfg.buildAndroidConfigSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val appModule = module {
@@ -160,7 +160,9 @@ val appModule = module {
     single { AndroidSensorDataSource(androidContext()) }
     single { AndroidAppsDataSource(androidContext()) }
     single<SettingsStore> { com.devstdvad.devicedna.data.settings.AndroidSettingsStore(androidContext()) }
-    single { SubscriptionStore(androidContext()) }
+    // Bound to PremiumEntitlementsStore too so it resolves by interface (SubscriptionRepository);
+    // get<SubscriptionStore>() (LocalDataWiper) still works.
+    single { SubscriptionStore(androidContext(), get()) } bind PremiumEntitlementsStore::class
     single<BatteryIntelligenceHistoryStore> { com.devstdvad.devicedna.data.batteryintelligence.AndroidBatteryIntelligenceHistoryStore(androidContext()) }
     single { com.devstdvad.devicedna.data.batteryintelligence.BatteryHistoryTracker(get()) }
 
@@ -206,12 +208,7 @@ val appModule = module {
             get(), get(), get(), get(), get(), get(), get(),
         )
     }
-    single { DeviceSyncManager(get(), get(), get(), get(), get(), get()) }
-
-    // Account-owner marker for the local-data scope guard. Dedicated SharedPreferences file, never
-    // part of LocalDataWiper — the device must remember which account its local data belongs to.
-    single { buildAndroidAccountOwnerStore(androidContext()) }
-    single { AccountScopeGuard(get(), get(), get()) }
+    single { DeviceSyncManager(get(), get(), get(), get()) }
 
     // Subscription. Real Google Play Billing when USE_REAL_BILLING (release), dev gateway otherwise.
     single { CurrentActivityHolder() }
