@@ -1,7 +1,12 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { userSubscriptions, users, type UserSubscriptionRow } from "../db/schema";
+import {
+  googlePlayPurchaseOwners,
+  userSubscriptions,
+  users,
+  type UserSubscriptionRow,
+} from "../db/schema";
 import type { AppBindings } from "../types";
 import {
   cancelGooglePlaySubscription,
@@ -154,9 +159,14 @@ subscriptionRoutes.post("/subscription/google-play/verify", async (c) => {
   });
 
   if (!result.ok) {
-    return result.reason === "product_not_purchased"
-      ? c.json({ error: "product_not_purchased" }, 400)
-      : c.json({ error: "invalid_google_play_expiry" }, 502);
+    switch (result.reason) {
+      case "product_not_purchased":
+        return c.json({ error: "product_not_purchased" }, 400);
+      case "purchase_already_linked":
+        return c.json({ error: "purchase_already_linked" }, 409);
+      case "invalid_expiry":
+        return c.json({ error: "invalid_google_play_expiry" }, 502);
+    }
   }
 
   return c.json(await getSubscriptionView(db, claims.uid));
@@ -280,7 +290,7 @@ function isPremium(row: UserSubscriptionRow): boolean {
 
 export type UpsertGooglePlaySubscriptionResult =
   | { ok: true }
-  | { ok: false; reason: "product_not_purchased" | "invalid_expiry" };
+  | { ok: false; reason: "product_not_purchased" | "invalid_expiry" | "purchase_already_linked" };
 
 /**
  * Persists the authoritative Google Play subscription state for a user, derived from a verified
@@ -298,6 +308,16 @@ export async function upsertGooglePlaySubscription(
     now?: Date;
   },
 ): Promise<UpsertGooglePlaySubscriptionResult> {
+  const tokensToClaim = [params.purchaseToken, params.purchase.linkedPurchaseToken]
+    .filter((token): token is string => Boolean(token?.trim()));
+  const existingOwner = await db
+    .select({ userUid: googlePlayPurchaseOwners.userUid })
+    .from(googlePlayPurchaseOwners)
+    .where(inArray(googlePlayPurchaseOwners.purchaseToken, tokensToClaim));
+  if (existingOwner.some((owner) => owner.userUid !== params.userUid)) {
+    return { ok: false, reason: "purchase_already_linked" };
+  }
+
   const lineItem = (params.purchase.lineItems ?? []).find((item) => item.productId === params.productId);
   if (!lineItem) {
     return { ok: false, reason: "product_not_purchased" };
@@ -310,6 +330,21 @@ export async function upsertGooglePlaySubscription(
 
   const now = params.now ?? new Date();
   const status = mapGooglePlayStatus(params.purchase.subscriptionState, expiresAt, now);
+
+  await db
+    .insert(googlePlayPurchaseOwners)
+    .values({ purchaseToken: params.purchaseToken, userUid: params.userUid })
+    .onConflictDoNothing();
+
+  const claimedOwner = await db
+    .select({ userUid: googlePlayPurchaseOwners.userUid })
+    .from(googlePlayPurchaseOwners)
+    .where(eq(googlePlayPurchaseOwners.purchaseToken, params.purchaseToken))
+    .limit(1);
+  if (claimedOwner[0]?.userUid !== params.userUid) {
+    return { ok: false, reason: "purchase_already_linked" };
+  }
+
   const values = {
     userUid: params.userUid,
     status,
@@ -350,9 +385,9 @@ export async function upsertGooglePlaySubscription(
  */
 export async function findUserUidByPurchaseToken(db: Db, purchaseToken: string): Promise<string | null> {
   const rows = await db
-    .select({ userUid: userSubscriptions.userUid })
-    .from(userSubscriptions)
-    .where(eq(userSubscriptions.latestPurchaseToken, purchaseToken))
+    .select({ userUid: googlePlayPurchaseOwners.userUid })
+    .from(googlePlayPurchaseOwners)
+    .where(eq(googlePlayPurchaseOwners.purchaseToken, purchaseToken))
     .limit(1);
 
   return rows[0]?.userUid ?? null;

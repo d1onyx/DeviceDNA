@@ -122,6 +122,39 @@ class AuthRepository(private val context: Context) : AuthGateway {
         }
     }
 
+    override suspend fun prepareAccountDeletion(): AccountDeletionReadiness {
+        val user = firebaseAuth?.currentUser ?: return AccountDeletionReadiness.Ready
+        val lastSignIn = user.metadata?.lastSignInTimestamp ?: 0L
+        val loginAge = System.currentTimeMillis() - lastSignIn
+        if (loginAge in 0..RECENT_LOGIN_WINDOW_MS) {
+            return AccountDeletionReadiness.Ready
+        }
+
+        val clientId = webClientId.takeIf { it.isNotBlank() }
+            ?: return AccountDeletionReadiness.ReauthRequired
+        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(clientId)
+            .requestEmail()
+            .build()
+        val account = runCatching {
+            GoogleSignIn.getClient(context, options).silentSignIn().await()
+        }.getOrNull() ?: return AccountDeletionReadiness.ReauthRequired
+        val token = account.idToken ?: return AccountDeletionReadiness.ReauthRequired
+
+        return runCatching {
+            user.reauthenticate(GoogleAuthProvider.getCredential(token, null)).await()
+        }.fold(
+            onSuccess = { AccountDeletionReadiness.Ready },
+            onFailure = {
+                if (it is FirebaseAuthRecentLoginRequiredException) {
+                    AccountDeletionReadiness.ReauthRequired
+                } else {
+                    AccountDeletionReadiness.Failed
+                }
+            },
+        )
+    }
+
     override suspend fun deleteAccount(): AccountDeletionResult {
         val auth = firebaseAuth ?: return AccountDeletionResult.Failed
         val user = auth.currentUser ?: return AccountDeletionResult.Deleted
@@ -185,3 +218,4 @@ private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { conti
 }
 
 private const val AUTH_LOG_TAG = "DeviceDNA/Auth"
+private const val RECENT_LOGIN_WINDOW_MS = 4L * 60L * 1000L

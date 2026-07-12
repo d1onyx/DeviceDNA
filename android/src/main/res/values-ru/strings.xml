@@ -230,7 +230,7 @@
     <string name="battery_intelligence_next_cycle_progress">Прогресс следующего цикла</string>
     <string name="battery_intelligence_tracked_samples">Записанные замеры</string>
     <string name="battery_intelligence_cycles_system_note">Это устройство передаёт количество циклов батареи напрямую. Значение предоставляет Android.</string>
-    <string name="battery_intelligence_cycles_local_note">Это устройство не передаёт количество циклов. DeviceDNA считает локально с момента начала трекинга: каждые накопленные 100% заряда равны 1 циклу.</string>
+    <string name="battery_intelligence_cycles_local_note" formatted="false">Это устройство не передаёт количество циклов. DeviceDNA считает локально с момента начала трекинга: каждые накопленные 100% заряда равны 1 циклу.</string>
     <string name="battery_intelligence_cycles_unavailable">Локальной истории циклов пока нет. Оставьте Battery Intelligence включённым, чтобы DeviceDNA начал считать с этого момента.</string>
     <string name="battery_intelligence_cycles_value">%1$d циклов</string>
     <string name="battery_intelligence_estimated_cycles_value">%1$d примерных циклов</string>
@@ -277,11 +277,11 @@
     <string name="alert_cpu_overheating_title">CPU перегревается</string>
     <string name="alert_cpu_overheating_body">Температура устройства высокая. Дайте ему остыть, чтобы избежать троттлинга и нагрузки на батарею.</string>
     <string name="alert_low_battery_title">Низкий заряд батареи</string>
-    <string name="alert_low_battery_body">Заряд ниже 15%, и устройство не заряжается.</string>
+    <string name="alert_low_battery_body" formatted="false">Заряд ниже 15%, и устройство не заряжается.</string>
     <string name="alert_storage_full_title">Память почти заполнена</string>
-    <string name="alert_storage_full_body">Внутренняя память занята более чем на 90%. Освободите место для стабильной работы.</string>
+    <string name="alert_storage_full_body" formatted="false">Внутренняя память занята более чем на 90%. Освободите место для стабильной работы.</string>
     <string name="alert_high_ram_title">Высокая загрузка RAM</string>
-    <string name="alert_high_ram_body">RAM занята более чем на 90%. Закройте тяжёлые приложения, если устройство работает медленно.</string>
+    <string name="alert_high_ram_body" formatted="false">RAM занята более чем на 90%. Закройте тяжёлые приложения, если устройство работает медленно.</string>
     <string name="alert_slow_charging_title">Зарядка медленная</string>
     <string name="alert_slow_charging_body">Мощность зарядки низкая. Проверьте кабель, адаптер, порт, нагрев и фоновые процессы.</string>
 
@@ -380,11 +380,11 @@
     </plurals>
     <!-- Battery Intelligence charging advice (localized at display/export time) -->
     <string name="battery_advice_cool_before_charge">Дайте телефону остыть перед быстрой зарядкой или высокой нагрузкой.</string>
-    <string name="battery_advice_unplug_near_full">Отключите от сети или используйте лимит заряда, чтобы реже держать 100%.</string>
-    <string name="battery_advice_avoid_deep_discharge">Избегайте частой глубокой разрядки; заряжать до 15-20% бережнее для батареи.</string>
+    <string name="battery_advice_unplug_near_full" formatted="false">Отключите от сети или используйте лимит заряда, чтобы реже держать 100%.</string>
+    <string name="battery_advice_avoid_deep_discharge" formatted="false">Избегайте частой глубокой разрядки; заряжать до 15-20% бережнее для батареи.</string>
     <string name="battery_advice_wireless_heat">Беспроводная зарядка удобна, но греет; при тёплом телефоне заряжайте по кабелю.</string>
     <string name="battery_advice_low_power">Низкая мощность зарядки. Попробуйте лучший кабель, более мощный адаптер или очистите порт.</string>
-    <string name="battery_advice_keep_20_80">Для повседневного использования диапазон 20-80% снижает долгосрочный износ.</string>
+    <string name="battery_advice_keep_20_80" formatted="false">Для повседневного использования диапазон 20-80% снижает долгосрочный износ.</string>
     <string name="battery_advice_yellow_hour">Если час зарядки жёлтый, проверьте кабель, адаптер, нагрев, чехол и фоновую нагрузку.</string>
     <string name="battery_advice_power_saver">Включён режим энергосбережения; он снижает нагрев и скорость разрядки при низком заряде.</string>
 </resources>

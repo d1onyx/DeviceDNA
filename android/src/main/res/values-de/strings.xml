@@ -230,7 +230,7 @@
     <string name="battery_intelligence_next_cycle_progress">Fortschritt zum nächsten Zyklus</string>
     <string name="battery_intelligence_tracked_samples">Gespeicherte Messpunkte</string>
     <string name="battery_intelligence_cycles_system_note">Dieses Gerät meldet die Akkuzyklen direkt. Android liefert den Zykluswert.</string>
-    <string name="battery_intelligence_cycles_local_note">Dieses Gerät meldet keine Akkuzyklen. DeviceDNA zählt lokal ab Beginn des Trackings: jeweils 100% angesammelte Ladung entsprechen 1 Zyklus.</string>
+    <string name="battery_intelligence_cycles_local_note" formatted="false">Dieses Gerät meldet keine Akkuzyklen. DeviceDNA zählt lokal ab Beginn des Trackings: jeweils 100% angesammelte Ladung entsprechen 1 Zyklus.</string>
     <string name="battery_intelligence_cycles_unavailable">Noch kein lokaler Zyklusverlauf vorhanden. Lassen Sie Battery Intelligence aktiviert, damit DeviceDNA ab jetzt zählen kann.</string>
     <string name="battery_intelligence_cycles_value">%1$d Zyklen</string>
     <string name="battery_intelligence_estimated_cycles_value">%1$d geschätzte Zyklen</string>
@@ -277,11 +277,11 @@
     <string name="alert_cpu_overheating_title">CPU überhitzt</string>
     <string name="alert_cpu_overheating_body">Die Gerätetemperatur ist hoch. Lassen Sie es abkühlen, um Drosselung und Akkustress zu vermeiden.</string>
     <string name="alert_low_battery_title">Akku ist niedrig</string>
-    <string name="alert_low_battery_body">Der Akkustand liegt unter 15% und das Gerät lädt nicht.</string>
+    <string name="alert_low_battery_body" formatted="false">Der Akkustand liegt unter 15% und das Gerät lädt nicht.</string>
     <string name="alert_storage_full_title">Speicher fast voll</string>
-    <string name="alert_storage_full_body">Der interne Speicher ist zu über 90% belegt. Geben Sie Speicher frei, damit das Gerät stabil bleibt.</string>
+    <string name="alert_storage_full_body" formatted="false">Der interne Speicher ist zu über 90% belegt. Geben Sie Speicher frei, damit das Gerät stabil bleibt.</string>
     <string name="alert_high_ram_title">RAM-Nutzung ist hoch</string>
-    <string name="alert_high_ram_body">Die RAM-Nutzung liegt über 90%. Schließen Sie schwere Apps, wenn das Gerät langsam wirkt.</string>
+    <string name="alert_high_ram_body" formatted="false">Die RAM-Nutzung liegt über 90%. Schließen Sie schwere Apps, wenn das Gerät langsam wirkt.</string>
     <string name="alert_slow_charging_title">Laden ist langsam</string>
     <string name="alert_slow_charging_body">Die Ladeleistung ist niedrig. Prüfen Sie Kabel, Netzteil, Anschluss, Wärme und Hintergrundlast.</string>
 
@@ -378,11 +378,11 @@
     </plurals>
     <!-- Battery Intelligence charging advice (localized at display/export time) -->
     <string name="battery_advice_cool_before_charge">Lass das Telefon abkühlen, bevor du schnell lädst oder es stark auslastest.</string>
-    <string name="battery_advice_unplug_near_full">Bald ausstecken oder ein Ladelimit nutzen, um die Zeit nahe 100 % zu verkürzen.</string>
-    <string name="battery_advice_avoid_deep_discharge">Häufige Tiefentladung vermeiden; Laden vor 15-20 % schont den Akku.</string>
+    <string name="battery_advice_unplug_near_full" formatted="false">Bald ausstecken oder ein Ladelimit nutzen, um die Zeit nahe 100 % zu verkürzen.</string>
+    <string name="battery_advice_avoid_deep_discharge" formatted="false">Häufige Tiefentladung vermeiden; Laden vor 15-20 % schont den Akku.</string>
     <string name="battery_advice_wireless_heat">Kabelloses Laden ist bequem, erzeugt aber Wärme; bei warmem Telefon kabelgebunden laden.</string>
     <string name="battery_advice_low_power">Ladeleistung ist gering. Versuche ein besseres Kabel, ein stärkeres Netzteil oder reinige den Ladeport.</string>
-    <string name="battery_advice_keep_20_80">Im Alltag reduziert ein Bereich von etwa 20 % bis 80 % die Langzeitbelastung.</string>
+    <string name="battery_advice_keep_20_80" formatted="false">Im Alltag reduziert ein Bereich von etwa 20 % bis 80 % die Langzeitbelastung.</string>
     <string name="battery_advice_yellow_hour">Ist eine Ladestunde gelb, prüfe Kabel, Netzteil, Wärme, Hülle und Hintergrundlast, bevor du fortfährst.</string>
     <string name="battery_advice_power_saver">Energiesparmodus ist aktiv; er kann Wärme und Entladerate bei niedrigem Akku verringern.</string>
 </resources>

@@ -1,8 +1,10 @@
 import { Hono } from "hono";
-import { and, eq } from "drizzle-orm";
+import { bodyLimit } from "hono/body-limit";
+import { and, count, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { devices, users } from "../db/schema";
-import { writeSnapshot, type DeviceSnapshot } from "../lib/snapshot";
+import { writeSnapshot } from "../lib/snapshot";
+import { validateSyncBody } from "../lib/sync-validation";
 import { cancelAccountSubscriptionBeforeDelete, getSubscriptionView } from "./subscriptions";
 import type { AppBindings } from "../types";
 
@@ -77,28 +79,32 @@ syncRoutes.get("/devices/:androidId/status", async (c) => {
   });
 });
 
-interface SyncBody {
-  androidId: string;
-  deviceName?: string;
-  manufacturer?: string;
-  model?: string;
-  osVersion?: string;
-  appVersion?: string;
-  snapshotHash?: string;
-  snapshot?: DeviceSnapshot;
-}
-
 // Full device snapshot push. Upserts user + device by (uid, androidId).
-syncRoutes.post("/sync", async (c) => {
+syncRoutes.post("/sync", bodyLimit({
+  maxSize: 2 * 1024 * 1024,
+  onError: (c) => c.json({ error: "sync_payload_too_large" }, 413),
+}), async (c) => {
   const claims = c.get("claims");
-  const body = (await c.req.json()) as SyncBody;
-
-  if (!body?.androidId) {
-    return c.json({ error: "android_id_required" }, 400);
-  }
+  const rawBody = await c.req.json<unknown>().catch(() => null);
+  const validation = validateSyncBody(rawBody);
+  if (!validation.ok) return c.json({ error: validation.error }, 400);
+  const body = validation.value;
 
   const db = getDb(c.env.DB);
   const now = new Date();
+
+  const existingDevice = await db
+    .select({ id: devices.id })
+    .from(devices)
+    .where(and(eq(devices.userUid, claims.uid), eq(devices.androidId, body.androidId)))
+    .limit(1);
+  if (existingDevice.length === 0) {
+    const [{ value: deviceCount }] = await db
+      .select({ value: count() })
+      .from(devices)
+      .where(eq(devices.userUid, claims.uid));
+    if (deviceCount >= 10) return c.json({ error: "device_limit_reached" }, 409);
+  }
 
   // 1) User (data comes from VERIFIED claims, not from the request body)
   await db

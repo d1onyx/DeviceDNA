@@ -80,7 +80,7 @@ class AndroidSystemDataSource(private val context: Context) {
         val result = process.inputStream.bufferedReader().use { it.readText() }.trim()
         process.destroy()
         result.ifBlank { "Unknown" }
-    }.getOrDefault("Enforcing")
+    }.getOrDefault("Unknown")
 
     private fun isDeviceEncrypted(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

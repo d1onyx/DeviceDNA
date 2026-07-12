@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devstdvad.devicedna.data.account.LocalDataWiper
 import com.devstdvad.devicedna.data.auth.AccountDeletionResult
+import com.devstdvad.devicedna.data.auth.AccountDeletionReadiness
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.auth.AuthUser
 import com.devstdvad.devicedna.data.settings.AppThemeMode
@@ -114,6 +115,20 @@ class SettingsViewModel(
         if (_accountDeletion.value == AccountDeletionUi.Deleting) return
         _accountDeletion.value = AccountDeletionUi.Deleting
         viewModelScope.launch {
+            val readiness = runCatching { authRepository.prepareAccountDeletion() }
+                .getOrDefault(AccountDeletionReadiness.Failed)
+            when (readiness) {
+                AccountDeletionReadiness.Ready -> Unit
+                AccountDeletionReadiness.ReauthRequired -> {
+                    _accountDeletion.value = AccountDeletionUi.ReauthRequired
+                    return@launch
+                }
+                AccountDeletionReadiness.Failed -> {
+                    _accountDeletion.value = AccountDeletionUi.Failed
+                    return@launch
+                }
+            }
+
             // Purge server-side data first, while still authenticated. The backend also cancels
             // any active Google Play subscription before deleting the account row.
             if (!syncManager.deleteAccountData()) {

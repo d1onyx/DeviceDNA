@@ -49,8 +49,22 @@ export const userSubscriptions = sqliteTable(
   (t) => ({
     providerIdx: index("idx_user_subscriptions_provider").on(t.provider),
     expiresIdx: index("idx_user_subscriptions_expires_at").on(t.expiresAt),
+    purchaseTokenUnique: uniqueIndex("uq_user_subscriptions_purchase_token").on(t.latestPurchaseToken),
   }),
 );
+
+// Immutable ownership ledger for every Google Play purchase token ever observed. Keeping history
+// prevents an old token (or an upgrade token linked to it) from being attached to another account
+// after user_subscriptions.latestPurchaseToken advances to a newer token.
+export const googlePlayPurchaseOwners = sqliteTable("google_play_purchase_owners", {
+  purchaseToken: text("purchase_token").primaryKey(),
+  userUid: text("user_uid")
+    .notNull()
+    .references(() => users.firebaseUid, { onDelete: "cascade" }),
+  createdAt: createdAt(),
+}, (t) => ({
+  userIdx: index("idx_google_play_purchase_owners_user").on(t.userUid),
+}));
 
 // ── Device ───────────────────────────────────────────────────────────────────
 

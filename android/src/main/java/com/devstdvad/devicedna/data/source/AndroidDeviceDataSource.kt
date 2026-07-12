@@ -1,12 +1,9 @@
 package com.devstdvad.devicedna.data.source
 
 import android.annotation.SuppressLint
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import androidx.core.content.ContextCompat
 import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.domain.model.DeviceInfo
 import java.io.File
@@ -82,16 +79,10 @@ class AndroidDeviceDataSource(private val context: Context) {
     }
 
     private fun readSerialNumber(): String {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            @Suppress("DEPRECATION")
-            return Build.SERIAL.takeUnless { it.isBlank() || it == Build.UNKNOWN } ?: "Unknown"
-        }
-        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
-        if (!granted) return "Permission required"
-        return runCatching { Build.getSerial() }
-            .getOrDefault("Restricted")
-            .takeUnless { it.isBlank() || it == Build.UNKNOWN }
-            ?: "Restricted"
+        // A regular Play-distributed app targeting modern Android cannot obtain the hardware
+        // serial even with READ_PHONE_STATE; Build.getSerial() requires privileged/device-owner
+        // access. Do not request a sensitive permission that cannot satisfy this feature.
+        return "Restricted by Android"
     }
 
     private fun isGlobalSettingEnabled(name: String): Boolean = runCatching {

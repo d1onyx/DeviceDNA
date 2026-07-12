@@ -230,7 +230,7 @@
     <string name="battery_intelligence_next_cycle_progress">Next cycle progress</string>
     <string name="battery_intelligence_tracked_samples">Tracked samples</string>
     <string name="battery_intelligence_cycles_system_note">This device reports battery cycle count directly. Android provides the cycle value.</string>
-    <string name="battery_intelligence_cycles_local_note">This device does not report cycle count. DeviceDNA counts locally from when tracking starts: each accumulated 100% charge equals 1 cycle.</string>
+    <string name="battery_intelligence_cycles_local_note" formatted="false">This device does not report cycle count. DeviceDNA counts locally from when tracking starts: each accumulated 100% charge equals 1 cycle.</string>
     <string name="battery_intelligence_cycles_unavailable">No local cycle history yet. Keep Battery Intelligence enabled so DeviceDNA can start counting from now.</string>
     <string name="battery_intelligence_cycles_value">%1$d cycles</string>
     <string name="battery_intelligence_estimated_cycles_value">%1$d estimated cycles</string>
@@ -277,11 +277,11 @@
     <string name="alert_cpu_overheating_title">CPU is overheating</string>
     <string name="alert_cpu_overheating_body">Device temperature is high. Let it cool down to avoid throttling and battery stress.</string>
     <string name="alert_low_battery_title">Battery is low</string>
-    <string name="alert_low_battery_body">Battery level is below 15% and the device is not charging.</string>
+    <string name="alert_low_battery_body" formatted="false">Battery level is below 15% and the device is not charging.</string>
     <string name="alert_storage_full_title">Storage is nearly full</string>
-    <string name="alert_storage_full_body">Internal storage is above 90%. Free space to keep the device stable.</string>
+    <string name="alert_storage_full_body" formatted="false">Internal storage is above 90%. Free space to keep the device stable.</string>
     <string name="alert_high_ram_title">RAM usage is high</string>
-    <string name="alert_high_ram_body">RAM usage is above 90%. Close heavy apps if the device feels slow.</string>
+    <string name="alert_high_ram_body" formatted="false">RAM usage is above 90%. Close heavy apps if the device feels slow.</string>
     <string name="alert_slow_charging_title">Charging is slow</string>
     <string name="alert_slow_charging_body">Charging power is low. Check the cable, wall adapter, port, heat and background load.</string>
 
@@ -378,11 +378,11 @@
     </plurals>
     <!-- Battery Intelligence charging advice (localized at display/export time) -->
     <string name="battery_advice_cool_before_charge">Let the phone cool before fast charging or running heavy workloads.</string>
-    <string name="battery_advice_unplug_near_full">Unplug soon or use a charge limit when available to reduce time near 100%.</string>
-    <string name="battery_advice_avoid_deep_discharge">Avoid frequent deep discharge; charging before 15-20% is gentler on the battery.</string>
+    <string name="battery_advice_unplug_near_full" formatted="false">Unplug soon or use a charge limit when available to reduce time near 100%.</string>
+    <string name="battery_advice_avoid_deep_discharge" formatted="false">Avoid frequent deep discharge; charging before 15-20% is gentler on the battery.</string>
     <string name="battery_advice_wireless_heat">Wireless charging is convenient but can add heat; use wired charging when the phone is warm.</string>
     <string name="battery_advice_low_power">Charging power is low. Try a better cable, a stronger wall adapter, or cleaning the charging port.</string>
-    <string name="battery_advice_keep_20_80">For daily use, staying roughly between 20% and 80% reduces long-term stress.</string>
+    <string name="battery_advice_keep_20_80" formatted="false">For daily use, staying roughly between 20% and 80% reduces long-term stress.</string>
     <string name="battery_advice_yellow_hour">If a charging hour is yellow, check the cable, adapter, heat, case, and background load before continuing.</string>
     <string name="battery_advice_power_saver">Power saver is enabled; it can reduce heat and discharge rate during low battery periods.</string>
 </resources>

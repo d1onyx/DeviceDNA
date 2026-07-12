@@ -40,6 +40,10 @@ final class AuthBridge: NSObject {
                 done()
             }
         },
+        prepareDeletionAction: { onResult in
+            guard let user = Auth.auth().currentUser else { onResult("ready"); return }
+            Self.prepareDeletion(user: user, onResult: onResult)
+        },
         deleteAccountAction: { onResult in
             guard let user = Auth.auth().currentUser else { onResult("deleted"); return }
             let deleteNow: () -> Void = {
@@ -78,6 +82,34 @@ final class AuthBridge: NSObject {
     /// Keeps the in-flight controller alive: `performRequests()` does not retain it, and a
     /// deallocated controller drops the request without ever showing the sheet or calling back.
     private var appleAuthController: ASAuthorizationController?
+
+    private static func prepareDeletion(user: FirebaseAuth.User, onResult: @escaping (String) -> Void) {
+        if let lastSignIn = user.metadata.lastSignInDate,
+           Date().timeIntervalSince(lastSignIn) <= 4 * 60 {
+            onResult("ready")
+            return
+        }
+
+        GIDSignIn.sharedInstance.restorePreviousSignIn { gUser, _ in
+            guard let gUser, let idToken = gUser.idToken?.tokenString else {
+                onResult("reauth")
+                return
+            }
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: gUser.accessToken.tokenString
+            )
+            user.reauthenticate(with: credential) { _, error in
+                if let ns = error as NSError?, ns.code == AuthErrorCode.requiresRecentLogin.rawValue {
+                    onResult("reauth")
+                } else if error != nil {
+                    onResult("failed")
+                } else {
+                    onResult("ready")
+                }
+            }
+        }
+    }
 
     /// Pushes every Firebase auth-state change into the Kotlin gateway. The first callback
     /// clears `isInitializing`, letting the Compose shell leave the loading gate.

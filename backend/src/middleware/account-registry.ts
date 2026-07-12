@@ -20,18 +20,9 @@ export const accountRegistry = createMiddleware<AppBindings>(async (c, next) => 
     return;
   }
 
-  if (claims.email) {
-    const existingEmail = await db
-      .select({ firebaseUid: users.firebaseUid })
-      .from(users)
-      .where(eq(users.email, claims.email))
-      .limit(1);
-
-    if (existingEmail.length > 0) {
-      await db.delete(users).where(eq(users.email, claims.email));
-    }
-  }
-
+  // A verified email is profile data, not an account key. Different Firebase UIDs can legally
+  // share an email when multiple-accounts-per-email is enabled, and UID migration must never
+  // silently delete the previous account (the FK cascade would also erase devices/subscriptions).
   await db.insert(users).values({
     firebaseUid: claims.uid,
     email: claims.email ?? null,

@@ -11,14 +11,14 @@
     "db:migrate:remote": "wrangler d1 migrations apply DeviceDNA_DB --remote"
   },
   "dependencies": {
-    "drizzle-orm": "^0.38.3",
+    "drizzle-orm": "^0.45.2",
     "firebase-auth-cloudflare-workers": "^2.0.6",
     "hono": "^4.6.14"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241218.0",
-    "drizzle-kit": "^0.30.1",
+    "@cloudflare/workers-types": "^5.20260712.1",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.7.2",
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.110.0"
   }
 }
