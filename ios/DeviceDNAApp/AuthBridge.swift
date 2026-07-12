@@ -42,7 +42,9 @@ final class AuthBridge: NSObject {
         },
         prepareDeletionAction: { onResult in
             guard let user = Auth.auth().currentUser else { onResult("ready"); return }
-            AuthBridge.prepareDeletion(user: user, onResult: onResult)
+            // Kotlin exports the nested `(String) -> Unit` as `(String) -> KotlinUnit`, so it
+            // cannot be handed to a Swift `(String) -> Void` parameter without this adapter.
+            AuthBridge.prepareDeletion(user: user) { _ = onResult($0) }
         },
         deleteAccountAction: { onResult in
             guard let user = Auth.auth().currentUser else { onResult("deleted"); return }
