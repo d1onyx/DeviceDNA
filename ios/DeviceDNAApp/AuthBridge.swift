@@ -42,7 +42,7 @@ final class AuthBridge: NSObject {
         },
         prepareDeletionAction: { onResult in
             guard let user = Auth.auth().currentUser else { onResult("ready"); return }
-            Self.prepareDeletion(user: user, onResult: onResult)
+            AuthBridge.prepareDeletion(user: user, onResult: onResult)
         },
         deleteAccountAction: { onResult in
             guard let user = Auth.auth().currentUser else { onResult("deleted"); return }
