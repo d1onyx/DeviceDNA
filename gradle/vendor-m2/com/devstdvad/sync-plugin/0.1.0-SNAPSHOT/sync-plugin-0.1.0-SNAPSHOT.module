@@ -1,0 +1,102 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.devstdvad",
+    "module": "sync-plugin",
+    "version": "0.1.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.4.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "sync-plugin-0.1.0-SNAPSHOT.jar",
+          "url": "sync-plugin-0.1.0-SNAPSHOT.jar",
+          "size": 22534,
+          "sha512": "7003935540afdf320539523343c63587d166252c397c481c6fe3dc2d64d6e8c0b54fcb4f373031183d0bd6a578dbbce2da826207b4fb06177fd2cff8c468ef1d",
+          "sha256": "d1e39af7282ae38fe92547266205babe69702c3b55200702b072a3e01c7aa51c",
+          "sha1": "9b19b3be2b82c5a88c9b9ae37be03b8034e248cd",
+          "md5": "7514f0c864a40d607fcf39a6c5205314"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "sync-plugin-0.1.0-SNAPSHOT.jar",
+          "url": "sync-plugin-0.1.0-SNAPSHOT.jar",
+          "size": 22534,
+          "sha512": "7003935540afdf320539523343c63587d166252c397c481c6fe3dc2d64d6e8c0b54fcb4f373031183d0bd6a578dbbce2da826207b4fb06177fd2cff8c468ef1d",
+          "sha256": "d1e39af7282ae38fe92547266205babe69702c3b55200702b072a3e01c7aa51c",
+          "sha1": "9b19b3be2b82c5a88c9b9ae37be03b8034e248cd",
+          "md5": "7514f0c864a40d607fcf39a6c5205314"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "sync-plugin-0.1.0-SNAPSHOT-sources.jar",
+          "url": "sync-plugin-0.1.0-SNAPSHOT-sources.jar",
+          "size": 5208,
+          "sha512": "05c4feb940a01f5a384f25521f3950ac596a8e9ef7dfc66811dbfd8e1ecc657c2c2e611045d081a5201ee32e0db7736230365639e32ed72094b8a008199b5216",
+          "sha256": "f9b00913c43becf2daafecfb7c25860587c6e00b0e36ba4e5992af6b30f2770d",
+          "sha1": "72ad5df2abdf9e09a8deed67ded2412725701123",
+          "md5": "66d4075503c3496029ddef8c4950d8fb"
+        }
+      ]
+    }
+  ]
+}

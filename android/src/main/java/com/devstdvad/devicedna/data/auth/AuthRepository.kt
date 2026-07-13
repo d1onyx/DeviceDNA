@@ -24,7 +24,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class AuthRepository(private val context: Context) : AuthGateway {
+class AuthRepository(
+    private val context: Context,
+    private val isReachable: () -> Boolean = { true },
+) : AuthGateway {
 
     private val webClientId: String
         get() = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
@@ -64,6 +67,7 @@ class AuthRepository(private val context: Context) : AuthGateway {
     }
 
     suspend fun createGoogleSignInIntent(forceAccountPicker: Boolean = false): Intent? {
+        if (!isReachable()) return null
         if (forceAccountPicker) {
             clearLocalSession(removeGoogleAccount = true)
         }

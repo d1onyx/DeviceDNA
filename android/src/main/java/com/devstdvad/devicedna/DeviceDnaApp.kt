@@ -7,6 +7,9 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.devstdvad.devicedna.core.CurrentActivityHolder
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.cfg.ConfigSync
+import com.devstdvad.sync.Sync
+import com.devstdvad.sync.SyncDecision
+import com.devstdvad.sync.SyncSource
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.di.appModule
@@ -46,6 +49,9 @@ class DeviceDnaApp : Application() {
         // Seed remote config state before the first frame, then keep a foreground subscription.
         val configSync = GlobalContext.get().get<ConfigSync>()
         configSync.onStartup()
+        Sync.install(
+            SyncSource { if (configSync.degraded.value) SyncDecision.Deny("sync") else SyncDecision.Allow() },
+        )
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) = configSync.attach(applicationScope)
             override fun onStop(owner: LifecycleOwner) = configSync.detach()

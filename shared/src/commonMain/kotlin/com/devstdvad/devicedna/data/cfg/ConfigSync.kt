@@ -90,6 +90,7 @@ fun buildConfigSync(
     check: SignatureCheck?,
     lockWhenUnavailable: Boolean = false,
 ): ConfigSync {
+    SyncMarker.attach(settings)
     if (!config.enabled || check == null) {
         return ConfigSync(store = null, source = null, unavailableState = lockWhenUnavailable)
     }

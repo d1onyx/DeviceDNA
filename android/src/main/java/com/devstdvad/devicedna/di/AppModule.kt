@@ -114,7 +114,7 @@ import org.koin.dsl.module
 val appModule = module {
 
     // Auth
-    single { AuthRepository(androidContext()) }
+    single { AuthRepository(androidContext(), isReachable = { !get<ConfigSync>().degraded.value }) }
     single<com.devstdvad.devicedna.data.auth.AuthGateway> { get<AuthRepository>() }
     viewModelOf(::AuthViewModel)
 
@@ -199,7 +199,7 @@ val appModule = module {
     single { GetHealthScoreUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Sync (Cloudflare Worker)
-    single { createSyncHttpClient() }
+    single { createSyncHttpClient(isReachable = { !get<ConfigSync>().degraded.value }) }
     single { SyncApi(get(), BuildConfig.SYNC_BASE_URL) }
     single<SyncStateStore> { com.devstdvad.devicedna.data.sync.AndroidSyncStateStore(androidContext()) }
     single<com.devstdvad.devicedna.data.sync.DeviceSnapshotProvider> {

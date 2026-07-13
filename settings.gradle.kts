@@ -1,5 +1,9 @@
 pluginManagement {
     repositories {
+        maven {
+            url = rootDir.resolve("gradle/vendor-m2").toURI()
+            content { includeGroupByRegex("com\\.devstdvad.*") }
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -17,6 +21,10 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven {
+            url = rootDir.resolve("gradle/vendor-m2").toURI()
+            content { includeGroupByRegex("com\\.devstdvad.*") }
+        }
         google()
         mavenCentral()
     }

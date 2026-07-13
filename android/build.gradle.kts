@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    id("com.devstdvad.sync") version "0.1.0-SNAPSHOT"
 }
 
 fun loadProperties(name: String): Properties = Properties().apply {
@@ -212,6 +213,7 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    implementation("com.devstdvad:sync-core:0.1.0-SNAPSHOT")
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

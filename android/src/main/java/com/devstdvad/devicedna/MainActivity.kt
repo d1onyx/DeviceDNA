@@ -21,7 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.devstdvad.devicedna.core.AppPhase
 import com.devstdvad.devicedna.core.AppReadiness
-import com.devstdvad.devicedna.core.PreparingScreen
+import com.devstdvad.devicedna.core.warmUp
 import com.devstdvad.devicedna.core.notification.WidgetPromoNotifier
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.collectAsState
@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 AppTheme(darkTheme = darkTheme, language = AppLanguage.fromTag(settings.appLanguage)) {
                     when (phase) {
-                        AppPhase.Preparing -> PreparingScreen()
+                        AppPhase.Preparing -> warmUp()
                         AppPhase.Ready -> {
                             val interstitialManager = com.devstdvad.devicedna.ads.rememberInterstitialAdManager(
                                 adUnitId = BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID,

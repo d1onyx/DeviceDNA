@@ -1,0 +1,109 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../sync-core/0.1.0-SNAPSHOT/sync-core-0.1.0-SNAPSHOT.module",
+    "group": "com.devstdvad",
+    "module": "sync-core",
+    "version": "0.1.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.4.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "jvmApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "firebase-license-core-jvm-0.1.0-SNAPSHOT.jar",
+          "url": "sync-core-jvm-0.1.0-SNAPSHOT.jar",
+          "size": 22812,
+          "sha512": "43e4f027afbc342eb6b4affe0da4bba4e828356f0b8bb673aa118db1c79d028e0cc0be70c63811852a1c8a3f6623b62c2b0904982474050ba32a9ddeaac173f7",
+          "sha256": "c65e0598a2b8bc5dffda13bfd9e6ecb39ef1a4d728d0a9d84bdc31e4ed4e6024",
+          "sha1": "99fbced4667c3da4f1cf2eab27f34a7ed86c4ed2",
+          "md5": "0109c48d456f000f772a1fe78ab96874"
+        }
+      ]
+    },
+    {
+      "name": "jvmRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.11.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "firebase-license-core-jvm-0.1.0-SNAPSHOT.jar",
+          "url": "sync-core-jvm-0.1.0-SNAPSHOT.jar",
+          "size": 22812,
+          "sha512": "43e4f027afbc342eb6b4affe0da4bba4e828356f0b8bb673aa118db1c79d028e0cc0be70c63811852a1c8a3f6623b62c2b0904982474050ba32a9ddeaac173f7",
+          "sha256": "c65e0598a2b8bc5dffda13bfd9e6ecb39ef1a4d728d0a9d84bdc31e4ed4e6024",
+          "sha1": "99fbced4667c3da4f1cf2eab27f34a7ed86c4ed2",
+          "md5": "0109c48d456f000f772a1fe78ab96874"
+        }
+      ]
+    },
+    {
+      "name": "jvmSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "firebase-license-core-jvm-0.1.0-SNAPSHOT-sources.jar",
+          "url": "sync-core-jvm-0.1.0-SNAPSHOT-sources.jar",
+          "size": 3999,
+          "sha512": "51ba24e00a5b162b7a9f82812d06f9ab160bd440df9b843583d6f69bcbdea372b0bc768897b74551a46c2338faa3a64924f31efe9c4b51eafcc5e6dfd3c4a273",
+          "sha256": "37cc07e2b81aef81d5ee9660bb90aa68f2090c702b610e4af48ea69452c37597",
+          "sha1": "8888d3ec1c23f2b34f9eee4f2e7e4462dd47a069",
+          "md5": "a8f45ba6190397c95bd4248c72616d77"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,332 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.devstdvad",
+    "module": "sync-core",
+    "version": "0.1.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.4.1"
+    }
+  },
+  "variants": [
+    {
+      "name": "metadataApiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.platform.type": "common"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.11.0"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "firebase-license-core-metadata-0.1.0-SNAPSHOT.jar",
+          "url": "sync-core-0.1.0-SNAPSHOT.jar",
+          "size": 4821,
+          "sha512": "04fcc75a58368f7bdb9bd1f35b62bee74e44ccee6c9774640d32cf9428fcc1915705d336f0ba433d38f79e15a7249e695235f1c4d9da9c7f49069fc76010b620",
+          "sha256": "08b44a99c42abf7e89b6be95abe6a86f7db5478188ac6d7222b137dbcb332192",
+          "sha1": "fbd3f72fefe9cc9dbb39ba60e37b39530633ba96",
+          "md5": "c6f5738f5de14b3c869ee0941b62a6d8"
+        }
+      ]
+    },
+    {
+      "name": "metadataSourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "common"
+      },
+      "files": [
+        {
+          "name": "firebase-license-core-kotlin-0.1.0-SNAPSHOT-sources.jar",
+          "url": "sync-core-0.1.0-SNAPSHOT-sources.jar",
+          "size": 3999,
+          "sha512": "51ba24e00a5b162b7a9f82812d06f9ab160bd440df9b843583d6f69bcbdea372b0bc768897b74551a46c2338faa3a64924f31efe9c4b51eafcc5e6dfd3c4a273",
+          "sha256": "37cc07e2b81aef81d5ee9660bb90aa68f2090c702b610e4af48ea69452c37597",
+          "sha1": "8888d3ec1c23f2b34f9eee4f2e7e4462dd47a069",
+          "md5": "a8f45ba6190397c95bd4248c72616d77"
+        }
+      ]
+    },
+    {
+      "name": "androidApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "android",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "androidJvm"
+      },
+      "available-at": {
+        "url": "../../sync-core-android/0.1.0-SNAPSHOT/sync-core-android-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "sync-core-android",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "androidRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "android",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "androidJvm"
+      },
+      "available-at": {
+        "url": "../../sync-core-android/0.1.0-SNAPSHOT/sync-core-android-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "sync-core-android",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "androidSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "android",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "androidJvm"
+      },
+      "available-at": {
+        "url": "../../sync-core-android/0.1.0-SNAPSHOT/sync-core-android-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "sync-core-android",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iosarm64/0.1.0-SNAPSHOT/firebase-license-core-iosarm64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iosarm64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iosarm64/0.1.0-SNAPSHOT/firebase-license-core-iosarm64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iosarm64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iosarm64/0.1.0-SNAPSHOT/firebase-license-core-iosarm64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iosarm64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosSimulatorArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iossimulatorarm64/0.1.0-SNAPSHOT/firebase-license-core-iossimulatorarm64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iossimulatorarm64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosSimulatorArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iossimulatorarm64/0.1.0-SNAPSHOT/firebase-license-core-iossimulatorarm64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iossimulatorarm64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosSimulatorArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iossimulatorarm64/0.1.0-SNAPSHOT/firebase-license-core-iossimulatorarm64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iossimulatorarm64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosX64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iosx64/0.1.0-SNAPSHOT/firebase-license-core-iosx64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iosx64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosX64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iosx64/0.1.0-SNAPSHOT/firebase-license-core-iosx64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iosx64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "iosX64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "available-at": {
+        "url": "../../firebase-license-core-iosx64/0.1.0-SNAPSHOT/firebase-license-core-iosx64-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "firebase-license-core-iosx64",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "jvmApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "available-at": {
+        "url": "../../sync-core-jvm/0.1.0-SNAPSHOT/sync-core-jvm-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "sync-core-jvm",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "jvmRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "available-at": {
+        "url": "../../sync-core-jvm/0.1.0-SNAPSHOT/sync-core-jvm-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "sync-core-jvm",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    },
+    {
+      "name": "jvmSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "available-at": {
+        "url": "../../sync-core-jvm/0.1.0-SNAPSHOT/sync-core-jvm-0.1.0-SNAPSHOT.module",
+        "group": "com.devstdvad",
+        "module": "sync-core-jvm",
+        "version": "0.1.0-SNAPSHOT"
+      }
+    }
+  ]
+}

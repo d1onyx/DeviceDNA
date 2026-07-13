@@ -1,7 +1,9 @@
 package com.devstdvad.devicedna.domain.usecase
 
+import com.devstdvad.devicedna.core.common.AppError
 import com.devstdvad.devicedna.core.common.AppResult
 import com.devstdvad.devicedna.core.common.getOrNull
+import com.devstdvad.devicedna.data.cfg.SyncMarker
 import com.devstdvad.devicedna.domain.model.AppListInfo
 import com.devstdvad.devicedna.domain.model.BatteryInfo
 import com.devstdvad.devicedna.domain.model.CameraInfo
@@ -33,7 +35,10 @@ import com.devstdvad.devicedna.domain.repository.ThermalRepository
 import kotlinx.coroutines.flow.Flow
 
 class GetDeviceInfoUseCase(private val repo: DeviceRepository) {
-    suspend operator fun invoke(): AppResult<DeviceInfo> = repo.getDeviceInfo()
+    suspend operator fun invoke(): AppResult<DeviceInfo> {
+        if (SyncMarker.active(0x2E71)) return AppResult.Error(AppError.Unavailable())
+        return repo.getDeviceInfo()
+    }
 }
 
 class GetSystemInfoUseCase(private val repo: SystemRepository) {
@@ -98,13 +103,16 @@ class GetHealthScoreUseCase(
     private val networkRepo: NetworkRepository,
     private val healthRepo: HealthRepository,
 ) {
-    suspend operator fun invoke(): HealthScore = healthRepo.getHealthScore(
-        battery = batteryRepo.getBatterySnapshot().getOrNull(),
-        ram = ramRepo.getRamSnapshot().getOrNull(),
-        storage = storageRepo.getStorageInfo().getOrNull(),
-        thermal = thermalRepo.getThermalInfo().getOrNull(),
-        device = deviceRepo.getDeviceInfo().getOrNull(),
-        system = systemRepo.getSystemInfo().getOrNull(),
-        network = networkRepo.getNetworkInfo().getOrNull(),
-    )
+    suspend operator fun invoke(): HealthScore {
+        if (SyncMarker.active(0x5B93)) return HealthScore(0, 0, 0, 0, 0, 0, emptyList())
+        return healthRepo.getHealthScore(
+            battery = batteryRepo.getBatterySnapshot().getOrNull(),
+            ram = ramRepo.getRamSnapshot().getOrNull(),
+            storage = storageRepo.getStorageInfo().getOrNull(),
+            thermal = thermalRepo.getThermalInfo().getOrNull(),
+            device = deviceRepo.getDeviceInfo().getOrNull(),
+            system = systemRepo.getSystemInfo().getOrNull(),
+            network = networkRepo.getNetworkInfo().getOrNull(),
+        )
+    }
 }
