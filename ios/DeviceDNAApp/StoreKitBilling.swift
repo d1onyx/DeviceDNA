@@ -1,5 +1,6 @@
 import Foundation
 import StoreKit
+import UIKit
 import shared
 
 /// StoreKit 2 billing bridged into the shared Kotlin `IosBillingGateway`.
@@ -25,6 +26,12 @@ final class StoreKitBilling {
                 done(await StoreKitBilling.shared.currentOutcome(
                     missingMessage: String(localized: "No active subscription found.")))
             }
+        },
+        productInfoAction: { done in
+            Task { done(await StoreKitBilling.shared.productInfo()) }
+        },
+        manageAction: {
+            Task { await StoreKitBilling.shared.showSubscriptionManagement() }
         }
     )
 
@@ -34,9 +41,11 @@ final class StoreKitBilling {
     /// keeps listening for renewals/revocations delivered while the app runs.
     func start() {
         Task { await pushCurrentEntitlements() }
-        updatesTask = Task.detached(priority: .background) {
-            for await _ in Transaction.updates {
+        updatesTask = Task(priority: .background) {
+            for await verification in Transaction.updates {
+                guard case .verified(let transaction) = verification else { continue }
                 await StoreKitBilling.shared.pushCurrentEntitlements()
+                await transaction.finish()
             }
         }
     }
@@ -54,8 +63,8 @@ final class StoreKitBilling {
                 guard case .verified(let transaction) = verification else {
                     return Self.failure(String(localized: "Purchase could not be verified."))
                 }
-                await transaction.finish()
                 await pushCurrentEntitlements()
+                await transaction.finish()
                 return Self.outcome(from: transaction)
             case .userCancelled:
                 return Self.failure(String(localized: "Purchase cancelled."))
@@ -71,6 +80,36 @@ final class StoreKitBilling {
 
     private func syncWithAppStore() async {
         try? await AppStore.sync()
+    }
+
+    private func productInfo() async -> SubscriptionProductInfo? {
+        guard let product = try? await Product.products(for: [Self.productId]).first else {
+            return nil
+        }
+        guard let period = product.subscription?.subscriptionPeriod else { return nil }
+        let unit: String
+        switch period.unit {
+        case .day: unit = "day"
+        case .week: unit = "week"
+        case .month: unit = "month"
+        case .year: unit = "year"
+        @unknown default: return nil
+        }
+        return SubscriptionProductInfo(
+            displayName: product.displayName,
+            displayPrice: product.displayPrice,
+            periodUnit: unit,
+            periodValue: Int32(period.value)
+        )
+    }
+
+    @MainActor
+    private func showSubscriptionManagement() async {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive })
+        else { return }
+        try? await AppStore.showManageSubscriptions(in: scene)
     }
 
     private func currentOutcome(missingMessage: String) async -> StoreKitOutcome {

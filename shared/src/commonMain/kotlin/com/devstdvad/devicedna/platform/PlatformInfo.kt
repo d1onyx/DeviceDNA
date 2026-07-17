@@ -12,6 +12,7 @@ expect object PlatformInfo {
     val osVersion: String
     val processorCount: Int
     val totalMemoryBytes: Long
+    val appVersion: String
 
     /** True on the iOS host. Shared Compose screens/ViewModels branch on this to render
      * platform-appropriate labels without forking the UI (which would regress the other host). */

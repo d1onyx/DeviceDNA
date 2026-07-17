@@ -15,6 +15,8 @@ actual object PlatformInfo {
         get() = Runtime.getRuntime().availableProcessors()
     actual val totalMemoryBytes: Long
         get() = readTotalRamFromProcMeminfo()
+    actual val appVersion: String
+        get() = "1.3"
     actual val isIos: Boolean
         get() = false
 }

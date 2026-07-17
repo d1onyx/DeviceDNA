@@ -181,8 +181,8 @@ fun NetworkScreen(
                 SectionCard {
                     Text(stringRes("network_section_risk"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                     InfoRow(stringRes("network_field_vpn"), if (net.isVpnActive) stringRes("network_value_active") else stringRes("network_value_not_active"), copyable = false)
-                    InfoRow(stringRes("network_field_validated_internet"), if (net.isValidatedInternet) stringRes("common_yes") else stringRes("common_no"), copyable = false)
-                    InfoRow(stringRes("network_field_captive_portal"), if (net.isCaptivePortal) stringRes("common_detected") else stringRes("common_no"), copyable = false)
+                    InfoRow(stringRes("network_field_validated_internet"), net.isValidatedInternet?.let { if (it) stringRes("common_yes") else stringRes("common_no") } ?: stringRes("common_unknown"), copyable = false)
+                    InfoRow(stringRes("network_field_captive_portal"), net.isCaptivePortal?.let { if (it) stringRes("common_detected") else stringRes("common_no") } ?: stringRes("common_unknown"), copyable = false)
                     InfoRow(stringRes("network_field_private_dns"), net.privateDnsServerName ?: stringRes("common_not_reported"), copyable = false)
                     InfoRow(
                         label = stringRes("network_field_http_proxy"),

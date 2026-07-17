@@ -6,6 +6,7 @@ import com.devstdvad.devicedna.data.subscription.EntitlementSource
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionOperationResult
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
+import com.devstdvad.devicedna.data.subscription.SubscriptionProductInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ data class SubscriptionUiState(
     val expiresAtMillis: Long? = null,
     val errorMessage: String? = null,
     val showDevControls: Boolean = false,
+    val productInfo: SubscriptionProductInfo? = null,
 ) {
     val removesAds: Boolean
         get() = PremiumFeature.RemoveAds in features && isPremiumActive
@@ -39,6 +41,7 @@ data class SubscriptionUiState(
 private data class SubscriptionOperationState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val productInfo: SubscriptionProductInfo? = null,
 )
 
 class SubscriptionViewModel(
@@ -56,6 +59,10 @@ class SubscriptionViewModel(
         viewModelScope.launch {
             runCatching { subscriptionRepository.refreshEntitlements() }
         }
+        viewModelScope.launch {
+            val info = runCatching { subscriptionRepository.productInfo() }.getOrNull()
+            operationState.update { it.copy(productInfo = info) }
+        }
     }
 
     val state: StateFlow<SubscriptionUiState> = combine(
@@ -70,6 +77,7 @@ class SubscriptionViewModel(
             expiresAtMillis = entitlements.expiresAtMillis,
             errorMessage = operation.errorMessage,
             showDevControls = !useRealBilling && entitlements.isActive,
+            productInfo = operation.productInfo,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -84,6 +92,8 @@ class SubscriptionViewModel(
     fun restorePurchases() {
         runOperation { subscriptionRepository.restorePurchases() }
     }
+
+    fun manageSubscription() = subscriptionRepository.openSubscriptionManagement()
 
     fun cancelDevPremium() {
         viewModelScope.launch {

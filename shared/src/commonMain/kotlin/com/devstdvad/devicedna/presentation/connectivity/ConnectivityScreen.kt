@@ -79,4 +79,8 @@ fun ConnectivityScreen(
 }
 
 @Composable
-private fun supported(value: Boolean): String = if (value) stringRes("connectivity_value_supported") else stringRes("connectivity_value_not_supported")
+private fun supported(value: Boolean?): String = when (value) {
+    true -> stringRes("connectivity_value_supported")
+    false -> stringRes("connectivity_value_not_supported")
+    null -> stringRes("connectivity_value_restricted")
+}

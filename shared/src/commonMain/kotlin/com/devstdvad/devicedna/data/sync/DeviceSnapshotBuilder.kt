@@ -47,7 +47,7 @@ class DeviceSnapshotBuilder(
         val cpu = async { getCpu().getOrNull() }
         val battery = async { observeBattery().first().getOrNull() }
         val ram = async { observeRam().first().getOrNull() }
-        val storage = async { getStorage().getOrNull() }
+        val storage = if (includeDiskDerivedBackendData) async { getStorage().getOrNull() } else null
         val network = async { getNetwork().getOrNull() }
         val connectivity = async { getConnectivity().getOrNull() }
         val display = async { getDisplay().getOrNull() }
@@ -55,7 +55,7 @@ class DeviceSnapshotBuilder(
         val thermal = async { getThermal().getOrNull() }
         val sensors = async { getSensors().getOrNull() }
         val apps = async { getApps().getOrNull() }
-        val health = async { runCatching { getHealth() }.getOrNull() }
+        val health = if (includeDiskDerivedBackendData) async { runCatching { getHealth() }.getOrNull() } else null
 
         DeviceSnapshot(
             device = device.await(),
@@ -63,7 +63,7 @@ class DeviceSnapshotBuilder(
             system = system.await(),
             battery = battery.await(),
             ram = ram.await(),
-            storage = storage.await(),
+            storage = storage?.await(),
             network = network.await(),
             connectivity = connectivity.await(),
             display = display.await(),
@@ -71,7 +71,7 @@ class DeviceSnapshotBuilder(
             thermal = thermal.await(),
             sensors = sensors.await(),
             apps = apps.await(),
-            health = health.await(),
-        )
+            health = health?.await(),
+        ).forBackendSync()
     }
 }

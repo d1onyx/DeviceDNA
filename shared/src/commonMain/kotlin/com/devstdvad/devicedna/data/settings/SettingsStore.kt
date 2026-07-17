@@ -29,4 +29,5 @@ interface SettingsStore : ClearableStore {
     suspend fun setWidgetsPromoShown(value: Boolean)
     suspend fun setSmartAlertsEnabled(value: Boolean)
     suspend fun setSmartAlertTypeEnabled(typeKey: String, enabled: Boolean)
+    suspend fun setGuestMode(value: Boolean)
 }

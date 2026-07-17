@@ -30,6 +30,7 @@ class IosSettingsStore(
         const val WIDGETS_PROMO_SHOWN = "widgets_promo_shown"
         const val SMART_ALERTS_ENABLED = "smart_alerts_enabled"
         const val SMART_ALERT_TYPES = "smart_alert_types"
+        const val GUEST_MODE = "guest_mode"
     }
 
     private val state = MutableStateFlow(load())
@@ -65,6 +66,7 @@ class IosSettingsStore(
             widgetsPromoShown = boolOr(Key.WIDGETS_PROMO_SHOWN, false),
             smartAlertsEnabled = boolOr(Key.SMART_ALERTS_ENABLED, true),
             smartAlertTypes = alertTypes ?: ALL_SMART_ALERT_KEYS,
+            guestMode = boolOr(Key.GUEST_MODE, false),
         )
     }
 
@@ -94,6 +96,7 @@ class IosSettingsStore(
     override suspend fun setExportFormat(value: ExportFormat) = setString(Key.EXPORT_FORMAT, value.name)
     override suspend fun setWidgetsPromoShown(value: Boolean) = setBool(Key.WIDGETS_PROMO_SHOWN, value)
     override suspend fun setSmartAlertsEnabled(value: Boolean) = setBool(Key.SMART_ALERTS_ENABLED, value)
+    override suspend fun setGuestMode(value: Boolean) = setBool(Key.GUEST_MODE, value)
 
     override suspend fun setSmartAlertTypeEnabled(typeKey: String, enabled: Boolean) {
         val current = state.value.smartAlertTypes
@@ -126,6 +129,7 @@ class IosSettingsStore(
             Key.WIDGETS_PROMO_SHOWN,
             Key.SMART_ALERTS_ENABLED,
             Key.SMART_ALERT_TYPES,
+            Key.GUEST_MODE,
         )
     }
 }

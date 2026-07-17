@@ -36,6 +36,7 @@ targets:
         excludes:
           - "Info.plist"
           - "GoogleService-Info.plist"
+          - "PrivacyInfo.xcprivacy"
       # XcodeGen doesn't reliably add non-Info.plist *.plist files under a `sources`
       # path to Copy Bundle Resources (yonaskolb/XcodeGen#1423) — without this explicit
       # entry, GoogleService-Info.plist silently never ships in the .app bundle, so
@@ -54,6 +55,8 @@ targets:
       - path: DeviceDNAApp/GoogleService-Info-CfgSync.plist
         buildPhase: resources
         optional: true
+      - path: DeviceDNAApp/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IOS_APP_BUNDLE_ID)
@@ -94,6 +97,10 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: DeviceDNAWidgets
+        excludes:
+          - "PrivacyInfo.xcprivacy"
+      - path: DeviceDNAWidgets/PrivacyInfo.xcprivacy
+        buildPhase: resources
     info:
       path: DeviceDNAWidgets/Info.plist
       properties:

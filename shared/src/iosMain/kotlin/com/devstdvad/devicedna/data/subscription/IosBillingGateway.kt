@@ -29,6 +29,8 @@ data class StoreKitOutcome(
 class IosBillingGateway(
     private val purchaseAction: (onResult: (StoreKitOutcome) -> Unit) -> Unit,
     private val restoreAction: (onResult: (StoreKitOutcome) -> Unit) -> Unit,
+    private val productInfoAction: (onResult: (SubscriptionProductInfo?) -> Unit) -> Unit,
+    private val manageAction: () -> Unit,
 ) : SubscriptionBillingGateway {
 
     override suspend fun purchasePremium(): SubscriptionPurchaseResult =
@@ -36,6 +38,13 @@ class IosBillingGateway(
 
     override suspend fun restorePurchases(): SubscriptionPurchaseResult =
         await(restoreAction).toPurchaseResult(defaultError = "No active subscription found.")
+
+    override suspend fun productInfo(): SubscriptionProductInfo? =
+        suspendCancellableCoroutine { cont ->
+            productInfoAction { info -> if (cont.isActive) cont.resume(info) }
+        }
+
+    override fun openSubscriptionManagement() = manageAction()
 
     /** Swift-visible mapper for StoreKit entitlement cache updates. */
     fun toEntitlements(outcome: StoreKitOutcome): PremiumEntitlements = outcome.toEntitlements()
@@ -57,12 +66,10 @@ class IosBillingGateway(
 /** Maps a verified StoreKit transaction to the shared entitlement model (all features, one tier). */
 fun StoreKitOutcome.toEntitlements(): PremiumEntitlements = PremiumEntitlements(
     userId = null,
-    features = PremiumFeature.entries.toSet(),
+    features = PremiumFeature.entries.filterNot { it == PremiumFeature.BatteryIntelligence }.toSet(),
     issuedAtMillis = purchasedAtMillis,
     expiresAtMillis = expiresAtMillis,
-    // Backend source keeps SubscriptionRepository from re-verifying through the
-    // Google-Play-only backend endpoint; StoreKit itself already verified the purchase.
-    source = EntitlementSource.Backend,
+    source = EntitlementSource.AppStore,
     productId = productId,
     purchaseToken = transactionId,
 )

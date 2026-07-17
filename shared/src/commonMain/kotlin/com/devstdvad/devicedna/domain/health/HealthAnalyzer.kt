@@ -192,6 +192,10 @@ class HealthAnalyzer : HealthRepository {
             .mapNotNull { it.temperatureCelsius }
             .maxOrNull()
 
+        val coarseState = thermal.zones.firstOrNull { it.type == ThermalZoneType.Cpu }
+            ?.name
+            ?.lowercase()
+
         if (maxCpuTemp != null && maxCpuTemp >= 80f) {
             score -= 35
             insights += HealthInsight(
@@ -201,6 +205,16 @@ class HealthAnalyzer : HealthRepository {
                 severity = InsightSeverity.Warning,
                 confidence = 0.9f,
                 actions = listOf(RecommendedAction("Stop intensive apps", "Gaming or crypto apps cause high CPU temps.")),
+            )
+        } else if (coarseState == "serious" || coarseState == "critical") {
+            score -= if (coarseState == "critical") 35 else 20
+            insights += HealthInsight(
+                id = "system_thermal",
+                title = "System thermal pressure is ${coarseState}",
+                summary = "The operating system reports elevated thermal pressure. Numeric component temperatures are not exposed on this platform.",
+                severity = if (coarseState == "critical") InsightSeverity.Critical else InsightSeverity.Warning,
+                confidence = 0.95f,
+                actions = listOf(RecommendedAction("Let the device cool", "Stop intensive work and move the device away from direct heat.")),
             )
         }
 
@@ -311,7 +325,7 @@ class HealthAnalyzer : HealthRepository {
         if (system?.isAppDebuggable == true) {
             add("debuggable_app", "Debuggable app package", FraudSignalSeverity.Critical, "Installed app has FLAG_DEBUGGABLE")
         }
-        if (system != null && !system.isInstalledFromKnownStore) {
+        if (system?.supportsInstallSourceInspection == true && !system.isInstalledFromKnownStore) {
             add(
                 id = "unknown_installer",
                 label = "Unknown installer",
@@ -319,7 +333,7 @@ class HealthAnalyzer : HealthRepository {
                 evidence = system.installerPackageName ?: "Installer package unavailable",
             )
         }
-        if (system?.signingCertificateSha256.isNullOrBlank()) {
+        if (system?.supportsAppSignatureInspection == true && system.signingCertificateSha256.isNullOrBlank()) {
             add("missing_signature", "Signature hash unavailable", FraudSignalSeverity.Low, "Could not read signing certificate hash")
         }
 
@@ -329,7 +343,7 @@ class HealthAnalyzer : HealthRepository {
         if (network?.isCaptivePortal == true) {
             add("captive_portal", "Captive portal detected", FraudSignalSeverity.Low, "Network capability reports captive portal")
         }
-        if (network != null && !network.isValidatedInternet && network.connectionType.name != "None") {
+        if (network?.isValidatedInternet == false && network.connectionType.name != "None") {
             add("not_validated", "Network not validated", FraudSignalSeverity.Low, "Android did not validate internet connectivity")
         }
         if (!network?.httpProxyHost.isNullOrBlank()) {

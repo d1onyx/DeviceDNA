@@ -121,7 +121,7 @@ fun SystemScreen(
                 if (isIos) {
                     InfoRow(stringRes("system_field_graphics"), info.openGlVersion)
                     InfoRow(stringRes("system_field_low_power_mode"), if (info.isPowerSaveMode) stringRes("common_on") else stringRes("common_off"))
-                    InfoRow(stringRes("system_field_uptime"), formatUptime(info.uptimeMillis), showDivider = false)
+                    InfoRow(stringRes(if (isIos) "system_field_app_uptime" else "system_field_uptime"), formatUptime(info.uptimeMillis), showDivider = false)
                 } else {
                     InfoRow(stringRes("system_field_java_vm"), info.javaVm)
                     InfoRow(stringRes("system_field_opengl_es"), info.openGlVersion)
@@ -156,7 +156,12 @@ fun SystemScreen(
                 InfoRow(stringRes("system_field_package"), info.packageName)
                 InfoRow(stringRes("system_field_version"), "${info.appVersionName} (${info.appVersionCode})", copyable = false)
                 InfoRow(stringRes("system_field_installer"), info.installerPackageName ?: stringRes("common_unknown"))
-                InfoRow(stringRes("system_field_known_store"), if (info.isInstalledFromKnownStore) stringRes("common_yes") else stringRes("common_no"), copyable = false, showDivider = isIos)
+                InfoRow(
+                    stringRes("system_field_known_store"),
+                    if (!info.supportsInstallSourceInspection) stringRes("common_unknown") else if (info.isInstalledFromKnownStore) stringRes("common_yes") else stringRes("common_no"),
+                    copyable = false,
+                    showDivider = isIos,
+                )
                 if (!isIos) {
                     InfoRow(stringRes("system_field_debuggable_app"), if (info.isAppDebuggable) stringRes("common_yes") else stringRes("common_no"), copyable = false)
                     InfoRow(

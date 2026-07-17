@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.platform
 
 import platform.Foundation.NSProcessInfo
+import platform.Foundation.NSBundle
 import platform.UIKit.UIDevice
 
 actual object PlatformInfo {
@@ -16,6 +17,8 @@ actual object PlatformInfo {
         get() = NSProcessInfo.processInfo.processorCount.toInt()
     actual val totalMemoryBytes: Long
         get() = NSProcessInfo.processInfo.physicalMemory.toLong()
+    actual val appVersion: String
+        get() = NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: ""
     actual val isIos: Boolean
         get() = true
 }

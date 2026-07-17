@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.presentation.auth
 
 import com.devstdvad.devicedna.resources.stringRes
+import com.devstdvad.devicedna.platform.PlatformInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +37,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -68,6 +70,7 @@ fun AuthScreen(
     onAppleSignIn: () -> Unit = {},
     // Apple Sign-In is offered only where it is natively available (iOS).
     showAppleSignIn: Boolean = false,
+    onContinueWithoutAccount: (() -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
     var privacyAccepted by rememberSaveable(requirePrivacyConsent) { mutableStateOf(!requirePrivacyConsent) }
@@ -184,6 +187,21 @@ fun AuthScreen(
                     modifier = Modifier.fillMaxWidth(),
                     mark = { GoogleMark() },
                     label = stringRes("auth_google"),
+                )
+            }
+            onContinueWithoutAccount?.let { continueAction ->
+                Spacer(Modifier.height(8.dp))
+                TextButton(
+                    onClick = continueAction,
+                    enabled = !state.isLoading,
+                ) {
+                    Text(stringRes("auth_continue_without_account"), color = colors.accent)
+                }
+                Text(
+                    text = stringRes("auth_guest_sync_note"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                    textAlign = TextAlign.Center,
                 )
             }
             Spacer(Modifier.height(12.dp))
@@ -304,7 +322,7 @@ private fun PrivacyPolicySheet(onDismiss: () -> Unit) {
             )
             Spacer(Modifier.height(20.dp))
             Text(
-                text = stringRes("auth_privacy_policy_body"),
+                text = stringRes(if (PlatformInfo.isIos) "auth_privacy_policy_body_ios" else "auth_privacy_policy_body"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textSecondary,
             )

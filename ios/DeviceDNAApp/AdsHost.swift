@@ -22,6 +22,13 @@ final class AdsHost: NSObject {
 
     private var started = false
     private var interstitialAd: InterstitialAd?
+    private var pendingBanners: [BannerView] = []
+
+    var isPrivacyOptionsRequired: Bool {
+        ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+    }
+
+    var canShowAds: Bool { started && ConsentInformation.shared.canRequestAds }
 
     // MARK: - Startup: consent → ATT → SDK
 
@@ -31,17 +38,48 @@ final class AdsHost: NSObject {
         let parameters = RequestParameters()
         parameters.isTaggedForUnderAgeOfConsent = false
 
-        ConsentInformation.shared.requestConsentInfoUpdate(with: parameters) { [weak self] _ in
+        ConsentInformation.shared.requestConsentInfoUpdate(with: parameters) { [weak self] error in
             DispatchQueue.main.async {
-                guard let presenter = Self.topViewController() else {
-                    self?.startAdsSdk()
+                if let error {
+                    NSLog("DeviceDNA/Ads: consent update failed: %@", error.localizedDescription)
+                    self?.startAdsIfAllowed()
                     return
                 }
-                ConsentForm.loadAndPresentIfRequired(from: presenter) { _ in
-                    self?.requestTrackingAuthorizationIfNeeded {
-                        self?.startAdsSdk()
-                    }
+                guard let presenter = Self.topViewController() else {
+                    self?.startAdsIfAllowed()
+                    return
                 }
+                ConsentForm.loadAndPresentIfRequired(from: presenter) { formError in
+                    if let formError {
+                        NSLog("DeviceDNA/Ads: consent form failed: %@", formError.localizedDescription)
+                    }
+                    self?.startAdsIfAllowed()
+                }
+            }
+        }
+    }
+
+    private func startAdsIfAllowed() {
+        guard ConsentInformation.shared.canRequestAds else {
+            publishState()
+            return
+        }
+        if started {
+            publishState()
+            if interstitialAd == nil { loadInterstitial() }
+            return
+        }
+        requestTrackingAuthorizationIfNeeded { [weak self] in self?.startAdsSdk() }
+    }
+
+    func presentPrivacyOptions() {
+        DispatchQueue.main.async {
+            guard let presenter = Self.topViewController() else { return }
+            ConsentForm.presentPrivacyOptionsForm(from: presenter) { error in
+                if let error {
+                    NSLog("DeviceDNA/Ads: privacy options failed: %@", error.localizedDescription)
+                }
+                self.startAdsIfAllowed()
             }
         }
     }
@@ -59,10 +97,21 @@ final class AdsHost: NSObject {
     private func startAdsSdk() {
         guard !started else { return }
         started = true
+        publishState()
         Task { @MainActor [weak self] in
             _ = await MobileAds.shared.start()
             self?.loadInterstitial()
+            self?.pendingBanners.forEach { $0.load(Request()) }
+            self?.pendingBanners.removeAll()
         }
+    }
+
+    private func publishState() {
+        if !canShowAds { interstitialAd = nil }
+        IosAdsState.shared.update(
+            canShow: canShowAds,
+            privacyOptionsRequired: isPrivacyOptionsRequired
+        )
     }
 
     // MARK: - Banner (factory consumed by the Compose UIKitView slot)
@@ -73,6 +122,8 @@ final class AdsHost: NSObject {
         banner.rootViewController = Self.topViewController()
         if started {
             banner.load(Request())
+        } else {
+            pendingBanners.append(banner)
         }
         return banner
     }
@@ -97,6 +148,7 @@ final class AdsHost: NSObject {
     private var onInterstitialDismissed: (() -> Void)?
 
     private func loadInterstitial() {
+        guard canShowAds else { return }
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -113,7 +165,7 @@ final class AdsHost: NSObject {
     }
 
     private func showInterstitial(onShowing: @escaping () -> Void, onDismissed: @escaping () -> Void) {
-        guard let ad = interstitialAd, let presenter = Self.topViewController() else { return }
+        guard canShowAds, let ad = interstitialAd, let presenter = Self.topViewController() else { return }
         interstitialAd = nil
         onInterstitialDismissed = onDismissed
         onShowing()

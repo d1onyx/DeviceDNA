@@ -316,7 +316,7 @@ fun OverviewScreen(
                                                 SettingsFormatters.formatBytes(net.rxBytesPerSec ?: 0L, settings.dataUnit),
                                                 SettingsFormatters.formatBytes(net.txBytesPerSec ?: 0L, settings.dataUnit),
                                             )
-                                        net.isValidatedInternet -> stringRes("network_value_connected")
+                                        net.isValidatedInternet == true -> stringRes("network_value_connected")
                                         else -> stringRes("overview_network_limited")
                                     }
                                     Text(subLabel, style = MaterialTheme.typography.labelMedium, color = colors.textMuted)

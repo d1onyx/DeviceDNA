@@ -32,6 +32,7 @@ class AndroidSettingsStore(private val context: Context) : SettingsStore {
             widgetsPromoShown = prefs[WIDGETS_PROMO_SHOWN] ?: false,
             smartAlertsEnabled = prefs[SMART_ALERTS_ENABLED] ?: true,
             smartAlertTypes = prefs[SMART_ALERT_TYPES] ?: ALL_SMART_ALERT_KEYS,
+            guestMode = prefs[GUEST_MODE] ?: false,
         )
     }
 
@@ -106,6 +107,10 @@ class AndroidSettingsStore(private val context: Context) : SettingsStore {
         }
     }
 
+    override suspend fun setGuestMode(value: Boolean) {
+        context.settingsDataStore.edit { it[GUEST_MODE] = value }
+    }
+
     override suspend fun clear() {
         context.settingsDataStore.edit { it.clear() }
     }
@@ -131,5 +136,6 @@ class AndroidSettingsStore(private val context: Context) : SettingsStore {
         val WIDGETS_PROMO_SHOWN = booleanPreferencesKey("widgets_promo_shown")
         val SMART_ALERTS_ENABLED = booleanPreferencesKey("smart_alerts_enabled")
         val SMART_ALERT_TYPES = stringSetPreferencesKey("smart_alert_types")
+        val GUEST_MODE = booleanPreferencesKey("guest_mode")
     }
 }

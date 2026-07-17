@@ -338,7 +338,8 @@ struct ComposeRootView: UIViewControllerRepresentable {
                 AuthBridge.shared.signInWithApple()
             },
             interstitial: AdsHost.shared.interstitial,
-            bannerViewFactory: { AdsHost.shared.makeBannerView() }
+            bannerViewFactory: { AdsHost.shared.makeBannerView() },
+            onAdPrivacyOptions: { AdsHost.shared.presentPrivacyOptions() }
         )
     }
 

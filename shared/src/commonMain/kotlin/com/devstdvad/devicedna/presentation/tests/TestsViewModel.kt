@@ -180,7 +180,8 @@ class TestsViewModel(
                         val display = result.value
                         add(test("Display", "Display metrics", "${display.widthPx} x ${display.heightPx}, ${display.densityDpi} dpi", display.widthPx > 0 && display.heightPx > 0))
                         add(test("Display", "Refresh modes", display.supportedRefreshRates.joinToString(", ") { "${Formatters.noDecimals(it)}Hz" }, display.supportedRefreshRates.isNotEmpty()))
-                        add(test("Display", "HDR / wide color", (display.hdrCapabilities + listOfNotNull(if (display.isWideColorGamut) "Wide color" else null)).joinToString(", "), display.isHdr || display.isWideColorGamut, unavailableWhenFalse = true))
+                        val enhancedColor = display.isHdr == true || display.isWideColorGamut == true
+                        add(test("Display", "HDR / wide color", (display.hdrCapabilities + listOfNotNull(if (display.isWideColorGamut == true) "Wide color" else null)).joinToString(", "), enhancedColor, unavailableWhenFalse = display.isHdr == null && display.isWideColorGamut == null))
                     }
                     is AppResult.Error -> add(errorTest("Display", "Display metrics", result.cause.message))
                 }
@@ -225,7 +226,7 @@ class TestsViewModel(
                     is AppResult.Success -> {
                         val network = result.value
                         add(test("Network", "Network stack", network.connectionType.name, network.connectionType != ConnectionType.Unknown))
-                        add(test("Network", "Internet validation", if (network.isValidatedInternet) "Validated" else "Not validated", network.isValidatedInternet, warningWhenFalse = network.connectionType != ConnectionType.None, unavailableWhenFalse = network.connectionType == ConnectionType.None))
+                        add(test("Network", "Internet validation", when (network.isValidatedInternet) { true -> "Validated"; false -> "Not validated"; null -> "Restricted" }, network.isValidatedInternet == true, warningWhenFalse = network.isValidatedInternet == false && network.connectionType != ConnectionType.None, unavailableWhenFalse = network.isValidatedInternet == null || network.connectionType == ConnectionType.None))
                         add(test("Network", "IP addressing", listOfNotNull(network.localIpv4, network.localIpv6).joinToString(", "), network.localIpv4 != null || network.localIpv6 != null, unavailableWhenFalse = network.connectionType == ConnectionType.None, warningWhenFalse = network.connectionType != ConnectionType.None))
                     }
                     is AppResult.Error -> add(errorTest("Network", "Network stack", result.cause.message))
@@ -236,7 +237,8 @@ class TestsViewModel(
                         val conn = result.value
                         add(test("Connectivity", "Wi-Fi radio", if (conn.hasWifi) "Available" else "Not present", conn.hasWifi, unavailableWhenFalse = true))
                         add(test("Connectivity", "Bluetooth radio", if (conn.hasBluetooth) "Available" else "Not present", conn.hasBluetooth, unavailableWhenFalse = true))
-                        add(test("Connectivity", "NFC / UWB / eSIM", "NFC: ${conn.hasNfc}, UWB: ${conn.hasUwb}, eSIM: ${conn.hasEsim}", conn.hasNfc || conn.hasUwb || conn.hasEsim, unavailableWhenFalse = true))
+                        val hasPersonalRadio = listOf(conn.hasNfc, conn.hasUwb, conn.hasEsim).any { it == true }
+                        add(test("Connectivity", "NFC / UWB / eSIM", "NFC: ${conn.hasNfc ?: "Restricted"}, UWB: ${conn.hasUwb ?: "Restricted"}, eSIM: ${conn.hasEsim ?: "Restricted"}", hasPersonalRadio, unavailableWhenFalse = true))
                     }
                     is AppResult.Error -> add(errorTest("Connectivity", "Radio inventory", result.cause.message))
                 }

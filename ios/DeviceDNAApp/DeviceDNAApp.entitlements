@@ -13,5 +13,8 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<!-- Best-effort current SSID access; iOS still enforces its own privacy conditions. -->
+	<key>com.apple.developer.networking.wifi-info</key>
+	<true/>
 </dict>
 </plist>

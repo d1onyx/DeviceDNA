@@ -44,10 +44,35 @@ final class AuthBridge: NSObject {
             guard let user = Auth.auth().currentUser else { onResult("ready"); return }
             // Kotlin exports the nested `(String) -> Unit` as `(String) -> KotlinUnit`, so it
             // cannot be handed to a Swift `(String) -> Void` parameter without this adapter.
-            AuthBridge.prepareDeletion(user: user) { _ = onResult($0) }
+            AuthBridge.shared.prepareDeletion(user: user) { _ = onResult($0) }
         },
         deleteAccountAction: { onResult in
             guard let user = Auth.auth().currentUser else { onResult("deleted"); return }
+            if user.providerData.contains(where: { $0.providerID == "apple.com" }) {
+                guard let authorizationCode = AuthBridge.shared.pendingAppleDeletionAuthorizationCode else {
+                    onResult("reauth")
+                    return
+                }
+                AuthBridge.shared.isDeletingAppleAccount = true
+                Task { @MainActor in
+                    defer { AuthBridge.shared.isDeletingAppleAccount = false }
+                    do {
+                        // Apple requires token revocation before deleting an account created with
+                        // Sign in with Apple. The code comes from a fresh authorization request.
+                        try await Auth.auth().revokeToken(withAuthorizationCode: authorizationCode)
+                        try await user.delete()
+                        AuthBridge.shared.pendingAppleDeletionAuthorizationCode = nil
+                        GIDSignIn.sharedInstance.signOut()
+                        onResult("deleted")
+                    } catch let error as NSError where error.code == AuthErrorCode.requiresRecentLogin.rawValue {
+                        onResult("reauth")
+                    } catch {
+                        NSLog("DeviceDNA/Auth: Apple account deletion failed: %@", error.localizedDescription)
+                        onResult("failed")
+                    }
+                }
+                return
+            }
             let deleteNow: () -> Void = {
                 user.delete { error in
                     if let ns = error as NSError?, ns.code == AuthErrorCode.requiresRecentLogin.rawValue {
@@ -85,7 +110,35 @@ final class AuthBridge: NSObject {
     /// deallocated controller drops the request without ever showing the sheet or calling back.
     private var appleAuthController: ASAuthorizationController?
 
-    private static func prepareDeletion(user: FirebaseAuth.User, onResult: @escaping (String) -> Void) {
+    /// A fresh Apple authorization code is single-use and retained only between the explicit
+    /// reauthentication step and the immediately following Firebase account deletion.
+    private var pendingAppleDeletionAuthorizationCode: String?
+    private var appleDeletionCompletion: ((String) -> Void)?
+    private var credentialRevokedObserver: NSObjectProtocol?
+    private var isDeletingAppleAccount = false
+
+    private func prepareDeletion(user: FirebaseAuth.User, onResult: @escaping (String) -> Void) {
+        if user.providerData.contains(where: { $0.providerID == "apple.com" }) {
+            DispatchQueue.main.async {
+                guard Self.keyWindow() != nil else {
+                    onResult("failed")
+                    return
+                }
+                self.pendingAppleDeletionAuthorizationCode = nil
+                self.appleDeletionCompletion = onResult
+                let nonce = Self.randomNonceString()
+                self.currentAppleNonce = nonce
+                let request = ASAuthorizationAppleIDProvider().createRequest()
+                request.nonce = Self.sha256(nonce)
+                let controller = ASAuthorizationController(authorizationRequests: [request])
+                controller.delegate = self
+                controller.presentationContextProvider = self
+                self.appleAuthController = controller
+                controller.performRequests()
+            }
+            return
+        }
+
         if let lastSignIn = user.metadata.lastSignInDate,
            Date().timeIntervalSince(lastSignIn) <= 4 * 60 {
             onResult("ready")
@@ -127,6 +180,15 @@ final class AuthBridge: NSObject {
                 email: user?.email,
                 photoUrl: user?.photoURL?.absoluteString
             )
+        }
+        credentialRevokedObserver = NotificationCenter.default.addObserver(
+            forName: ASAuthorizationAppleIDProvider.credentialRevokedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard self?.isDeletingAppleAccount != true else { return }
+            try? Auth.auth().signOut()
+            self?.gateway.updateUser(uid: nil, displayName: nil, email: nil, photoUrl: nil)
         }
     }
 
@@ -266,7 +328,12 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
               let tokenData = appleIDCredential.identityToken,
               let idToken = String(data: tokenData, encoding: .utf8)
         else {
-            fail("Apple sign-in did not return a usable identity token.")
+            if let completion = appleDeletionCompletion {
+                appleDeletionCompletion = nil
+                completion("failed")
+            } else {
+                fail("Apple sign-in did not return a usable identity token.")
+            }
             appleAuthController = nil
             return
         }
@@ -276,11 +343,35 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
             rawNonce: nonce,
             fullName: appleIDCredential.fullName
         )
-        Auth.auth().signIn(with: credential) { _, error in
-            if let error {
-                self.fail("Firebase rejected the Apple credential: \(error.localizedDescription)")
+        if let deletionCompletion = appleDeletionCompletion {
+            appleDeletionCompletion = nil
+            guard let authorizationCodeData = appleIDCredential.authorizationCode,
+                  let authorizationCode = String(data: authorizationCodeData, encoding: .utf8),
+                  let user = Auth.auth().currentUser
+            else {
+                deletionCompletion("failed")
+                currentAppleNonce = nil
+                appleAuthController = nil
+                return
             }
-            // On success the state listener publishes the user into the Kotlin gateway.
+            user.reauthenticate(with: credential) { _, error in
+                if let ns = error as NSError?, ns.code == AuthErrorCode.requiresRecentLogin.rawValue {
+                    deletionCompletion("reauth")
+                } else if let error {
+                    NSLog("DeviceDNA/Auth: Apple reauthentication failed: %@", error.localizedDescription)
+                    deletionCompletion("failed")
+                } else {
+                    self.pendingAppleDeletionAuthorizationCode = authorizationCode
+                    deletionCompletion("ready")
+                }
+            }
+        } else {
+            Auth.auth().signIn(with: credential) { _, error in
+                if let error {
+                    self.fail("Firebase rejected the Apple credential: \(error.localizedDescription)")
+                }
+                // On success the state listener publishes the user into the Kotlin gateway.
+            }
         }
         currentAppleNonce = nil
         appleAuthController = nil
@@ -290,7 +381,10 @@ extension AuthBridge: ASAuthorizationControllerDelegate, ASAuthorizationControll
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        if (error as? ASAuthorizationError)?.code == .canceled {
+        if let deletionCompletion = appleDeletionCompletion {
+            appleDeletionCompletion = nil
+            deletionCompletion((error as? ASAuthorizationError)?.code == .canceled ? "reauth" : "failed")
+        } else if (error as? ASAuthorizationError)?.code == .canceled {
             gateway.signInCancelled()
         } else {
             fail("Apple sign-in failed: \(error.localizedDescription)")

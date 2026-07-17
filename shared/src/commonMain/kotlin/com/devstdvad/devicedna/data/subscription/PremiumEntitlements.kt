@@ -32,4 +32,5 @@ enum class EntitlementSource {
     Dev,
     Backend,
     Play,
+    AppStore,
 }

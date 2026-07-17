@@ -46,6 +46,7 @@ class IosSmartAlertNotifier(
         if (!settings.smartAlertsEnabled) return
         val enabled = settings.smartAlertTypes
             .mapNotNull { SmartAlertType.fromKey(it) }
+            .filterNot { it == SmartAlertType.SlowCharging }
             .toSet()
         val active = SmartAlertEvaluator.evaluate(snapshot, enabled)
         if (active.isEmpty()) return

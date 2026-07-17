@@ -31,4 +31,6 @@ data class SystemInfo(
     val packageName: String = "",
     val isInstalledFromKnownStore: Boolean = false,
     val isPowerSaveMode: Boolean = false,
+    val supportsInstallSourceInspection: Boolean = true,
+    val supportsAppSignatureInspection: Boolean = true,
 )

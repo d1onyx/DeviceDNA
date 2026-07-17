@@ -18,7 +18,7 @@ class IosDevBillingGateway : SubscriptionBillingGateway {
         val now = currentTimeMillis()
         return SubscriptionPurchaseResult.Success(
             PremiumEntitlements(
-                features = PremiumFeature.entries.toSet(),
+                features = PremiumFeature.entries.filterNot { it == PremiumFeature.BatteryIntelligence }.toSet(),
                 issuedAtMillis = now,
                 expiresAtMillis = now + DEV_SUBSCRIPTION_DURATION_MS,
                 source = EntitlementSource.Dev,

@@ -61,7 +61,7 @@ fun DisplayScreen(
                             color = colors.textPrimary,
                         )
                         Text(
-                            text = stringRes("display_hero_type_size", info.displayType, Formatters.oneDecimal(info.physicalSizeInches)),
+                            text = info.physicalSizeInches?.let { stringRes("display_hero_type_size", info.displayType, Formatters.oneDecimal(it)) } ?: info.displayType,
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.displayColor,
                         )
@@ -90,13 +90,13 @@ fun DisplayScreen(
             SectionCard {
                 Text(stringRes("display_section_specs"), style = MaterialTheme.typography.titleLarge, color = colors.textPrimary)
                 InfoRow(stringRes("display_field_resolution"), stringRes("display_value_resolution_px", info.widthPx, info.heightPx), copyable = false)
-                InfoRow(stringRes("display_field_density"), stringRes("display_value_density", info.densityDpi, info.densityBucket), copyable = false)
-                InfoRow(stringRes("display_field_physical_size"), stringRes("display_value_inches", Formatters.oneDecimal(info.physicalSizeInches)), copyable = false)
+                InfoRow(stringRes("display_field_density"), info.densityDpi?.let { stringRes("display_value_density", it, info.densityBucket) } ?: stringRes("common_unavailable"), copyable = false)
+                InfoRow(stringRes("display_field_physical_size"), info.physicalSizeInches?.let { stringRes("display_value_inches", Formatters.oneDecimal(it)) } ?: stringRes("common_unavailable"), copyable = false)
                 InfoRow(stringRes("network_field_type"), info.displayType, copyable = false)
                 InfoRow(stringRes("display_field_orientation"), info.orientation, copyable = false)
-                InfoRow(stringRes("display_field_wide_color_gamut"), if (info.isWideColorGamut) stringRes("common_yes") else stringRes("common_no"), copyable = false)
-                InfoRow(stringRes("display_field_hdr"), if (info.isHdr) stringRes("connectivity_value_supported") else stringRes("connectivity_value_not_supported"), copyable = false)
-                InfoRow(stringRes("display_field_font_scale"), stringRes("display_value_multiplier", Formatters.twoDecimals(info.fontScale)), copyable = false, showDivider = false)
+                InfoRow(stringRes("display_field_wide_color_gamut"), yesNoUnknown(info.isWideColorGamut), copyable = false)
+                InfoRow(stringRes("display_field_hdr"), supportUnknown(info.isHdr), copyable = false)
+                InfoRow(stringRes("display_field_font_scale"), info.fontScale?.let { stringRes("display_value_multiplier", Formatters.twoDecimals(it)) } ?: stringRes("common_unavailable"), copyable = false, showDivider = false)
             }
         }
 
@@ -116,7 +116,7 @@ fun DisplayScreen(
                 Spacer(Modifier.height(8.dp))
                 InfoRow(
                     label = stringRes("display_field_adaptive_brightness"),
-                    value = if (info.isAdaptiveBrightness) stringRes("common_enabled") else stringRes("common_disabled"),
+                    value = info.isAdaptiveBrightness?.let { if (it) stringRes("common_enabled") else stringRes("common_disabled") } ?: stringRes("common_unavailable"),
                     copyable = false,
                     showDivider = false,
                 )
@@ -124,3 +124,13 @@ fun DisplayScreen(
         }
     }
 }
+
+@Composable
+private fun yesNoUnknown(value: Boolean?): String = value?.let {
+    if (it) stringRes("common_yes") else stringRes("common_no")
+} ?: stringRes("common_unavailable")
+
+@Composable
+private fun supportUnknown(value: Boolean?): String = value?.let {
+    if (it) stringRes("connectivity_value_supported") else stringRes("connectivity_value_not_supported")
+} ?: stringRes("common_unavailable")

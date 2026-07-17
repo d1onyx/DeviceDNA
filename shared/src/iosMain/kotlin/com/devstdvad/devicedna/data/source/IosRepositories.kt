@@ -4,6 +4,7 @@ package com.devstdvad.devicedna.data.source
 
 import com.devstdvad.devicedna.core.common.AppError
 import com.devstdvad.devicedna.core.common.AppResult
+import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.domain.model.AppListInfo
 import com.devstdvad.devicedna.domain.model.BatteryHealth
 import com.devstdvad.devicedna.domain.model.BatteryInfo
@@ -54,6 +55,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVCaptureDeviceDiscoverySession
 import platform.AVFoundation.AVCaptureDeviceFormat
@@ -88,6 +91,7 @@ import platform.Foundation.localTimeZone
 import platform.Foundation.lowPowerModeEnabled
 import platform.Foundation.localeIdentifier
 import platform.Foundation.thermalState
+import platform.NetworkExtension.NEHotspotNetwork
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceBatteryState
 import platform.UIKit.UIScreen
@@ -114,6 +118,7 @@ import platform.posix.if_data
 import platform.posix.NI_MAXHOST
 import platform.posix.NI_NUMERICHOST
 import platform.posix.getnameinfo
+import platform.posix.getpagesize
 import platform.darwin.ifaddrs
 import platform.posix.uname
 import platform.posix.utsname
@@ -146,21 +151,23 @@ private fun machineIdentifier(): String = memScoped {
 private fun isSimulator(): Boolean =
     NSProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] != null
 
+private val processStartedAtMillis = currentTimeMillis()
+
 /** Best-effort Apple chip name from the hardware identifier. */
 private fun chipName(machine: String): String {
-    val map = listOf(
-        "iPhone17" to "Apple A18",
-        "iPhone16" to "Apple A17 Pro",
-        "iPhone15" to "Apple A16 Bionic",
-        "iPhone14" to "Apple A15 Bionic",
-        "iPhone13" to "Apple A15 Bionic",
-        "iPhone12" to "Apple A14 Bionic",
-        "iPhone11" to "Apple A13 Bionic",
-        "iPad16" to "Apple M2",
-        "iPad14" to "Apple M2",
-        "iPad13" to "Apple M1",
+    val exact = mapOf(
+        "iPhone17,1" to "Apple A18 Pro",
+        "iPhone17,2" to "Apple A18 Pro",
+        "iPhone17,3" to "Apple A18",
+        "iPhone17,4" to "Apple A18",
+        "iPhone16,1" to "Apple A17 Pro",
+        "iPhone16,2" to "Apple A17 Pro",
+        "iPhone15,2" to "Apple A16 Bionic",
+        "iPhone15,3" to "Apple A16 Bionic",
+        "iPhone15,4" to "Apple A16 Bionic",
+        "iPhone15,5" to "Apple A16 Bionic",
     )
-    return map.firstOrNull { machine.startsWith(it.first) }?.second ?: "Apple Silicon"
+    return exact[machine] ?: "Apple Silicon"
 }
 
 /** Best-effort marketing name from the hardware identifier (e.g. "iPhone16,2" → "iPhone 15 Pro Max"). */
@@ -254,11 +261,7 @@ class IosBatteryRepository : BatteryRepository {
             levelPercent = (level * 100f).toInt(),
             status = status,
             health = BatteryHealth.Unknown,          // iOS: not exposed to apps
-            source = if (status == BatteryStatus.Charging || status == BatteryStatus.Full) {
-                ChargeSource.USB                     // iOS: charger kind not exposed
-            } else {
-                ChargeSource.Unknown
-            },
+            source = ChargeSource.Unknown,           // iOS does not expose charger kind
             technology = "Li-Ion",
             temperatureCelsius = 0f,                 // iOS: not exposed
             voltageMv = 0,                           // iOS: not exposed
@@ -307,7 +310,7 @@ class IosRamStorageRepository : RamRepository, StorageRepository {
                     count.ptr,
                 )
                 if (kr == 0) {
-                    val pageSize = 16_384L // vm_kernel_page_size on modern Apple Silicon
+                    val pageSize = getpagesize().toLong()
                     free = (stats.free_count.toLong() + stats.inactive_count.toLong()) * pageSize
                 }
             }
@@ -319,7 +322,7 @@ class IosRamStorageRepository : RamRepository, StorageRepository {
             availableBytes = free,
             usedBytes = used,
             usedPercent = usedPercent,
-            isLowMemory = usedPercent >= 0.9f,
+            isLowMemory = false, // iOS exposes memory warnings as events, not a queryable flag
         )
     }
 
@@ -408,18 +411,21 @@ class IosSystemRepository : SystemRepository {
             language = NSLocale.currentLocale.localeIdentifier,
             timeZone = NSTimeZone.localTimeZone.name,
             releaseName = device.systemName,
-            uptimeMillis = (NSProcessInfo.processInfo.systemUptime * 1000).toLong(),
-            buildType = "release",
+            // App-process elapsed time avoids the Required Reason system-boot-time API.
+            uptimeMillis = (currentTimeMillis() - processStartedAtMillis).coerceAtLeast(0L),
+            buildType = (bundle.objectForInfoDictionaryKey("AppBuildConfiguration") as? String)?.lowercase() ?: "unknown",
             isEncrypted = true,                       // iOS data protection is always on
             totalRamGb = NSProcessInfo.processInfo.physicalMemory.toLong() / 1_073_741_824f,
-            isAppDebuggable = false,
-            installerPackageName = "com.apple.AppStore",
+            isAppDebuggable = (bundle.objectForInfoDictionaryKey("AppBuildConfiguration") as? String).equals("Debug", true),
+            installerPackageName = null,
             signingCertificateSha256 = null,
             appVersionName = version,
             appVersionCode = build,
             packageName = bundle.bundleIdentifier ?: "",
-            isInstalledFromKnownStore = true,
+            isInstalledFromKnownStore = false,
             isPowerSaveMode = NSProcessInfo.processInfo.lowPowerModeEnabled,
+            supportsInstallSourceInspection = false,
+            supportsAppSignatureInspection = false,
         )
     }.fold(
         onSuccess = { AppResult.Success(it) },
@@ -494,7 +500,7 @@ class IosCpuRepository : CpuRepository {
             cores = emptyList(),                      // per-core freq: sandbox-restricted
             clusters = emptyList(),
             governor = "",                            // not applicable on iOS
-            gpu = GpuInfo(renderer = "Apple GPU", vendor = "Apple", version = "Metal 3"),
+            gpu = GpuInfo(renderer = "Apple GPU", vendor = "Apple", version = "Metal"),
             temperatureCelsius = null,                // sandbox-restricted
             usagePercent = usagePercent,
             instructionSets = listOf(if (machine.startsWith("x86")) "x86_64" else "arm64e"),
@@ -524,18 +530,18 @@ class IosDisplayRepository : DisplayRepository {
         DisplayInfo(
             widthPx = (wPt * scale).toInt(),
             heightPx = (hPt * scale).toInt(),
-            densityDpi = (scale * 160).toInt(),
+            densityDpi = null,                        // physical PPI is not exposed publicly
             densityBucket = "@${scale.toInt()}x",
-            fontScale = 1f,
-            physicalSizeInches = 0f,
+            fontScale = null,
+            physicalSizeInches = null,
             refreshRateHz = screen.maximumFramesPerSecond.toFloat(),
-            supportedRefreshRates = listOf(60f, screen.maximumFramesPerSecond.toFloat()).distinct(),
+            supportedRefreshRates = listOf(screen.maximumFramesPerSecond.toFloat()),
             hdrCapabilities = emptyList(),
-            isHdr = false,
-            isWideColorGamut = true,                  // all modern iPhones are P3
+            isHdr = null,
+            isWideColorGamut = null,
             brightnessLevel = screen.brightness.toFloat(),
-            isAdaptiveBrightness = true,              // True Tone / auto-brightness system-managed
-            orientation = "Portrait",
+            isAdaptiveBrightness = null,              // system-managed; capability isn't exposed
+            orientation = if (wPt > hPt) "Landscape" else "Portrait",
             displayType = "OLED/LCD (system)",
         )
     }.fold(
@@ -738,9 +744,10 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
         val ipv6: String?,
         val rxBytes: Long,
         val txBytes: Long,
+        val vpnActive: Boolean,
     )
 
-    // Byte-counter baseline for throughput deltas (monotonic system uptime clock).
+    // Byte-counter baseline for throughput deltas during this app process.
     private var prevRxBytes = 0L
     private var prevTxBytes = 0L
     private var prevUptime = 0.0
@@ -757,14 +764,18 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
         var hasCellular = false
         var rxBytes = 0L
         var txBytes = 0L
+        var vpnActive = false
 
         val ifaddrPtr = alloc<CPointerVar<ifaddrs>>()
-        if (getifaddrs(ifaddrPtr.ptr) != 0) return Snapshot(ConnectionType.Unknown, null, null, 0L, 0L)
+        if (getifaddrs(ifaddrPtr.ptr) != 0) return Snapshot(ConnectionType.Unknown, null, null, 0L, 0L, false)
         try {
             var cursor = ifaddrPtr.value
             while (cursor != null) {
                 val ifa = cursor.pointed
                 val name = ifa.ifa_name?.toKString().orEmpty()
+                if (name.startsWith("utun") || name.startsWith("ipsec") || name.startsWith("ppp") || name.startsWith("tun") || name.startsWith("tap")) {
+                    vpnActive = true
+                }
                 val addr = ifa.ifa_addr
                 if (addr != null && name != "lo0") {
                     val family = addr.pointed.sa_family.toInt()
@@ -804,13 +815,19 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
             ipv4 != null -> ConnectionType.Unknown
             else -> ConnectionType.None
         }
-        Snapshot(type, ipv4, ipv6, rxBytes, txBytes)
+        Snapshot(type, ipv4, ipv6, rxBytes, txBytes, vpnActive)
     }
 
-    private fun buildInfo(): NetworkInfo {
+    private suspend fun currentSsid(): String? = suspendCancellableCoroutine { continuation ->
+        NEHotspotNetwork.fetchCurrentWithCompletionHandler { network ->
+            if (continuation.isActive) continuation.resume(network?.SSID)
+        }
+    }
+
+    private suspend fun buildInfo(): NetworkInfo {
         val s = snapshot()
-        // Throughput from byte-counter deltas over the elapsed monotonic window.
-        val now = NSProcessInfo.processInfo.systemUptime
+        // Throughput from byte-counter deltas over the elapsed process window.
+        val now = currentTimeMillis() / 1_000.0
         val dt = now - prevUptime
         var rxRate: Long? = null
         var txRate: Long? = null
@@ -825,7 +842,9 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
         prevUptime = now
         return NetworkInfo(
             connectionType = s.type,
-            ssid = null,                 // requires the wifi-info entitlement + location consent
+            // Public NetworkExtension API. iOS returns nil unless its privacy conditions
+            // (Access Wi-Fi Information entitlement and user/system authorization) are met.
+            ssid = if (s.type == ConnectionType.WiFi) currentSsid() else null,
             localIpv4 = s.ipv4,
             localIpv6 = s.ipv6,
             gateway = null,
@@ -841,7 +860,9 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
             rxBytesPerSec = rxRate,
             txBytesPerSec = txRate,
             isMetered = s.type == ConnectionType.Cellular,
-            isValidatedInternet = s.type != ConnectionType.None,
+            isVpnActive = s.vpnActive,
+            isValidatedInternet = null,
+            isCaptivePortal = null,
             activeTransports = listOf(s.type.name),
         )
     }
@@ -863,15 +884,15 @@ class IosNetworkRepository : NetworkRepository, ConnectivityRepository {
         AppResult.Success(
             ConnectivityInfo(
                 hasWifi = true,
-                hasWifi5Ghz = true,
-                hasWifi6Ghz = false,
+                hasWifi5Ghz = null,
+                hasWifi6Ghz = null,
                 hasWifiDirect = false,           // AirDrop is the iOS analogue, not exposed
                 wifiStandards = emptyList(),
                 hasBluetooth = true,             // capability only — no CoreBluetooth session,
                 hasBluetoothLe = true,           // so no Bluetooth permission prompt is triggered
-                hasNfc = true,
-                hasUwb = machineIdentifier().let { !it.startsWith("x86") },
-                hasEsim = true,
+                hasNfc = null,
+                hasUwb = null,
+                hasEsim = null,
                 bluetoothVersion = null,
             ),
         )

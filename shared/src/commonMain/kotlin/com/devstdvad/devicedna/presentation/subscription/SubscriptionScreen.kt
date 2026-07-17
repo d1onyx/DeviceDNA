@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalUriHandler
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.platform.PlatformInfo
 import com.devstdvad.devicedna.core.design.AppTheme
@@ -70,6 +71,7 @@ fun SubscriptionScreen(
     val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
     val feedback = LocalAppFeedback.current
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -178,7 +180,7 @@ fun SubscriptionScreen(
                     PremiumFeatureRow(
                         icon = Icons.Outlined.Widgets,
                         title = stringRes("subscription_feature_widgets_title"),
-                        detail = stringRes("subscription_feature_widgets_detail"),
+                        detail = stringRes(if (PlatformInfo.isIos) "subscription_feature_widgets_detail_ios" else "subscription_feature_widgets_detail"),
                         active = state.widgets,
                     )
                     // Battery Intelligence is deactivated on iOS; don't advertise it there.
@@ -195,7 +197,7 @@ fun SubscriptionScreen(
                     PremiumFeatureRow(
                         icon = Icons.Outlined.MonitorHeart,
                         title = stringRes("subscription_feature_smart_alerts_title"),
-                        detail = stringRes("subscription_feature_smart_alerts_detail"),
+                        detail = stringRes(if (PlatformInfo.isIos) "subscription_feature_smart_alerts_detail_ios" else "subscription_feature_smart_alerts_detail"),
                         active = state.smartAlerts,
                     )
                 }
@@ -215,6 +217,21 @@ fun SubscriptionScreen(
                         color = colors.textSecondary,
                     )
                     Spacer(Modifier.height(14.dp))
+
+                    state.productInfo?.let { product ->
+                        Text(
+                            text = "${product.displayName} · ${product.displayPrice} / ${localizedPeriod(product)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.textPrimary,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringRes("subscription_auto_renew_notice"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textSecondary,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
 
                     Button(
                         onClick = {
@@ -251,7 +268,8 @@ fun SubscriptionScreen(
                                     text = if (state.isPremiumActive) {
                                         stringRes("subscription_active_button")
                                     } else {
-                                        stringRes("subscription_activate_dev")
+                                        state.productInfo?.let { "${stringRes("subscription_subscribe")} · ${it.displayPrice}" }
+                                            ?: stringRes("subscription_activate_dev")
                                     },
                                 )
                             }
@@ -302,10 +320,43 @@ fun SubscriptionScreen(
                             )
                         }
                     }
+
+                    if (PlatformInfo.isIos && state.isPremiumActive) {
+                        TextButton(
+                            onClick = viewModel::manageSubscription,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                        ) {
+                            Text(stringRes("subscription_manage"), color = colors.accent)
+                        }
+                    }
+
+                    if (PlatformInfo.isIos) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            TextButton(onClick = { uriHandler.openUri(PRIVACY_POLICY_URL) }) {
+                                Text(stringRes("subscription_privacy"), color = colors.textSecondary)
+                            }
+                            TextButton(onClick = { uriHandler.openUri(TERMS_OF_USE_URL) }) {
+                                Text(stringRes("subscription_terms"), color = colors.textSecondary)
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+private const val PRIVACY_POLICY_URL = "https://github.com/d1onyx/DeviceDNA/blob/master/PRIVACY_POLICY.md"
+private const val TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+
+@Composable
+private fun localizedPeriod(product: com.devstdvad.devicedna.data.subscription.SubscriptionProductInfo): String {
+    val suffix = if (product.periodValue == 1) "one" else "many"
+    val key = "subscription_period_${product.periodUnit}_$suffix"
+    return stringRes(key, product.periodValue)
 }
 
 @Composable

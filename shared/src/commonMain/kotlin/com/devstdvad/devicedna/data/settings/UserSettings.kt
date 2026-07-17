@@ -22,6 +22,7 @@ data class UserSettings(
     val widgetsPromoShown: Boolean = false,
     val smartAlertsEnabled: Boolean = true,
     val smartAlertTypes: Set<String> = ALL_SMART_ALERT_KEYS,
+    val guestMode: Boolean = false,
 )
 
 enum class TemperatureUnit { Celsius, Fahrenheit }

@@ -44,6 +44,10 @@ class SubscriptionRepository(
             is SubscriptionPurchaseResult.Failure -> SubscriptionOperationResult.Failure(result.message)
         }
 
+    suspend fun productInfo(): SubscriptionProductInfo? = billingGateway.productInfo()
+
+    fun openSubscriptionManagement() = billingGateway.openSubscriptionManagement()
+
     suspend fun clearDevSubscription() {
         store.clear()
     }

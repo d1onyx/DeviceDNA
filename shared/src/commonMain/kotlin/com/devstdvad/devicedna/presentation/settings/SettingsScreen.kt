@@ -67,6 +67,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -95,6 +96,9 @@ fun SettingsScreen(
     subscriptionRepository: SubscriptionRepository = koinInject(),
     onSubscriptionClick: () -> Unit = {},
     onWidgetsClick: () -> Unit = {},
+    onAdPrivacyOptions: () -> Unit = {},
+    showAdPrivacyOptions: Boolean = false,
+    onSignInClick: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val colors = AppTheme.colors
@@ -105,6 +109,7 @@ fun SettingsScreen(
     val premiumActive = entitlements.hasFeature(PremiumFeature.RemoveAds)
     val smartAlertsUnlocked = entitlements.hasFeature(PremiumFeature.SmartAlerts)
     val feedback = LocalAppFeedback.current
+    val uriHandler = LocalUriHandler.current
     var privacyExpanded by remember { mutableStateOf(false) }
     val privacyScore by animateFloatAsState(
         targetValue = listOf(settings.maskSensitive, !settings.publicIpEnabled, !settings.showImei).count { it } / 3f,
@@ -152,6 +157,23 @@ fun SettingsScreen(
 
         item {
             SettingsPanel(title = stringRes("settings_account"), icon = Icons.Outlined.AccountCircle) {
+                if (user == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringRes("settings_guest_mode"), style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+                            Spacer(Modifier.height(4.dp))
+                            Text(stringRes("settings_guest_mode_detail"), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
+                        }
+                        TextButton(onClick = onSignInClick) {
+                            Text(stringRes("settings_sign_in"), color = colors.accent)
+                        }
+                    }
+                    return@SettingsPanel
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -302,7 +324,7 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = stringRes("settings_widgets_summary"),
+                            text = stringRes(if (PlatformInfo.isIos) "settings_widgets_summary_ios" else "settings_widgets_summary"),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.textSecondary,
                         )
@@ -405,10 +427,20 @@ fun SettingsScreen(
                 if (privacyExpanded) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = stringRes("settings_privacy_policy_body"),
+                        text = stringRes(if (PlatformInfo.isIos) "settings_privacy_policy_body_ios" else "settings_privacy_policy_body"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                     )
+                    if (PlatformInfo.isIos && showAdPrivacyOptions) {
+                        TextButton(onClick = onAdPrivacyOptions) {
+                            Text(stringRes("settings_ad_privacy_options"), color = colors.accent)
+                        }
+                    }
+                    if (PlatformInfo.isIos) {
+                        TextButton(onClick = { uriHandler.openUri(IOS_PRIVACY_POLICY_URL) }) {
+                            Text(stringRes("subscription_privacy"), color = colors.accent)
+                        }
+                    }
                 }
             }
         }
@@ -536,12 +568,14 @@ fun SettingsScreen(
         item {
             SettingsPanel(title = stringRes("settings_about"), icon = Icons.Outlined.DataUsage) {
                 InfoRow(stringRes("settings_platform"), "${PlatformInfo.osName} ${PlatformInfo.osVersion}", copyable = false)
-                InfoRow(stringRes("settings_version"), "1.3", copyable = false)
+                InfoRow(stringRes("settings_version"), PlatformInfo.appVersion, copyable = false)
                 InfoRow(stringRes("settings_licences"), "Open source libraries", copyable = false, showDivider = false)
             }
         }
     }
 }
+
+private const val IOS_PRIVACY_POLICY_URL = "https://github.com/d1onyx/DeviceDNA/blob/master/PRIVACY_POLICY.md"
 
 @Composable
 private fun SettingsPanel(
@@ -624,7 +658,9 @@ private fun SmartAlertsSettingsPanel(
             value = settings.smartAlertsEnabled,
             onChanged = onMasterChanged,
         )
-        SmartAlertType.entries.forEach { type ->
+        SmartAlertType.entries
+            .filterNot { PlatformInfo.isIos && it == SmartAlertType.SlowCharging }
+            .forEach { type ->
             SwitchRow(
                 icon = type.settingsIcon(),
                 label = stringRes(type.settingKey),

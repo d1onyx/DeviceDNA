@@ -17,6 +17,7 @@ import androidx.compose.ui.viewinterop.UIKitView
 import androidx.compose.ui.window.ComposeUIViewController
 import com.devstdvad.devicedna.ads.InterstitialAds
 import com.devstdvad.devicedna.ads.NoOpInterstitialAds
+import com.devstdvad.devicedna.ads.IosAdsState
 import com.devstdvad.devicedna.data.settings.AppThemeMode
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.di.KoinBridge
@@ -45,6 +46,7 @@ fun MainViewController(
     onAppleSignIn: () -> Unit = {},
     interstitial: InterstitialAds = NoOpInterstitialAds,
     bannerViewFactory: (() -> UIView)? = null,
+    onAdPrivacyOptions: () -> Unit = {},
 ): UIViewController = ComposeUIViewController {
     val settingsStore = KoinBridge.settingsStore()
     val authGateway = KoinBridge.authGateway()
@@ -56,6 +58,8 @@ fun MainViewController(
     val isSigningIn by authGateway.isSigningIn.collectAsState()
     val authError by authGateway.errorMessage.collectAsState()
     val deepLink by DeepLinkHolder.route.collectAsState()
+    val canShowAds by IosAdsState.canShowAds.collectAsState()
+    val showAdPrivacyOptions by IosAdsState.privacyOptionsRequired.collectAsState()
 
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (settings.theme) {
@@ -78,6 +82,14 @@ fun MainViewController(
         onGoogleSignIn = onGoogleSignIn,
         onAppleSignIn = onAppleSignIn,
         showAppleSignIn = true,
+        onAdPrivacyOptions = onAdPrivacyOptions,
+        showAdPrivacyOptions = showAdPrivacyOptions,
+        onContinueWithoutAccount = {
+            scope.launch { settingsStore.setGuestMode(true) }
+        },
+        onExitGuestMode = {
+            scope.launch { settingsStore.setGuestMode(false) }
+        },
         onOnboardingComplete = {
             scope.launch { settingsStore.setOnboardingComplete(true) }
         },
@@ -87,7 +99,7 @@ fun MainViewController(
         onDeepLinkHandled = { DeepLinkHolder.consume() },
         interstitial = interstitial,
         topBanner = { enabled ->
-            if (enabled && bannerViewFactory != null) {
+            if (enabled && canShowAds && bannerViewFactory != null) {
                 UIKitView(
                     factory = bannerViewFactory,
                     modifier = Modifier

@@ -40,8 +40,11 @@ class IosBackgroundWorker(
                     // 1. Widget snapshot + WidgetKit timeline reload.
                     val snapshot = widgetBridge.refresh()
 
-                    // 2. Smart alerts on the fresh metrics.
-                    alertNotifier.evaluateAndNotify(snapshot, settings, nowMillis)
+                    // 2. Respect the user's background-monitoring switch. Widget refresh stays
+                    // independent because WidgetKit may request a fresh timeline on its own.
+                    if (settings.backgroundMonitoring) {
+                        alertNotifier.evaluateAndNotify(snapshot, settings, nowMillis)
+                    }
                 }.isSuccess
             } ?: false
             onDone(success)

@@ -12,6 +12,9 @@ import com.devstdvad.devicedna.domain.model.InsightSeverity
 import com.devstdvad.devicedna.domain.model.NetworkInfo
 import com.devstdvad.devicedna.domain.model.RamInfo
 import com.devstdvad.devicedna.domain.model.StorageInfo
+import com.devstdvad.devicedna.domain.model.ThermalInfo
+import com.devstdvad.devicedna.domain.model.ThermalZone
+import com.devstdvad.devicedna.domain.model.ThermalZoneType
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -152,6 +155,24 @@ class HealthAnalyzerTest {
         )
         val ramInsight = score.insights.find { it.id == "ram_high" }
         assertTrue("Expected RAM high insight", ramInsight != null)
+    }
+
+    @Test
+    fun `critical coarse thermal state produces critical insight without numeric temperature`() = runTest {
+        val score = analyzer.getHealthScore(
+            battery = null,
+            ram = null,
+            storage = null,
+            thermal = ThermalInfo(
+                zones = listOf(ThermalZone("Critical", ThermalZoneType.Cpu, null)),
+            ),
+            device = null,
+            system = null,
+            network = null,
+        )
+
+        assertEquals(InsightSeverity.Critical, score.insights.find { it.id == "system_thermal" }?.severity)
+        assertEquals(65, score.thermal)
     }
 
     @Test

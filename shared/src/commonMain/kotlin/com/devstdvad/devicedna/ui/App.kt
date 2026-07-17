@@ -40,6 +40,10 @@ fun App(
     widgetsContent: @Composable (onBack: () -> Unit, onSubscribe: () -> Unit, padding: PaddingValues) -> Unit = { _, _, _ -> },
     onAppleSignIn: () -> Unit = {},
     showAppleSignIn: Boolean = false,
+    onAdPrivacyOptions: () -> Unit = {},
+    showAdPrivacyOptions: Boolean = false,
+    onContinueWithoutAccount: () -> Unit = {},
+    onExitGuestMode: () -> Unit = {},
 ) {
     val phase by koinInject<AppReadiness>().phase.collectAsState()
     AppTheme(darkTheme = darkTheme, language = language) {
@@ -57,6 +61,10 @@ fun App(
                 widgetsContent = widgetsContent,
                 onAppleSignIn = onAppleSignIn,
                 showAppleSignIn = showAppleSignIn,
+                onAdPrivacyOptions = onAdPrivacyOptions,
+                showAdPrivacyOptions = showAdPrivacyOptions,
+                onContinueWithoutAccount = onContinueWithoutAccount,
+                onExitGuestMode = onExitGuestMode,
             )
         }
     }

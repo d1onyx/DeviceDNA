@@ -80,7 +80,9 @@ class DiagnosticsExporter(
         val deviceDef = async { (getDevice() as? AppResult.Success)?.value }
         val cpuDef = async { (getCpu() as? AppResult.Success)?.value }
         val systemDef = async { (getSystem() as? AppResult.Success)?.value }
-        val storageDef = async { (getStorage() as? AppResult.Success)?.value }
+        // Apple's disk-space reason 85F4.1 is display-only and forbids sending the result
+        // off-device. Do not even query it while building an iOS share/export artifact.
+        val storageDef = if (includePlatformRestricted) async { (getStorage() as? AppResult.Success)?.value } else null
         val networkDef = async { (getNetwork() as? AppResult.Success)?.value }
         val displayDef = async { (getDisplay() as? AppResult.Success)?.value }
         val batteryDef = async { (observeBattery().first() as? AppResult.Success)?.value }
@@ -95,7 +97,7 @@ class DiagnosticsExporter(
         val device = deviceDef.await()
         val cpu = cpuDef.await()
         val system = systemDef.await()
-        val storage = storageDef.await()
+        val storage = storageDef?.await()
         val network = networkDef.await()
         val display = displayDef.await()
         val battery = batteryDef.await()
@@ -162,14 +164,16 @@ class DiagnosticsExporter(
                     put("signing_sha256", it.signingCertificateSha256 ?: "n/a")
                 }
             })
-            put("storage", buildMap {
-                storage?.let {
-                    put("total_bytes", it.totalBytes.toString())
-                    put("used_bytes", it.usedBytes.toString())
-                    put("free_bytes", it.freeBytes.toString())
-                    put("used_percent", oneDecimal(it.usedPercent * 100f))
-                }
-            })
+            if (includePlatformRestricted) {
+                put("storage", buildMap {
+                    storage?.let {
+                        put("total_bytes", it.totalBytes.toString())
+                        put("used_bytes", it.usedBytes.toString())
+                        put("free_bytes", it.freeBytes.toString())
+                        put("used_percent", oneDecimal(it.usedPercent * 100f))
+                    }
+                })
+            }
             put("network", buildMap {
                 network?.let {
                     put("type", it.connectionType.name)
@@ -189,11 +193,11 @@ class DiagnosticsExporter(
                 display?.let {
                     put("width_px", it.widthPx.toString())
                     put("height_px", it.heightPx.toString())
-                    put("density_dpi", it.densityDpi.toString())
+                    put("density_dpi", it.densityDpi?.toString() ?: "n/a")
                     put("refresh_rate_hz", it.refreshRateHz.toString())
                     put("display_type", it.displayType)
                     put("hdr", it.hdrCapabilities.joinToString(", ").ifBlank { "none" })
-                    put("wide_color_gamut", it.isWideColorGamut.toString())
+                    put("wide_color_gamut", it.isWideColorGamut?.toString() ?: "n/a")
                 }
             })
             put("battery", buildMap {

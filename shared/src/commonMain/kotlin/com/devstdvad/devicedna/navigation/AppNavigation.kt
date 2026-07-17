@@ -111,18 +111,23 @@ fun AppNavigation(
     widgetsContent: @Composable (onBack: () -> Unit, onSubscribe: () -> Unit, padding: PaddingValues) -> Unit = { _, _, _ -> },
     onAppleSignIn: () -> Unit = {},
     showAppleSignIn: Boolean = false,
+    onAdPrivacyOptions: () -> Unit = {},
+    showAdPrivacyOptions: Boolean = false,
+    onContinueWithoutAccount: () -> Unit = {},
+    onExitGuestMode: () -> Unit = {},
 ) {
     if (authState.isInitializing) {
         Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.background)) { LoadingScreen() }
         return
     }
 
-    if (!authState.isSignedIn) {
+    if (!authState.isSignedIn && !settings.guestMode) {
         AuthScreen(
             state = authState,
             onGoogleSignIn = { onGoogleSignIn(false) },
             onAppleSignIn = onAppleSignIn,
             showAppleSignIn = showAppleSignIn,
+            onContinueWithoutAccount = onContinueWithoutAccount.takeIf { showAppleSignIn },
         )
         return
     }
@@ -130,26 +135,26 @@ fun AppNavigation(
     val syncViewModel = resolveViewModel(SyncViewModel::class)
     val syncState by syncViewModel.state.collectAsState()
 
-    LaunchedEffect(authState.user?.uid) {
-        syncViewModel.verifyAccountOnce(authState.user?.uid)
+    LaunchedEffect(authState.user?.uid, authState.isSignedIn) {
+        if (authState.isSignedIn) syncViewModel.verifyAccountOnce(authState.user?.uid)
     }
 
     // Re-verify against the backend every time the app returns to the foreground, so an account
     // deleted on another device drops this one to the sign-in screen the next time it's opened.
     // Silent: the initial gate above owns the loading state; this only reacts to Removed/Disabled.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        syncViewModel.recheckAccount()
+        if (authState.isSignedIn) syncViewModel.recheckAccount()
     }
 
     val accountCheckPending = syncState.accountCheckKey != authState.user?.uid ||
         syncState.lastAccountCheck == null
 
-    if (accountCheckPending || syncState.isCheckingAccount) {
+    if (authState.isSignedIn && (accountCheckPending || syncState.isCheckingAccount)) {
         Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.background)) { LoadingScreen() }
         return
     }
 
-    if (syncState.lastAccountCheck != AccountCheckOutcome.Verified) {
+    if (authState.isSignedIn && syncState.lastAccountCheck != AccountCheckOutcome.Verified) {
         val accountError = when (syncState.lastAccountCheck) {
             AccountCheckOutcome.Removed -> "Account no longer exists. Sign in again."
             AccountCheckOutcome.Disabled -> "Account is disabled."
@@ -167,6 +172,7 @@ fun AppNavigation(
             requirePrivacyConsent = false,
             onAppleSignIn = onAppleSignIn,
             showAppleSignIn = showAppleSignIn,
+            onContinueWithoutAccount = onContinueWithoutAccount.takeIf { showAppleSignIn },
         )
         return
     }
@@ -176,7 +182,9 @@ fun AppNavigation(
         return
     }
 
-    LaunchedEffect(authState.user?.uid) { syncViewModel.triggerOnce() }
+    LaunchedEffect(authState.user?.uid, authState.isSignedIn) {
+        if (authState.isSignedIn) syncViewModel.triggerOnce()
+    }
 
     val hapticManager = koinInject<HapticManager>()
     val soundManager = koinInject<SoundManager>()
@@ -371,6 +379,9 @@ fun AppNavigation(
                         onSubscriptionClick = { navController.navigate(NavRoutes.SUBSCRIPTION) },
                         onWidgetsClick = { navController.navigate(NavRoutes.WIDGETS) },
                         contentPadding = padding,
+                        onAdPrivacyOptions = onAdPrivacyOptions,
+                        showAdPrivacyOptions = showAdPrivacyOptions,
+                        onSignInClick = onExitGuestMode,
                     )
                 }
                 composable(NavRoutes.SUBSCRIPTION) {
