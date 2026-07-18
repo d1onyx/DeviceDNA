@@ -5,6 +5,7 @@ import { firebaseAccountExists } from "./middleware/firebase-account";
 import { accountDeletionRoutes } from "./routes/account-deletion";
 import { authRoutes } from "./routes/auth";
 import { playRtdnRoutes } from "./routes/play-rtdn";
+import { privacyPolicyRoutes } from "./routes/privacy-policy";
 import { internalSubscriptionRoutes, subscriptionRoutes } from "./routes/subscriptions";
 import { syncRoutes } from "./routes/sync";
 import type { AppBindings } from "./types";
@@ -17,6 +18,7 @@ app.get("/", (c) => c.json({ ok: true, service: "devicedna-sync" }));
 
 // Public account-deletion page (no auth) — required by Google Play; put the URL in Play Console.
 app.route("/account-deletion", accountDeletionRoutes);
+app.route("/privacy", privacyPolicyRoutes);
 
 // All /v1 routes require a valid Firebase ID token and a live Firebase account.
 v1Routes.use("*", firebaseAuth);

@@ -66,7 +66,7 @@ const PAGE = `<!doctype html>
   <p>Some records may be retained only where required for fraud prevention, tax, or legal
      compliance, and are removed once no longer needed.</p>
 
-  <footer>See the DeviceDNA Privacy Policy in the Google Play listing for full details.</footer>
+  <footer><a href="/privacy">Read the DeviceDNA Privacy Policy</a></footer>
 </main>
 </body>
 </html>`;

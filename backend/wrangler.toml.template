@@ -17,6 +17,13 @@ main = "src/index.ts"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Bundle the repository's canonical privacy policy as a text module. The public
+# /privacy route renders it as HTML, so the legal URL has no GitHub dependency.
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
+
 # Public (non-secret) variables
 [vars]
 PUBLIC_JWK_CACHE_KEY = "firebase-public-jwk"

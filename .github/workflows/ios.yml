@@ -240,6 +240,7 @@ jobs:
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             COMPILER_INDEX_STORE_ENABLE=NO \
+            IOS_USE_REAL_BILLING=NO \
             archive
 
       - name: Package unsigned .ipa

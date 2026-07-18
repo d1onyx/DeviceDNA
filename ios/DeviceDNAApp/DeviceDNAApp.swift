@@ -43,6 +43,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         KoinBridge.shared.start(deps: IosAppDependencies(
             authGateway: AuthBridge.shared.gateway,
             billingGateway: StoreKitBilling.shared.gateway,
+            useRealBilling: AppConfig.useRealBilling,
             syncBaseUrl: AppConfig.syncBaseUrl,
             appGroupId: AppConfig.appGroupId,
             reloadWidgetTimelines: { WidgetCenter.shared.reloadAllTimelines() },
@@ -58,7 +59,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         ))
         AuthBridge.shared.startListening()
         // Only run the StoreKit entitlement bridge when real billing is the source of truth
-        // (release/App Store). In debug builds premium is granted locally by IosDevBillingGateway and
+        // (release/App Store). In dev-billing builds premium is granted locally by IosDevBillingGateway and
         // persisted in the entitlements store; StoreKit's launch sync would otherwise clear that dev
         // entitlement on every relaunch (premium wouldn't persist, unlike Android's local dev unlock).
         if KoinBridge.shared.usesRealBilling() {
@@ -176,6 +177,15 @@ enum AppConfig {
             fatalError("Missing StoreKitPremiumProductId in Info.plist — check IOS_STOREKIT_PREMIUM_PRODUCT_ID in ios/project.yml")
         }
         return value
+    }()
+
+    /// An explicit build-setting override supports optimized sideload artifacts with dev billing.
+    /// Without an override, the safe default is Debug = local unlock and Release = StoreKit.
+    static let useRealBilling: Bool = {
+        if let value = string("UseRealBilling")?.lowercased() {
+            return value == "yes" || value == "true" || value == "1"
+        }
+        return string("AppBuildConfiguration")?.lowercased() == "release"
     }()
 
     static let adMobBannerAdUnitId: String = {

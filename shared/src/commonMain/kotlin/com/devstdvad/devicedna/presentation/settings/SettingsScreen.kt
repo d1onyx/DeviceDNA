@@ -72,6 +72,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.legal.LegalLinks
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.InfoRow
@@ -437,7 +438,7 @@ fun SettingsScreen(
                         }
                     }
                     if (PlatformInfo.isIos) {
-                        TextButton(onClick = { uriHandler.openUri(IOS_PRIVACY_POLICY_URL) }) {
+                        TextButton(onClick = { uriHandler.openUri(LegalLinks.PrivacyPolicy) }) {
                             Text(stringRes("subscription_privacy"), color = colors.accent)
                         }
                     }
@@ -575,7 +576,6 @@ fun SettingsScreen(
     }
 }
 
-private const val IOS_PRIVACY_POLICY_URL = "https://github.com/d1onyx/DeviceDNA/blob/master/PRIVACY_POLICY.md"
 
 @Composable
 private fun SettingsPanel(

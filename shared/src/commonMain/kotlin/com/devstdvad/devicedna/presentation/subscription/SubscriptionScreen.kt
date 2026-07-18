@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devstdvad.devicedna.core.legal.LegalLinks
 import androidx.compose.ui.platform.LocalUriHandler
 import com.devstdvad.devicedna.core.common.MetricStatus
 import com.devstdvad.devicedna.platform.PlatformInfo
@@ -335,10 +336,10 @@ fun SubscriptionScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center,
                         ) {
-                            TextButton(onClick = { uriHandler.openUri(PRIVACY_POLICY_URL) }) {
+                            TextButton(onClick = { uriHandler.openUri(LegalLinks.PrivacyPolicy) }) {
                                 Text(stringRes("subscription_privacy"), color = colors.textSecondary)
                             }
-                            TextButton(onClick = { uriHandler.openUri(TERMS_OF_USE_URL) }) {
+                            TextButton(onClick = { uriHandler.openUri(LegalLinks.AppleStandardEula) }) {
                                 Text(stringRes("subscription_terms"), color = colors.textSecondary)
                             }
                         }
@@ -348,9 +349,6 @@ fun SubscriptionScreen(
         }
     }
 }
-
-private const val PRIVACY_POLICY_URL = "https://github.com/d1onyx/DeviceDNA/blob/master/PRIVACY_POLICY.md"
-private const val TERMS_OF_USE_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
 
 @Composable
 private fun localizedPeriod(product: com.devstdvad.devicedna.data.subscription.SubscriptionProductInfo): String {

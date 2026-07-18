@@ -34,8 +34,6 @@ import com.devstdvad.devicedna.data.subscription.PremiumEntitlementsStore
 import com.devstdvad.devicedna.data.subscription.SubscriptionBillingGateway
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
-import kotlin.experimental.ExperimentalNativeApi
-import kotlin.native.Platform
 import com.devstdvad.devicedna.data.sync.IosSyncFactory
 import com.devstdvad.devicedna.data.sync.IosSyncStateStore
 import com.devstdvad.devicedna.data.sync.SyncStateStore
@@ -79,6 +77,7 @@ import org.koin.dsl.module
 class IosAppDependencies(
     val authGateway: IosAuthGateway,
     val billingGateway: IosBillingGateway,
+    val useRealBilling: Boolean,
     val syncBaseUrl: String,
     val appGroupId: String,
     val reloadWidgetTimelines: () -> Unit,
@@ -92,8 +91,8 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
     // Auth + billing bridges (constructed in Swift, registered here)
     single<AuthGateway> { deps.authGateway }
     single { deps.authGateway }
-    // Debug builds unlock premium locally through a dev gateway (no App Store sandbox account
-    // needed); release builds always use the real StoreKit bridge.
+    // Development artifacts unlock premium locally through a dev gateway (no App Store product
+    // needed); production archives explicitly resolve to the real StoreKit bridge.
     single<SubscriptionBillingGateway> {
         if (useDevBilling) IosDevBillingGateway() else deps.billingGateway
     }
@@ -192,12 +191,11 @@ private fun iosModule(deps: IosAppDependencies, useDevBilling: Boolean) = module
 
 /**
  * Starts Koin for the iOS host. Call once from the Swift AppDelegate before the first
- * Compose frame. Debug binaries get a local dev unlock (and the dev subscription controls);
- * release/App Store builds always use real StoreKit.
+ * Compose frame. Billing mode is explicit because CI uses an optimized Release configuration for
+ * both sideloaded development artifacts and eventual App Store archives.
  */
-@OptIn(ExperimentalNativeApi::class)
 fun initKoin(deps: IosAppDependencies): Koin {
-    val useDevBilling = Platform.isDebugBinary
+    val useDevBilling = !deps.useRealBilling
     return startKoin {
         modules(iosModule(deps, useDevBilling), commonModule(useRealBilling = !useDevBilling))
     }.koin
@@ -254,12 +252,9 @@ object KoinBridge {
     fun entitlementsStore(): PremiumEntitlementsStore = requireNotNull(koin).get()
 
     /**
-     * Whether real StoreKit is the entitlement source of truth (release/App Store builds). Mirrors
-     * [initKoin]'s `useDevBilling = Platform.isDebugBinary`. Debug builds unlock premium through the
-     * local [IosDevBillingGateway] instead, so the Swift StoreKit bridge must NOT run — otherwise its
-     * launch sync would clear the locally-saved dev entitlement on every relaunch (dev premium would
-     * not persist, unlike Android's local dev unlock).
+     * Whether the resolved gateway is real StoreKit. Dev builds unlock premium locally, so the
+     * Swift StoreKit bridge must not run: its entitlement sync would clear the dev entitlement.
      */
-    @OptIn(ExperimentalNativeApi::class)
-    fun usesRealBilling(): Boolean = !Platform.isDebugBinary
+    fun usesRealBilling(): Boolean =
+        requireNotNull(koin).get<SubscriptionBillingGateway>() is IosBillingGateway
 }

@@ -3,10 +3,10 @@ package com.devstdvad.devicedna.data.subscription
 import com.devstdvad.devicedna.core.common.currentTimeMillis
 
 /**
- * Dev-only billing gateway for iOS debug builds. Grants a local, time-boxed Dev entitlement so
+ * Dev-only billing gateway for iOS development artifacts. Grants a local, time-boxed entitlement so
  * premium-gated screens can be exercised without a real StoreKit purchase (App Store sandbox
- * accounts are not available in a plain `xcodebuild` dev run). Never wired into release builds —
- * [initKoin] only binds this when `Platform.isDebugBinary` is true.
+ * accounts are not available in a plain `xcodebuild` dev run). The host selects this explicitly;
+ * CI uses an optimized Release configuration even for sideloaded development artifacts.
  */
 class IosDevBillingGateway : SubscriptionBillingGateway {
 

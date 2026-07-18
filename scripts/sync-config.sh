@@ -86,6 +86,7 @@ export SC_IOS_BACKGROUND_TASK_ID="$(cfg iosBackgroundTaskId)"
 export SC_IOS_DEEP_LINK_SCHEME="$(cfg iosDeepLinkScheme)"
 export SC_IOS_REVERSED_CLIENT_ID="$(cfg iosGoogleReversedClientId)"
 export SC_IOS_STOREKIT_PRODUCT_ID="$(cfg iosStoreKitPremiumProductId)"
+export SC_IOS_USE_REAL_BILLING="$(cfg iosUseRealBilling)"
 export SC_IOS_ADMOB_APP_ID="$(cfg iosAdMobAppId)"
 export SC_IOS_ADMOB_BANNER="$(cfg iosAdMobBannerAdUnitId)"
 export SC_IOS_ADMOB_INTERSTITIAL="$(cfg iosAdMobInterstitialAdUnitId)"
@@ -107,6 +108,12 @@ settings = {
     "IOS_DEEP_LINK_SCHEME": env("SC_IOS_DEEP_LINK_SCHEME"),
     "GOOGLE_REVERSED_CLIENT_ID": env("SC_IOS_REVERSED_CLIENT_ID"),
     "IOS_STOREKIT_PREMIUM_PRODUCT_ID": env("SC_IOS_STOREKIT_PRODUCT_ID"),
+    # Optional override. Empty lets the app use its safe default: Debug = dev billing,
+    # Release = StoreKit. The unsigned sideload CI archive overrides this to NO directly.
+    "IOS_USE_REAL_BILLING": (
+        "YES" if env("SC_IOS_USE_REAL_BILLING").lower() == "true" else
+        "NO" if env("SC_IOS_USE_REAL_BILLING").lower() == "false" else ""
+    ),
     # Google's official test ids: always serve test ads, never earn revenue.
     "IOS_ADMOB_APP_ID": env("SC_IOS_ADMOB_APP_ID") or "ca-app-pub-3940256099942544~1458002511",
     "IOS_ADMOB_BANNER_AD_UNIT_ID": env("SC_IOS_ADMOB_BANNER") or "ca-app-pub-3940256099942544/2934735716",

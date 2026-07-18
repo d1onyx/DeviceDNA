@@ -175,6 +175,8 @@
 	<string>$(IOS_DEEP_LINK_SCHEME)</string>
 	<key>StoreKitPremiumProductId</key>
 	<string>$(IOS_STOREKIT_PREMIUM_PRODUCT_ID)</string>
+	<key>UseRealBilling</key>
+	<string>$(IOS_USE_REAL_BILLING)</string>
 	<key>AdMobBannerAdUnitId</key>
 	<string>$(IOS_ADMOB_BANNER_AD_UNIT_ID)</string>
 	<key>AdMobInterstitialAdUnitId</key>
