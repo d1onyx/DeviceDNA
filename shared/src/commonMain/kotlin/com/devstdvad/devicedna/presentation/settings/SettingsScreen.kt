@@ -439,21 +439,14 @@ fun SettingsScreen(
                     )
                 }
                 if (PlatformInfo.isIos && privacyExpanded) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = stringRes("settings_privacy_policy_body_ios"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.textSecondary,
-                    )
-                    if (PlatformInfo.isIos && showAdPrivacyOptions) {
+                    Spacer(Modifier.height(6.dp))
+                    if (showAdPrivacyOptions) {
                         TextButton(onClick = onAdPrivacyOptions) {
                             Text(stringRes("settings_ad_privacy_options"), color = colors.accent)
                         }
                     }
-                    if (PlatformInfo.isIos) {
-                        TextButton(onClick = { uriHandler.openUri(LegalLinks.PrivacyPolicy) }) {
-                            Text(stringRes("subscription_privacy"), color = colors.accent)
-                        }
+                    TextButton(onClick = { uriHandler.openUri(LegalLinks.PrivacyPolicy) }) {
+                        Text(stringRes("subscription_privacy"), color = colors.accent)
                     }
                 }
             }

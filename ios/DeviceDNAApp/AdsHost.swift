@@ -21,6 +21,8 @@ final class AdsHost: NSObject {
     static let interstitialAdUnitId = AppConfig.adMobInterstitialAdUnitId
 
     private var started = false
+    private var sdkStarting = false
+    private var consentFlowStarted = false
     private var interstitialAd: InterstitialAd?
     private var pendingBanners: [BannerView] = []
 
@@ -35,6 +37,8 @@ final class AdsHost: NSObject {
     /// Runs the UMP consent flow, then starts the Google Mobile Ads SDK. Safe to call
     /// once from didFinishLaunching; presentation happens after the first frame.
     func startWhenReady() {
+        guard !consentFlowStarted else { return }
+        consentFlowStarted = true
         let parameters = RequestParameters()
         parameters.isTaggedForUnderAgeOfConsent = false
 
@@ -45,16 +49,29 @@ final class AdsHost: NSObject {
                     self?.startAdsIfAllowed()
                     return
                 }
-                guard let presenter = Self.topViewController() else {
-                    self?.startAdsIfAllowed()
-                    return
+                self?.presentConsentFormWhenReady()
+            }
+        }
+    }
+
+    private func presentConsentFormWhenReady(attempt: Int = 0) {
+        guard let presenter = Self.topViewController() else {
+            guard attempt < 40 else {
+                NSLog("DeviceDNA/Ads: no presenter available for consent form")
+                startAdsIfAllowed()
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.presentConsentFormWhenReady(attempt: attempt + 1)
+            }
+            return
+        }
+        ConsentForm.loadAndPresentIfRequired(from: presenter) { [weak self] formError in
+            DispatchQueue.main.async {
+                if let formError {
+                    NSLog("DeviceDNA/Ads: consent form failed: %@", formError.localizedDescription)
                 }
-                ConsentForm.loadAndPresentIfRequired(from: presenter) { formError in
-                    if let formError {
-                        NSLog("DeviceDNA/Ads: consent form failed: %@", formError.localizedDescription)
-                    }
-                    self?.startAdsIfAllowed()
-                }
+                self?.startAdsIfAllowed()
             }
         }
     }
@@ -95,14 +112,17 @@ final class AdsHost: NSObject {
     }
 
     private func startAdsSdk() {
-        guard !started else { return }
-        started = true
-        publishState()
+        guard !started, !sdkStarting else { return }
+        sdkStarting = true
         Task { @MainActor [weak self] in
             _ = await MobileAds.shared.start()
-            self?.loadInterstitial()
-            self?.pendingBanners.forEach { $0.load(Request()) }
-            self?.pendingBanners.removeAll()
+            guard let self else { return }
+            self.sdkStarting = false
+            self.started = true
+            self.publishState()
+            self.loadInterstitial()
+            self.pendingBanners.forEach { self.loadBannerWhenReady($0) }
+            self.pendingBanners.removeAll()
         }
     }
 
@@ -119,13 +139,28 @@ final class AdsHost: NSObject {
     func makeBannerView() -> UIView {
         let banner = BannerView(adSize: AdSizeBanner)
         banner.adUnitID = Self.bannerAdUnitId
-        banner.rootViewController = Self.topViewController()
         if started {
-            banner.load(Request())
+            loadBannerWhenReady(banner)
         } else {
             pendingBanners.append(banner)
         }
         return banner
+    }
+
+    private func loadBannerWhenReady(_ banner: BannerView, attempt: Int = 0) {
+        guard let presenter = Self.topViewController() else {
+            guard attempt < 40 else {
+                NSLog("DeviceDNA/Ads: no presenter available for banner")
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self, weak banner] in
+                guard let banner else { return }
+                self?.loadBannerWhenReady(banner, attempt: attempt + 1)
+            }
+            return
+        }
+        banner.rootViewController = presenter
+        banner.load(Request())
     }
 
     // MARK: - Interstitial (implements the Kotlin InterstitialAds protocol)

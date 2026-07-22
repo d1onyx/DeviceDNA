@@ -121,7 +121,12 @@ fun AuthScreen(
             }
         }
 
-        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             if (requirePrivacyConsent) {
                 PrivacyConsentRow(
                     accepted = privacyAccepted,
@@ -189,12 +194,6 @@ fun AuthScreen(
                 ) {
                     Text(stringRes("auth_continue_without_account"), color = colors.accent)
                 }
-                Text(
-                    text = stringRes("auth_guest_sync_note"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.textMuted,
-                    textAlign = TextAlign.Center,
-                )
             }
             Spacer(Modifier.height(12.dp))
             Text(
