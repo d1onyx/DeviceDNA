@@ -105,29 +105,34 @@ fun MainViewController(
         onDeepLinkHandled = { DeepLinkHolder.consume() },
         interstitial = interstitial,
         topBanner = { enabled ->
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (enabled && canShowAds && bannerViewFactory != null) {
-                    UIKitView(
-                        factory = bannerViewFactory,
-                        modifier = Modifier
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .fillMaxWidth()
-                            .height(60.dp),
-                    )
-                }
-                if (showAdDiagnostics) {
-                    val bannerStatus by IosAdsState.bannerStatus.collectAsState()
-                    val interstitialStatus by IosAdsState.interstitialStatus.collectAsState()
-                    Text(
-                        text = "ads debug — enabled=$enabled canShow=$canShowAds " +
-                            "banner=${bannerStatus ?: "—"} interstitial=${interstitialStatus ?: "—"}",
-                        color = Color.Red,
-                        fontSize = 10.sp,
-                        modifier = Modifier
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .fillMaxWidth()
-                            .padding(4.dp),
-                    )
+            val showBanner = enabled && canShowAds && bannerViewFactory != null
+            if (showBanner || showAdDiagnostics) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.statusBars),
+                ) {
+                    if (showBanner) {
+                        UIKitView(
+                            factory = bannerViewFactory!!,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                        )
+                    }
+                    if (showAdDiagnostics) {
+                        val bannerStatus by IosAdsState.bannerStatus.collectAsState()
+                        val interstitialStatus by IosAdsState.interstitialStatus.collectAsState()
+                        Text(
+                            text = "ads debug — enabled=$enabled canShow=$canShowAds " +
+                                "banner=${bannerStatus ?: "—"} interstitial=${interstitialStatus ?: "—"}",
+                            color = Color.Red,
+                            fontSize = 10.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(4.dp),
+                        )
+                    }
                 }
             }
         },
