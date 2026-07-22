@@ -171,6 +171,13 @@ enum AppConfig {
         return string("AppBuildConfiguration")?.lowercased() == "release"
     }()
 
+    static let adMobAppId: String = {
+        guard let value = string("GADApplicationIdentifier") else {
+            fatalError("Missing GADApplicationIdentifier in Info.plist — check IOS_ADMOB_APP_ID in ios/project.yml")
+        }
+        return value
+    }()
+
     static let adMobBannerAdUnitId: String = {
         guard let value = string("AdMobBannerAdUnitId") else {
             fatalError("Missing AdMobBannerAdUnitId in Info.plist — check IOS_ADMOB_BANNER_AD_UNIT_ID in ios/project.yml")
@@ -277,6 +284,7 @@ struct ComposeRootView: UIViewControllerRepresentable {
             },
             interstitial: AdsHost.shared.interstitial,
             bannerViewFactory: { AdsHost.shared.makeBannerView() },
+            forceShowAds: AdsHost.shared.forceShowTestAds,
             onAdPrivacyOptions: { AdsHost.shared.presentPrivacyOptions() }
         )
     }

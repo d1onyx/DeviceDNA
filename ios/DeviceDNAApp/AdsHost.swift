@@ -17,8 +17,19 @@ final class AdsHost: NSObject {
 
     static let shared = AdsHost()
 
+    static let appId = AppConfig.adMobAppId
     static let bannerAdUnitId = AppConfig.adMobBannerAdUnitId
     static let interstitialAdUnitId = AppConfig.adMobInterstitialAdUnitId
+
+    private static let googleDemoAppId = "ca-app-pub-3940256099942544~1458002511"
+    private static let googleDemoBannerAdUnitId = "ca-app-pub-3940256099942544/2934735716"
+    private static let googleDemoInterstitialAdUnitId = "ca-app-pub-3940256099942544/4411468910"
+
+    private static var isUsingGoogleDemoAds: Bool {
+        appId == googleDemoAppId &&
+            bannerAdUnitId == googleDemoBannerAdUnitId &&
+            interstitialAdUnitId == googleDemoInterstitialAdUnitId
+    }
 
     private var started = false
     private var sdkStarting = false
@@ -30,7 +41,11 @@ final class AdsHost: NSObject {
         ConsentInformation.shared.privacyOptionsRequirementStatus == .required
     }
 
-    var canShowAds: Bool { started && ConsentInformation.shared.canRequestAds }
+    var canShowAds: Bool {
+        started && (Self.isUsingGoogleDemoAds || ConsentInformation.shared.canRequestAds)
+    }
+
+    var forceShowTestAds: Bool { Self.isUsingGoogleDemoAds }
 
     // MARK: - Startup: consent → ATT → SDK
 
@@ -39,6 +54,11 @@ final class AdsHost: NSObject {
     func startWhenReady() {
         guard !consentFlowStarted else { return }
         consentFlowStarted = true
+        if Self.isUsingGoogleDemoAds {
+            NSLog("DeviceDNA/Ads: Google demo ad ids detected; starting test ads without consent gate")
+            startAdsSdk()
+            return
+        }
         requestConsentInfo()
     }
 
@@ -156,6 +176,10 @@ final class AdsHost: NSObject {
         let banner = BannerView(adSize: AdSizeBanner)
         banner.adUnitID = Self.bannerAdUnitId
         banner.delegate = self
+        NSLog(
+            "DeviceDNA/Ads: banner view created; mode=%@",
+            Self.isUsingGoogleDemoAds ? "google-demo" : "custom"
+        )
         if started {
             loadBannerWhenReady(banner)
         } else {
@@ -177,6 +201,7 @@ final class AdsHost: NSObject {
             return
         }
         banner.rootViewController = presenter
+        NSLog("DeviceDNA/Ads: banner request")
         banner.load(Request())
     }
 
@@ -211,6 +236,7 @@ final class AdsHost: NSObject {
                 ad.fullScreenContentDelegate = self
                 self.interstitialAd = ad
             } catch {
+                NSLog("DeviceDNA/Ads: interstitial failed to load: %@", error.localizedDescription)
                 self.interstitialAd = nil
             }
         }

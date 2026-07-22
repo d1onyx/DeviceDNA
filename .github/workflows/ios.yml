@@ -170,6 +170,9 @@ jobs:
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
+            IOS_ADMOB_APP_ID="ca-app-pub-3940256099942544~1458002511" \
+            IOS_ADMOB_BANNER_AD_UNIT_ID="ca-app-pub-3940256099942544/2934735716" \
+            IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID="ca-app-pub-3940256099942544/4411468910" \
             COMPILER_INDEX_STORE_ENABLE=NO \
             build
 
@@ -241,6 +244,9 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             COMPILER_INDEX_STORE_ENABLE=NO \
             IOS_USE_REAL_BILLING=NO \
+            IOS_ADMOB_APP_ID="ca-app-pub-3940256099942544~1458002511" \
+            IOS_ADMOB_BANNER_AD_UNIT_ID="ca-app-pub-3940256099942544/2934735716" \
+            IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID="ca-app-pub-3940256099942544/4411468910" \
             archive
 
       - name: Verify AdMob in archived app
@@ -263,6 +269,21 @@ jobs:
           require_plist_value GADApplicationIdentifier
           require_plist_value AdMobBannerAdUnitId
           require_plist_value AdMobInterstitialAdUnitId
+
+          require_exact_plist_value () {
+            local key="$1" expected="$2"
+            local value
+            value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$PLIST")"
+            if [ "$value" != "$expected" ]; then
+              echo "::error::$key must use the Google demo id in this unsigned test build."
+              exit 1
+            fi
+          }
+
+          require_exact_plist_value GADApplicationIdentifier "ca-app-pub-3940256099942544~1458002511"
+          require_exact_plist_value AdMobBannerAdUnitId "ca-app-pub-3940256099942544/2934735716"
+          require_exact_plist_value AdMobInterstitialAdUnitId "ca-app-pub-3940256099942544/4411468910"
+          echo "AdMob test ids are configured for this unsigned build."
 
           grep -q 'Google-Mobile-Ads-SDK' ios/Podfile.lock || {
             echo "::error::Google Mobile Ads SDK is missing from Podfile.lock."
