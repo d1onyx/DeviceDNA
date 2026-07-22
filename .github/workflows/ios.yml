@@ -243,6 +243,36 @@ jobs:
             IOS_USE_REAL_BILLING=NO \
             archive
 
+      - name: Verify AdMob in archived app
+        run: |
+          set -euo pipefail
+          APP="ios/build/DeviceDNAApp.xcarchive/Products/Applications/DeviceDNAApp.app"
+          PLIST="$APP/Info.plist"
+
+          require_plist_value () {
+            local key="$1"
+            local value
+            value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$PLIST" 2>/dev/null || true)"
+            if [ -z "$value" ] || [[ "$value" == *'$('* ]] || [[ "$value" == *'YOUR_'* ]]; then
+              echo "::error::$key is missing or unresolved in the archived app."
+              exit 1
+            fi
+            echo "$key is configured."
+          }
+
+          require_plist_value GADApplicationIdentifier
+          require_plist_value AdMobBannerAdUnitId
+          require_plist_value AdMobInterstitialAdUnitId
+
+          test -d "$APP/Frameworks/GoogleMobileAds.framework" || {
+            echo "::error::GoogleMobileAds.framework is missing from the archived app."
+            exit 1
+          }
+          test -d "$APP/Frameworks/UserMessagingPlatform.framework" || {
+            echo "::error::UserMessagingPlatform.framework is missing from the archived app."
+            exit 1
+          }
+
       - name: Package unsigned .ipa
         if: success()
         run: |

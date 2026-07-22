@@ -39,6 +39,10 @@ final class AdsHost: NSObject {
     func startWhenReady() {
         guard !consentFlowStarted else { return }
         consentFlowStarted = true
+        requestConsentInfo()
+    }
+
+    private func requestConsentInfo(attempt: Int = 0) {
         let parameters = RequestParameters()
         parameters.isTaggedForUnderAgeOfConsent = false
 
@@ -46,9 +50,20 @@ final class AdsHost: NSObject {
             DispatchQueue.main.async {
                 if let error {
                     NSLog("DeviceDNA/Ads: consent update failed: %@", error.localizedDescription)
-                    self?.startAdsIfAllowed()
+                    guard attempt < 4 else {
+                        self?.startAdsIfAllowed()
+                        return
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Double(attempt + 1) * 2.0) {
+                        self?.requestConsentInfo(attempt: attempt + 1)
+                    }
                     return
                 }
+                NSLog(
+                    "DeviceDNA/Ads: consent updated; canRequestAds=%@ status=%ld",
+                    ConsentInformation.shared.canRequestAds.description,
+                    ConsentInformation.shared.consentStatus.rawValue
+                )
                 self?.presentConsentFormWhenReady()
             }
         }
@@ -119,6 +134,7 @@ final class AdsHost: NSObject {
             guard let self else { return }
             self.sdkStarting = false
             self.started = true
+            NSLog("DeviceDNA/Ads: Mobile Ads SDK started")
             self.publishState()
             self.loadInterstitial()
             self.pendingBanners.forEach { self.loadBannerWhenReady($0) }
@@ -139,6 +155,7 @@ final class AdsHost: NSObject {
     func makeBannerView() -> UIView {
         let banner = BannerView(adSize: AdSizeBanner)
         banner.adUnitID = Self.bannerAdUnitId
+        banner.delegate = self
         if started {
             loadBannerWhenReady(banner)
         } else {
@@ -229,5 +246,17 @@ extension AdsHost: FullScreenContentDelegate {
         onInterstitialDismissed?()
         onInterstitialDismissed = nil
         loadInterstitial()
+    }
+}
+
+// MARK: - BannerViewDelegate
+
+extension AdsHost: BannerViewDelegate {
+    func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+        NSLog("DeviceDNA/Ads: banner loaded")
+    }
+
+    func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
+        NSLog("DeviceDNA/Ads: banner failed to load: %@", error.localizedDescription)
     }
 }
