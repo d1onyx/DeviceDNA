@@ -264,14 +264,21 @@ jobs:
           require_plist_value AdMobBannerAdUnitId
           require_plist_value AdMobInterstitialAdUnitId
 
-          test -d "$APP/Frameworks/GoogleMobileAds.framework" || {
-            echo "::error::GoogleMobileAds.framework is missing from the archived app."
+          grep -q 'Google-Mobile-Ads-SDK' ios/Podfile.lock || {
+            echo "::error::Google Mobile Ads SDK is missing from Podfile.lock."
             exit 1
           }
-          test -d "$APP/Frameworks/UserMessagingPlatform.framework" || {
-            echo "::error::UserMessagingPlatform.framework is missing from the archived app."
+          grep -q 'GoogleUserMessagingPlatform' ios/Podfile.lock || {
+            echo "::error::Google UMP SDK is missing from Podfile.lock."
             exit 1
           }
+
+          # Google Mobile Ads and UMP can be statically linked from their vendored
+          # XCFrameworks, so they are not guaranteed to appear as standalone folders
+          # under App.app/Frameworks. The successful Swift compile/link verifies the
+          # SDKs; print dynamically embedded frameworks only as diagnostics.
+          echo "Dynamically embedded frameworks:"
+          find "$APP/Frameworks" -maxdepth 1 -type d -name '*.framework' -print 2>/dev/null || true
 
       - name: Package unsigned .ipa
         if: success()
