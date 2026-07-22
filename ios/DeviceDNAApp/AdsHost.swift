@@ -174,6 +174,10 @@ final class AdsHost: NSObject {
         let banner = BannerView(adSize: AdSizeBanner)
         banner.adUnitID = Self.bannerAdUnitId
         banner.delegate = self
+        // Compose punches a transparent hole in its Skia canvas for this UIKitView; without an
+        // opaque background here, that hole shows the raw (black) layer behind it until — or
+        // unless — an ad creative paints over it.
+        banner.backgroundColor = .secondarySystemBackground
         NSLog(
             "DeviceDNA/Ads: banner view created; mode=%@",
             Self.isUsingGoogleDemoAds ? "google-demo" : "custom"
