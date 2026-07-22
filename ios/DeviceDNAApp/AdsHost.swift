@@ -56,11 +56,6 @@ final class AdsHost: NSObject {
     func startWhenReady() {
         guard !consentFlowStarted else { return }
         consentFlowStarted = true
-        if Self.isUsingGoogleDemoAds {
-            NSLog("DeviceDNA/Ads: Google demo ad ids detected; starting test ads without consent gate")
-            startAdsSdk()
-            return
-        }
         requestConsentInfo()
     }
 
