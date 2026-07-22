@@ -3,16 +3,21 @@
 package com.devstdvad.devicedna.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.UIKitView
 import androidx.compose.ui.window.ComposeUIViewController
 import com.devstdvad.devicedna.ads.InterstitialAds
@@ -47,6 +52,7 @@ fun MainViewController(
     interstitial: InterstitialAds = NoOpInterstitialAds,
     bannerViewFactory: (() -> UIView)? = null,
     onAdPrivacyOptions: () -> Unit = {},
+    showAdDiagnostics: Boolean = false,
 ): UIViewController = ComposeUIViewController {
     val settingsStore = KoinBridge.settingsStore()
     val authGateway = KoinBridge.authGateway()
@@ -99,14 +105,30 @@ fun MainViewController(
         onDeepLinkHandled = { DeepLinkHolder.consume() },
         interstitial = interstitial,
         topBanner = { enabled ->
-            if (enabled && canShowAds && bannerViewFactory != null) {
-                UIKitView(
-                    factory = bannerViewFactory,
-                    modifier = Modifier
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .fillMaxWidth()
-                        .height(60.dp),
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (enabled && canShowAds && bannerViewFactory != null) {
+                    UIKitView(
+                        factory = bannerViewFactory,
+                        modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .fillMaxWidth()
+                            .height(60.dp),
+                    )
+                }
+                if (showAdDiagnostics) {
+                    val bannerStatus by IosAdsState.bannerStatus.collectAsState()
+                    val interstitialStatus by IosAdsState.interstitialStatus.collectAsState()
+                    Text(
+                        text = "ads debug — enabled=$enabled canShow=$canShowAds " +
+                            "banner=${bannerStatus ?: "—"} interstitial=${interstitialStatus ?: "—"}",
+                        color = Color.Red,
+                        fontSize = 10.sp,
+                        modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                    )
+                }
             }
         },
         // In-app widgets screen: lists the available WidgetKit widgets with add
