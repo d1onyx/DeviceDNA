@@ -62,14 +62,11 @@ kotlin {
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
-
-            // Remote config: GitLive Firestore + multiplatform-settings for the persistent store.
-            implementation(libs.firebase.gitlive.firestore)
             implementation(libs.multiplatform.settings)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
-            // Firebase BOM supplies the versions for the native Firestore SDK that GitLive wraps.
+            implementation(libs.firebase.gitlive.firestore)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.bouncycastle.prov)
         }

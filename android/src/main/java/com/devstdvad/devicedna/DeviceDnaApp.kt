@@ -7,13 +7,13 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.devstdvad.devicedna.core.CurrentActivityHolder
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.cfg.ConfigSync
-import com.devstdvad.sync.Sync
-import com.devstdvad.sync.SyncDecision
-import com.devstdvad.sync.SyncSource
 import com.devstdvad.devicedna.data.subscription.PremiumFeature
 import com.devstdvad.devicedna.data.subscription.SubscriptionRepository
 import com.devstdvad.devicedna.di.appModule
 import com.devstdvad.devicedna.widget.WidgetRefreshScheduler
+import com.devstdvad.sync.Sync
+import com.devstdvad.sync.SyncDecision
+import com.devstdvad.sync.SyncSource
 import com.google.android.gms.ads.MobileAds
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -39,14 +39,12 @@ class DeviceDnaApp : Application() {
         applicationScope.launch {
             MobileAds.initialize(this@DeviceDnaApp) {}
         }
-        // Secondary "cfg-sync" Firebase app (no-op unless configured).
         initConfigSyncApp()
         startKoin {
             androidLogger(Level.ERROR)
             androidContext(this@DeviceDnaApp)
             modules(appModule)
         }
-        // Seed remote config state before the first frame, then keep a foreground subscription.
         val configSync = GlobalContext.get().get<ConfigSync>()
         configSync.onStartup()
         Sync.install(
@@ -88,7 +86,6 @@ class DeviceDnaApp : Application() {
         }
     }
 
-    /** Initializes the secondary "cfg-sync" [FirebaseApp] from BuildConfig. Skipped when unset. */
     private fun initConfigSyncApp() {
         if (BuildConfig.CFG_PROJECT_ID.isBlank()) return
         if (FirebaseApp.getApps(this).any { it.name == CFG_APP_NAME }) return

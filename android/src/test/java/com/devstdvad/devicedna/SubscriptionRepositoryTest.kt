@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -189,6 +190,44 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
+    fun `app store purchase stays active for guest when backend sync is unavailable`() = runTest {
+        val store = FakePremiumEntitlementsStore()
+        val verifier = FakeVerifier()
+        val repository = SubscriptionRepository(
+            store = store,
+            billingGateway = FakeBillingGateway(appStoreEntitlements()),
+            verifier = verifier,
+        )
+
+        val result = repository.purchasePremium()
+
+        assertTrue(result is SubscriptionOperationResult.Success)
+        assertTrue(repository.entitlements.first().hasFeature(PremiumFeature.RemoveAds))
+        assertEquals(1, verifier.appStoreVerificationCalls)
+    }
+
+    @Test
+    fun `saved app store purchase is retried after sign in`() = runTest {
+        val verifier = FakeVerifier(
+            appStoreResult = SubscriptionVerificationResult.Success(
+                PremiumEntitlements(
+                    features = PremiumFeature.entries.toSet(),
+                    source = EntitlementSource.Backend,
+                ),
+            ),
+        )
+        val repository = SubscriptionRepository(
+            store = FakePremiumEntitlementsStore(appStoreEntitlements()),
+            billingGateway = FakeBillingGateway(PremiumEntitlements.Empty),
+            verifier = verifier,
+        )
+
+        repository.syncAppStoreEntitlement()
+
+        assertEquals(1, verifier.appStoreVerificationCalls)
+    }
+
+    @Test
     fun `expired entitlement does not grant feature`() {
         val entitlements = PremiumEntitlements(
             features = setOf(PremiumFeature.RemoveAds),
@@ -297,16 +336,37 @@ class SubscriptionRepositoryTest {
             SubscriptionVerificationResult.Failure("no play result"),
         private val devResult: SubscriptionVerificationResult =
             SubscriptionVerificationResult.Failure("no dev result"),
+        private val appStoreResult: SubscriptionVerificationResult =
+            SubscriptionVerificationResult.Failure("not signed in"),
         private val refreshResult: SubscriptionRefreshResult =
             SubscriptionRefreshResult.Unavailable("no refresh result"),
     ) : SubscriptionVerifier {
+        var appStoreVerificationCalls: Int = 0
+
         override suspend fun verifyGooglePlayPurchase(
             productId: String,
             purchaseToken: String,
         ): SubscriptionVerificationResult = playResult
 
+        override suspend fun verifyAppStorePurchase(
+            productId: String,
+            transactionId: String,
+        ): SubscriptionVerificationResult {
+            appStoreVerificationCalls += 1
+            return appStoreResult
+        }
+
         override suspend fun activateDevSubscription(): SubscriptionVerificationResult = devResult
 
         override suspend fun fetchCurrentEntitlements(): SubscriptionRefreshResult = refreshResult
     }
+
+    private fun appStoreEntitlements() = PremiumEntitlements(
+        features = PremiumFeature.entries.filterNot { it == PremiumFeature.BatteryIntelligence }.toSet(),
+        issuedAtMillis = 1_000L,
+        expiresAtMillis = Long.MAX_VALUE,
+        source = EntitlementSource.AppStore,
+        productId = "devicedna_premium_ios",
+        purchaseToken = "2000000123456789",
+    )
 }

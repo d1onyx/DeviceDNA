@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, uniqueIndex, primaryKey } from "drizzle-orm/sqlite-core";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cloudflare D1 (SQLite) schema.
@@ -7,8 +7,8 @@ import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-or
 // booleans as INTEGER 0/1. The full device diagnostics snapshot is fully
 // normalized: every section is its own table and every list its own child table,
 // all joined to `devices.id` by foreign key with ON DELETE CASCADE. D1 enforces
-// foreign keys, so deleting a user cascades to its devices and then to every
-// snapshot row.
+// foreign keys. User/device ownership is many-to-many through `user_devices`,
+// while diagnostics are stored only once per physical device.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const createdAt = () =>
@@ -66,10 +66,23 @@ export const googlePlayPurchaseOwners = sqliteTable("google_play_purchase_owners
   userIdx: index("idx_google_play_purchase_owners_user").on(t.userUid),
 }));
 
+// Immutable ownership ledger for App Store subscription chains. Every renewal shares the same
+// original transaction id, so the Apple subscription can never be claimed by another Firebase
+// account while the original account exists.
+export const appStoreTransactionOwners = sqliteTable("app_store_transaction_owners", {
+  originalTransactionId: text("original_transaction_id").primaryKey(),
+  userUid: text("user_uid")
+    .notNull()
+    .references(() => users.firebaseUid, { onDelete: "cascade" }),
+  createdAt: createdAt(),
+}, (t) => ({
+  userIdx: index("idx_app_store_transaction_owners_user").on(t.userUid),
+}));
+
 // ── Device ───────────────────────────────────────────────────────────────────
 
-// One row per user's device. The full snapshot lives in the normalized tables
-// below, each keyed by this row's `id`.
+// One row per physical device. `userUid` is retained as the technical row owner
+// for backward-compatible cascading; account access is modeled by user_devices.
 export const devices = sqliteTable(
   "devices",
   {
@@ -77,7 +90,8 @@ export const devices = sqliteTable(
     userUid: text("user_uid")
       .notNull()
       .references(() => users.firebaseUid, { onDelete: "cascade" }),
-    androidId: text("android_id").notNull(),
+    // Stable platform identifier: Android ID or iOS identifierForVendor.
+    deviceId: text("device_id"),
     // Denormalized key fields for fast browsing without joining every section.
     deviceName: text("device_name"),
     manufacturer: text("manufacturer"),
@@ -91,8 +105,28 @@ export const devices = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => ({
-    uqUserAndroid: uniqueIndex("uq_user_android").on(t.userUid, t.androidId),
+    deviceIdUnique: uniqueIndex("uq_devices_device_id").on(t.deviceId),
     userIdx: index("idx_devices_user").on(t.userUid),
+  }),
+);
+
+// Accounts linked to a physical device. Removing one account only removes its
+// association; the shared diagnostics remain available to other linked users.
+export const userDevices = sqliteTable(
+  "user_devices",
+  {
+    userUid: text("user_uid")
+      .notNull()
+      .references(() => users.firebaseUid, { onDelete: "cascade" }),
+    deviceRowId: text("device_row_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userUid, t.deviceRowId] }),
+    userIdx: index("idx_user_devices_user").on(t.userUid),
+    deviceIdx: index("idx_user_devices_device").on(t.deviceRowId),
   }),
 );
 
@@ -113,7 +147,7 @@ export const deviceInfo = sqliteTable("device_info", {
   hardware: text("hardware").notNull(),
   codename: text("codename").notNull(),
   buildFingerprint: text("build_fingerprint").notNull(),
-  androidId: text("android_id").notNull(),
+  platformDeviceId: text("platform_device_id").notNull(),
   isRooted: integer("is_rooted", { mode: "boolean" }).notNull(),
   bootloader: text("bootloader").notNull(),
   socName: text("soc_name").notNull().default(""),

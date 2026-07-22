@@ -12,17 +12,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** Validated remote state: true = active, false = degraded, null = untrusted/missing (ignored). */
-data class RemoteState(val active: Boolean?)
-
 @Serializable
 private data class Payload(@SerialName("isUnlocked") val active: Boolean)
 
-/**
- * Reads a signed config document from Firestore (GitLive) and validates its signature before
- * trusting the payload. The document carries a base64 payload plus a base64 signature over the raw
- * payload bytes; the value is only used when the signature verifies.
- */
 @OptIn(ExperimentalEncodingApi::class)
 class RemoteConfigSource(
     private val documentPath: String,
@@ -37,7 +29,6 @@ class RemoteConfigSource(
         get() = (appName?.let { Firebase.firestore(Firebase.app(it)) } ?: Firebase.firestore)
             .document(documentPath)
 
-    /** Cold stream from the realtime document listener. */
     fun updates(): Flow<RemoteState> = document.snapshots.map(::evaluate)
 
     private fun evaluate(snapshot: DocumentSnapshot): RemoteState {
@@ -47,7 +38,6 @@ class RemoteConfigSource(
         return evaluate(snapshot.get<String>(payloadField), snapshot.get<String>(sigField))
     }
 
-    /** Pure validation of the raw field strings. `internal` for unit testing without live Firestore. */
     internal fun evaluate(payload: String?, sig: String?): RemoteState {
         if (payload == null || sig == null) return RemoteState(null)
         val payloadBytes = runCatching { Base64.decode(payload) }.getOrNull() ?: return RemoteState(null)

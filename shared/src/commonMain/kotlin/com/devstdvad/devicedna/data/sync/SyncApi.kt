@@ -1,6 +1,7 @@
 package com.devstdvad.devicedna.data.sync
 
 import com.devstdvad.devicedna.data.sync.model.DeviceSyncPayload
+import com.devstdvad.devicedna.data.sync.model.AppStoreSubscriptionVerificationPayload
 import com.devstdvad.devicedna.data.sync.model.DeviceSyncStatus
 import com.devstdvad.devicedna.data.sync.model.GooglePlaySubscriptionVerificationPayload
 import com.devstdvad.devicedna.data.sync.model.SubscriptionViewResponse
@@ -56,8 +57,8 @@ class SyncApi(
         }
     }
 
-    suspend fun getStatus(idToken: String, androidId: String): DeviceSyncStatus =
-        client.get("$baseUrl/v1/devices/$androidId/status") {
+    suspend fun getStatus(idToken: String, deviceId: String): DeviceSyncStatus =
+        client.get("$baseUrl/v1/devices/$deviceId/status") {
             bearerAuth(idToken)
         }.body()
 
@@ -73,6 +74,16 @@ class SyncApi(
         payload: GooglePlaySubscriptionVerificationPayload,
     ): SubscriptionViewResponse =
         client.post("$baseUrl/v1/subscription/google-play/verify") {
+            bearerAuth(idToken)
+            contentType(ContentType.Application.Json)
+            setBody(payload)
+        }.body()
+
+    suspend fun verifyAppStoreSubscription(
+        idToken: String,
+        payload: AppStoreSubscriptionVerificationPayload,
+    ): SubscriptionViewResponse =
+        client.post("$baseUrl/v1/subscription/app-store/verify") {
             bearerAuth(idToken)
             contentType(ContentType.Application.Json)
             setBody(payload)

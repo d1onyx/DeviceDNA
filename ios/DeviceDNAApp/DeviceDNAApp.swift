@@ -2,7 +2,6 @@ import SwiftUI
 import UIKit
 import BackgroundTasks
 import UserNotifications
-import CryptoKit
 import FirebaseCore
 import GoogleSignIn
 import WidgetKit
@@ -32,13 +31,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
         }
 
-        // 1c. Secondary "cfg-sync" Firebase app (no-op unless its plist is bundled).
-        if FirebaseApp.app(name: AppConfig.cfgAppName) == nil,
-           let cfgPath = AppConfig.cfgPlistPath,
-           let cfgOptions = FirebaseOptions(contentsOfFile: cfgPath) {
-            FirebaseApp.configure(name: AppConfig.cfgAppName, options: cfgOptions)
-        }
-
         // 2. Koin — must be up before the first Compose frame resolves ViewModels.
         KoinBridge.shared.start(deps: IosAppDependencies(
             authGateway: AuthBridge.shared.gateway,
@@ -46,16 +38,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             useRealBilling: AppConfig.useRealBilling,
             syncBaseUrl: AppConfig.syncBaseUrl,
             appGroupId: AppConfig.appGroupId,
-            reloadWidgetTimelines: { WidgetCenter.shared.reloadAllTimelines() },
-            cfgEnabled: AppConfig.cfgEnabled,
-            cfgDocPath: AppConfig.cfgDocPath,
-            // Signature check via CryptoKit.
-            verifySignature: { message, signature in
-                KotlinBoolean(bool: AppConfig.verifyConfigSignature(
-                    message: message.toData(),
-                    signature: signature.toData()
-                ))
-            }
+            reloadWidgetTimelines: { WidgetCenter.shared.reloadAllTimelines() }
         ))
         AuthBridge.shared.startListening()
         // Only run the StoreKit entitlement bridge when real billing is the source of truth
@@ -214,45 +197,6 @@ enum AppConfig {
         return true
     }()
 
-    // MARK: Remote config
-
-    /// Secondary Firebase app name (must match the Kotlin side).
-    static let cfgAppName = "cfg-sync"
-
-    /// Path to GoogleService-Info-CfgSync.plist, or nil when absent/placeholder.
-    static let cfgPlistPath: String? = {
-        guard
-            let path = Bundle.main.path(forResource: "GoogleService-Info-CfgSync", ofType: "plist"),
-            let plist = NSDictionary(contentsOfFile: path),
-            let appId = plist["GOOGLE_APP_ID"] as? String,
-            !appId.hasPrefix("YOUR_")
-        else {
-            return nil
-        }
-        return path
-    }()
-
-    static let cfgDocPath: String = string("CfgDocPath") ?? "cfg/state"
-
-    /// Raw 32-byte key from a base64 CfgPubKey in Info.plist, or nil.
-    static let cfgPublicKey: Data? = {
-        guard let b64 = string("CfgPubKey"),
-              let data = Data(base64Encoded: b64) else { return nil }
-        return data
-    }()
-
-    /// Active only when both the plist and the key are present.
-    static let cfgEnabled: Bool = cfgPlistPath != nil && cfgPublicKey != nil
-
-    /// Checks [signature] over [message] with the embedded key (CryptoKit).
-    static func verifyConfigSignature(message: Data, signature: Data) -> Bool {
-        guard let keyData = cfgPublicKey,
-              let key = try? Curve25519.Signing.PublicKey(rawRepresentation: keyData) else {
-            return false
-        }
-        return key.isValidSignature(signature, for: message)
-    }
-
     private static func string(_ key: String) -> String? {
         let trimmed = (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -265,19 +209,6 @@ enum AppConfig {
             }
             return value
         }
-    }
-}
-
-// MARK: - Remote config helpers
-
-extension KotlinByteArray {
-    /// Copies a Kotlin `ByteArray` into a Swift `Data` (Kotlin bytes are signed; reinterpret as UInt8).
-    func toData() -> Data {
-        var data = Data(count: Int(size))
-        for i in 0..<size {
-            data[Int(i)] = UInt8(bitPattern: get(index: i))
-        }
-        return data
     }
 }
 
@@ -307,12 +238,9 @@ struct DeviceDNAApp: App {
                 // for the whole time the app was backgrounded; this bounds that gap regardless of
                 // which tab is open.
                 KoinBridge.shared.backgroundWorker().run { _ in }
-                // Re-subscribe on foreground.
-                KoinBridge.shared.attachConfigSync()
             }
             if phase == .background {
                 AppDelegate.scheduleBackgroundRefresh()
-                KoinBridge.shared.detachConfigSync()
                 // Refresh widgets with the freshest foreground data before suspending.
                 // Without an active background-task assertion, iOS can (and typically does)
                 // suspend the process within seconds of entering .background — killing this

@@ -11,6 +11,11 @@ export interface Env {
   GOOGLE_PLAY_PREMIUM_PRODUCT_ID?: string;
   GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string;
   GOOGLE_PLAY_PRIVATE_KEY?: string;
+  APPLE_APP_STORE_ISSUER_ID?: string;
+  APPLE_APP_STORE_KEY_ID?: string;
+  APPLE_APP_STORE_PRIVATE_KEY?: string;
+  APPLE_APP_BUNDLE_ID?: string;
+  APPLE_PREMIUM_PRODUCT_ID?: string;
   // Shared secret guarding the Google Play RTDN webhook (POST /play/notifications?token=...).
   // Pub/Sub push cannot send headers, so the token travels in the query string.
   PLAY_RTDN_VERIFICATION_TOKEN?: string;

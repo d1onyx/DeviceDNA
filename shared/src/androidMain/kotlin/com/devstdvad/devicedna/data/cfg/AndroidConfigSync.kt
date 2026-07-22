@@ -4,13 +4,13 @@ import android.content.Context
 import android.util.Base64
 import com.russhwolf.settings.SharedPreferencesSettings
 
-/** Builds the Android [ConfigSync] from BuildConfig; a blank project id / key yields a no-op. */
 fun buildAndroidConfigSync(
     context: Context,
     cfgProjectId: String,
     cfgDocPath: String,
     publicKeyBase64: String,
     appName: String = "cfg-sync",
+    startupRefreshWindowMs: Long = 5_000L,
 ): ConfigSync {
     val verifier = publicKeyBase64
         .takeIf { it.isNotBlank() }
@@ -24,5 +24,18 @@ fun buildAndroidConfigSync(
     val settings = SharedPreferencesSettings(
         context.getSharedPreferences("sync", Context.MODE_PRIVATE),
     )
-    return buildConfigSync(config, settings, verifier)
+    SyncMarker.attach(settings)
+    if (!config.enabled || verifier == null) {
+        return ConfigSync(store = null, updates = null)
+    }
+    val source = RemoteConfigSource(
+        documentPath = config.documentPath,
+        check = verifier,
+        appName = config.appName,
+    )
+    return ConfigSync(
+        store = SettingsConfigStore(settings),
+        updates = { source.updates() },
+        startupRefreshWindowMs = startupRefreshWindowMs,
+    )
 }

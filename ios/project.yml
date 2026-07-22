@@ -6,7 +6,7 @@
 name: DeviceDNAApp
 
 # Every account-specific build setting (bundle ids, AdMob unit ids, SYNC_BASE_URL,
-# GOOGLE_REVERSED_CLIENT_ID, CFG_*) lives in the repo-root secrets.properties and is
+# GOOGLE_REVERSED_CLIENT_ID) lives in the repo-root secrets.properties and is
 # rendered into settings.local.yml. That file is gitignored — generate it before
 # `xcodegen generate`, otherwise this include fails:
 #     ./scripts/sync-config.sh
@@ -37,22 +37,7 @@ targets:
           - "Info.plist"
           - "GoogleService-Info.plist"
           - "PrivacyInfo.xcprivacy"
-      # XcodeGen doesn't reliably add non-Info.plist *.plist files under a `sources`
-      # path to Copy Bundle Resources (yonaskolb/XcodeGen#1423) — without this explicit
-      # entry, GoogleService-Info.plist silently never ships in the .app bundle, so
-      # `Bundle.main.path(forResource:ofType:)` returns nil, FirebaseApp.configure()
-      # never runs, and GIDSignIn.sharedInstance.configuration never gets set —
-      # producing the exact same "no active configuration" NSException as before that
-      # fix was written, since the code path was simply never reached at runtime.
-      # The Firebase plists hold real keys, so they are gitignored and provided per environment
-      # (locally by scripts/setup-firebase-auth.sh; on CI decoded from a secret before the build).
-      # `optional: true` lets `xcodegen generate` succeed when a plist is absent; when present it
-      # still ships in the bundle. Matches the app's runtime tolerance (FirebaseApp.configure() is
-      # gated on the plist existing).
       - path: DeviceDNAApp/GoogleService-Info.plist
-        buildPhase: resources
-        optional: true
-      - path: DeviceDNAApp/GoogleService-Info-CfgSync.plist
         buildPhase: resources
         optional: true
       - path: DeviceDNAApp/PrivacyInfo.xcprivacy

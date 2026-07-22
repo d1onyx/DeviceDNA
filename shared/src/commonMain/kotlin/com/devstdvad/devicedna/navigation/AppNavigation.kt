@@ -182,13 +182,18 @@ fun AppNavigation(
         return
     }
 
+    val subscriptionRepository = koinInject<SubscriptionRepository>()
     LaunchedEffect(authState.user?.uid, authState.isSignedIn) {
-        if (authState.isSignedIn) syncViewModel.triggerOnce()
+        if (authState.isSignedIn) {
+            syncViewModel.triggerOnce(authState.user?.uid)
+            // A guest may buy Premium before creating an account. As soon as Firebase sign-in
+            // succeeds, claim the verified App Store transaction for this backend account.
+            runCatching { subscriptionRepository.syncAppStoreEntitlement() }
+        }
     }
 
     val hapticManager = koinInject<HapticManager>()
     val soundManager = koinInject<SoundManager>()
-    val subscriptionRepository = koinInject<SubscriptionRepository>()
     val entitlements by subscriptionRepository.entitlements.collectAsState(initial = PremiumEntitlements.Empty)
     val feedback = remember(settings.hapticFeedback, settings.soundEffects) {
         AppFeedback(hapticManager, soundManager, settings.hapticFeedback, settings.soundEffects)

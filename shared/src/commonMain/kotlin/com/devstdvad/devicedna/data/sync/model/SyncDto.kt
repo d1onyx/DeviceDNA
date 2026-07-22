@@ -38,10 +38,16 @@ data class GooglePlaySubscriptionVerificationPayload(
     val purchaseToken: String,
 )
 
+@Serializable
+data class AppStoreSubscriptionVerificationPayload(
+    val productId: String,
+    val transactionId: String,
+)
+
 /** POST /v1/sync body. User data is taken by the backend from the ID token, not from here. */
 @Serializable
 data class DeviceSyncPayload(
-    val androidId: String,
+    val deviceId: String,
     val deviceName: String? = null,
     val manufacturer: String? = null,
     val model: String? = null,
@@ -51,7 +57,7 @@ data class DeviceSyncPayload(
     val snapshot: DeviceSnapshot,
 )
 
-/** GET /v1/devices/:androidId/status response. */
+/** GET /v1/devices/:deviceId/status response. */
 @Serializable
 data class DeviceSyncStatus(
     val exists: Boolean,

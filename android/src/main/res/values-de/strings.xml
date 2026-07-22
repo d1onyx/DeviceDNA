@@ -207,6 +207,8 @@
     <string name="battery_intelligence_charging_advice">Ladehinweise</string>
     <string name="battery_intelligence_charging_history">Ladeverlauf</string>
     <string name="battery_intelligence_charging_history_empty">Der Ladeverlauf erscheint, sobald die App Ladeschnappschüsse aufgezeichnet hat.</string>
+    <string name="battery_intelligence_background_monitoring_off_title">Hintergrundüberwachung ist aus</string>
+    <string name="battery_intelligence_background_monitoring_off_body">Der Ladeverlauf wird nicht aufgezeichnet, solange die Hintergrundüberwachung deaktiviert ist. Aktivieren Sie sie in den Einstellungen, um neue Ladesitzungen weiter zu erfassen.</string>
     <string name="battery_intelligence_selected_hour">Verlauf %1$s</string>
     <string name="battery_intelligence_hour_empty">Für diese Stunde wurden keine Akku-Messpunkte gespeichert.</string>
     <string name="battery_intelligence_charging_periods">Ladezeiträume</string>

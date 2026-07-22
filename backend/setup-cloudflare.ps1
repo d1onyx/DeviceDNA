@@ -38,6 +38,11 @@ Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PREMIUM_PRODUCT_ID" -PropertyName "goo
 Set-EnvFromProperty -EnvName "INTERNAL_API_KEY" -PropertyName "internalApiKey"
 Set-EnvFromProperty -EnvName "GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL" -PropertyName "googlePlayServiceAccountEmail"
 Set-EnvFromProperty -EnvName "GOOGLE_PLAY_PRIVATE_KEY" -PropertyName "googlePlayPrivateKey"
+Set-EnvFromProperty -EnvName "APPLE_APP_STORE_ISSUER_ID" -PropertyName "appStoreIssuerId"
+Set-EnvFromProperty -EnvName "APPLE_APP_STORE_KEY_ID" -PropertyName "appStoreKeyId"
+Set-EnvFromProperty -EnvName "APPLE_APP_STORE_PRIVATE_KEY" -PropertyName "appStorePrivateKey"
+Set-EnvFromProperty -EnvName "APPLE_APP_BUNDLE_ID" -PropertyName "iosBundleId"
+Set-EnvFromProperty -EnvName "APPLE_PREMIUM_PRODUCT_ID" -PropertyName "iosStoreKitPremiumProductId"
 Set-EnvFromProperty -EnvName "PLAY_RTDN_VERIFICATION_TOKEN" -PropertyName "playRtdnVerificationToken"
 
 # 0) Login check
@@ -117,6 +122,11 @@ function Set-WorkerSecret {
 # 2) Required production secrets.
 Set-WorkerSecret -Name "FIREBASE_PROJECT_ID"
 Set-WorkerSecret -Name "FIREBASE_WEB_API_KEY"
+Set-WorkerSecret -Name "APPLE_APP_STORE_ISSUER_ID"
+Set-WorkerSecret -Name "APPLE_APP_STORE_KEY_ID"
+Set-WorkerSecret -Name "APPLE_APP_STORE_PRIVATE_KEY"
+Set-WorkerSecret -Name "APPLE_APP_BUNDLE_ID"
+Set-WorkerSecret -Name "APPLE_PREMIUM_PRODUCT_ID"
 
 # 3) Optional production secrets. Set them as environment variables or in ../secrets.properties.
 Set-WorkerSecret -Name "INTERNAL_API_KEY" -Optional

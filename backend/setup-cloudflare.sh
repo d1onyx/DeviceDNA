@@ -31,6 +31,11 @@ set_from_property GOOGLE_PLAY_PREMIUM_PRODUCT_ID googlePlayPremiumProductId prem
 set_from_property INTERNAL_API_KEY internalApiKey
 set_from_property GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL googlePlayServiceAccountEmail
 set_from_property GOOGLE_PLAY_PRIVATE_KEY googlePlayPrivateKey
+set_from_property APPLE_APP_STORE_ISSUER_ID appStoreIssuerId
+set_from_property APPLE_APP_STORE_KEY_ID appStoreKeyId
+set_from_property APPLE_APP_STORE_PRIVATE_KEY appStorePrivateKey
+set_from_property APPLE_APP_BUNDLE_ID iosBundleId
+set_from_property APPLE_PREMIUM_PRODUCT_ID iosStoreKitPremiumProductId
 set_from_property PLAY_RTDN_VERIFICATION_TOKEN playRtdnVerificationToken
 
 # 0) Login check
@@ -105,6 +110,11 @@ put_optional_secret_from_env() {
 # 2) Required production secrets.
 put_secret FIREBASE_PROJECT_ID
 put_secret FIREBASE_WEB_API_KEY
+put_secret APPLE_APP_STORE_ISSUER_ID
+put_secret APPLE_APP_STORE_KEY_ID
+put_secret APPLE_APP_STORE_PRIVATE_KEY
+put_secret APPLE_APP_BUNDLE_ID
+put_secret APPLE_PREMIUM_PRODUCT_ID
 
 # 3) Optional production secrets. Pass them as env vars or set them in ../secrets.properties.
 put_optional_secret_from_env INTERNAL_API_KEY

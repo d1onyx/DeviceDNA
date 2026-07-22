@@ -4,6 +4,7 @@ import com.devstdvad.devicedna.core.common.currentTimeMillis
 import com.devstdvad.devicedna.data.auth.AuthGateway
 import com.devstdvad.devicedna.data.sync.SyncApi
 import com.devstdvad.devicedna.data.sync.model.BackendSubscription
+import com.devstdvad.devicedna.data.sync.model.AppStoreSubscriptionVerificationPayload
 import com.devstdvad.devicedna.data.sync.model.GooglePlaySubscriptionVerificationPayload
 import com.devstdvad.devicedna.data.sync.model.SubscriptionViewResponse
 import kotlinx.datetime.Instant
@@ -49,6 +50,31 @@ class BackendSubscriptionVerifier(
             onFailure = { error ->
                 SubscriptionVerificationResult.Failure(
                     error.message ?: "Unable to activate the dev subscription.",
+                )
+            },
+        )
+    }
+
+    override suspend fun verifyAppStorePurchase(
+        productId: String,
+        transactionId: String,
+    ): SubscriptionVerificationResult {
+        val idToken = authRepository.getIdToken()
+            ?: return SubscriptionVerificationResult.Failure("Sign in to sync App Store Premium.")
+
+        return runCatching {
+            syncApi.verifyAppStoreSubscription(
+                idToken = idToken,
+                payload = AppStoreSubscriptionVerificationPayload(
+                    productId = productId,
+                    transactionId = transactionId,
+                ),
+            )
+        }.fold(
+            onSuccess = { toVerificationResult(it, EntitlementSource.Backend) },
+            onFailure = { error ->
+                SubscriptionVerificationResult.Failure(
+                    error.message ?: "Unable to verify App Store Premium with the backend.",
                 )
             },
         )

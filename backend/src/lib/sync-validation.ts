@@ -1,7 +1,7 @@
 import type { DeviceSnapshot } from "./snapshot";
 
 export interface ValidSyncBody {
-  androidId: string;
+  deviceId: string;
   deviceName?: string;
   manufacturer?: string;
   model?: string;
@@ -48,9 +48,9 @@ const collectionLimits: Record<string, number> = {
 export function validateSyncBody(input: unknown): SyncBodyValidation {
   if (!isRecord(input)) return { ok: false, error: "invalid_request_body" };
 
-  const androidId = shortString(input.androidId);
-  if (!androidId || !/^[A-Za-z0-9._:-]+$/.test(androidId)) {
-    return { ok: false, error: "invalid_android_id" };
+  const deviceId = shortString(input.deviceId) ?? shortString(input.androidId);
+  if (!deviceId || !/^[A-Za-z0-9._:-]+$/.test(deviceId)) {
+    return { ok: false, error: "invalid_device_id" };
   }
 
   for (const key of ["deviceName", "manufacturer", "model", "osVersion", "appVersion", "snapshotHash"] as const) {
@@ -68,7 +68,7 @@ export function validateSyncBody(input: unknown): SyncBodyValidation {
   const structuralError = validateValue(input, "", 0, budget);
   if (structuralError) return { ok: false, error: structuralError };
 
-  const value = { ...input, androidId } as Record<string, unknown>;
+  const value = { ...input, deviceId } as Record<string, unknown>;
   for (const key of ["deviceName", "manufacturer", "model", "osVersion", "appVersion", "snapshotHash"] as const) {
     if (typeof value[key] === "string") value[key] = value[key].trim();
   }

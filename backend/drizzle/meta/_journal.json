@@ -15,6 +15,34 @@
       "when": 1783854382641,
       "tag": "0001_spotty_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784374933330,
+      "tag": "0002_aspiring_mister_fear",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784721094359,
+      "tag": "0003_windy_echo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784722799163,
+      "tag": "0004_worthless_gamora",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784724104259,
+      "tag": "0005_luxuriant_hitman",
+      "breakpoints": true
     }
   ]
 }

@@ -41,6 +41,7 @@ import com.devstdvad.devicedna.data.batteryintelligence.BatteryIntelligenceHisto
 import com.devstdvad.devicedna.data.settings.UserSettings
 import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
 import com.devstdvad.devicedna.domain.batteryintelligence.buildChargingSessions
+import com.devstdvad.devicedna.platform.PlatformInfo
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -104,6 +105,12 @@ fun BatteryChargingPeriodsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (!PlatformInfo.isIos && !settings.backgroundMonitoring) {
+                item {
+                    BatteryBackgroundMonitoringOffCard()
+                }
+            }
+
             if (sessions.isEmpty()) {
                 item {
                     SectionCard {

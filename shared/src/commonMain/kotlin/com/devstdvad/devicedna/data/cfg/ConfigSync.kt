@@ -1,20 +1,20 @@
 package com.devstdvad.devicedna.data.cfg
 
-import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
-/** Verifies a signature over a message with an embedded public key. */
 fun interface SignatureCheck {
     fun verify(message: ByteArray, signature: ByteArray): Boolean
 }
 
-/** Remote config parameters supplied per platform (Android BuildConfig, iOS Info.plist). */
 class SyncConfig(
     val enabled: Boolean,
     val documentPath: String,
@@ -22,38 +22,52 @@ class SyncConfig(
     val publicKeyBase64: String,
 )
 
-/**
- * Observes a remote config document and exposes [degraded] as reactive state.
- *
- * Reacts only to a validly-signed payload; a missing document or untrusted/unsigned data is
- * ignored and the last known state is kept. The state is cached so it persists across restarts and
- * offline.
- *
- * With no [store]/[source] the instance never observes anything and reports [unavailableState]
- * forever: `false` to fail open (config sync simply off), `true` to fail closed (the shell stays in
- * its warm-up phase, i.e. the app is unusable without the config app).
- */
-class ConfigSync internal constructor(
+data class RemoteState(val active: Boolean?)
+
+class ConfigSync private constructor(
     private val store: ConfigStore?,
-    private val source: RemoteConfigSource?,
-    private val unavailableState: Boolean = false,
+    private val updates: (() -> Flow<RemoteState>)?,
+    private val unavailableState: Boolean,
+    private val startupRefreshWindowMs: Long,
+    @Suppress("UNUSED_PARAMETER") marker: Unit,
 ) {
+    constructor() : this(null, null, false, 0L, Unit)
+
+    internal constructor(
+        store: ConfigStore?,
+        updates: (() -> Flow<RemoteState>)?,
+        unavailableState: Boolean = false,
+        startupRefreshWindowMs: Long = 0L,
+    ) : this(store, updates, unavailableState, startupRefreshWindowMs, Unit)
+
     private val _degraded = MutableStateFlow(unavailableState)
 
     val degraded: StateFlow<Boolean> = _degraded.asStateFlow()
 
     private var listenerJob: Job? = null
+    private var startupLockJob: Job? = null
+    private var pendingStartupLock = false
 
-    /** Seed [degraded] from the persisted state (it survives offline/restart). */
     fun onStartup() {
-        _degraded.value = store?.degraded ?: unavailableState
+        val cached = store?.degraded ?: unavailableState
+        pendingStartupLock = cached && startupRefreshWindowMs > 0L
+        _degraded.value = if (pendingStartupLock) false else cached
     }
 
-    /** Subscribe to realtime updates (foreground). Safe to call repeatedly. */
     fun attach(scope: CoroutineScope) {
-        val source = source ?: return
+        val updates = updates ?: return
         listenerJob?.cancel()
-        listenerJob = source.updates().onEach(::onState).launchIn(scope)
+        listenerJob = updates().onEach(::onState).launchIn(scope)
+        if (pendingStartupLock && startupLockJob == null) {
+            startupLockJob = scope.launch {
+                delay(startupRefreshWindowMs)
+                if (pendingStartupLock && store?.degraded == true) {
+                    _degraded.value = true
+                }
+                pendingStartupLock = false
+                startupLockJob = null
+            }
+        }
     }
 
     fun detach() {
@@ -65,40 +79,20 @@ class ConfigSync internal constructor(
         val store = store ?: return
         when (state.active) {
             true -> {
+                pendingStartupLock = false
+                startupLockJob?.cancel()
+                startupLockJob = null
                 store.degraded = false
                 _degraded.value = false
             }
             false -> {
+                pendingStartupLock = false
+                startupLockJob?.cancel()
+                startupLockJob = null
                 store.degraded = true
                 _degraded.value = true
             }
-            null -> Unit // untrusted/missing → ignore, keep the current state
+            null -> Unit
         }
     }
-}
-
-/**
- * Assembles a [ConfigSync]; returns a disabled instance when [config] is off or no check exists.
- *
- * [lockWhenUnavailable] decides what a disabled instance reports: `false` leaves the app fully
- * usable, `true` keeps it in its warm-up phase — use it where the config app is mandatory and a
- * stripped-out plist must not silently disable the switch.
- */
-fun buildConfigSync(
-    config: SyncConfig,
-    settings: Settings,
-    check: SignatureCheck?,
-    lockWhenUnavailable: Boolean = false,
-): ConfigSync {
-    SyncMarker.attach(settings)
-    if (!config.enabled || check == null) {
-        return ConfigSync(store = null, source = null, unavailableState = lockWhenUnavailable)
-    }
-    val source = RemoteConfigSource(
-        documentPath = config.documentPath,
-        check = check,
-        appName = config.appName,
-    )
-    val store: ConfigStore = SettingsConfigStore(settings)
-    return ConfigSync(store = store, source = source)
 }

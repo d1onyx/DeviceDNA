@@ -4,9 +4,6 @@
 #-keepattributes SourceFile,LineNumberTable
 #-renamesourcefileattribute SourceFile
 
-# ── kotlinx.serialization ──────────────────────────────────────────────────
-# Remote config uses a @Serializable payload and the app uses serialization for sync. Standard
-# rules so R8 does not strip generated serializers.
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
 -keepclassmembers class **$$serializer { *; }
@@ -19,12 +16,9 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# ── GitLive Firebase (dev.gitlive) — Firestore access for remote config ─────
 -keep class dev.gitlive.firebase.** { *; }
 -dontwarn dev.gitlive.firebase.**
 
-# ── Firebase / Firestore / gRPC transport ──────────────────────────────────
-# Most Firebase artifacts bundle consumer rules; these add safety for the Firestore + gRPC stack.
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
 -keep class io.grpc.** { *; }
@@ -34,11 +28,9 @@
 -dontwarn com.google.api.**
 -dontwarn com.google.cloud.**
 
-# ── BouncyCastle (Ed25519 signature verification) ──────────────────────────
 -keep class org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**
 
-# ── multiplatform-settings (SharedPreferences-backed config store) ──────────
 -dontwarn com.russhwolf.settings.**
 
 # ── Room / WorkManager ─────────────────────────────────────────────────────

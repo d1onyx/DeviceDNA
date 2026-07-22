@@ -84,12 +84,12 @@ class DeviceSyncManager(
         val idToken = authRepository.getIdToken() ?: return SyncOutcome.NotSignedIn
 
         val snapshot = snapshotBuilder.build()
-        val androidId = snapshot.device?.androidId?.takeIf { it.isNotBlank() }
+        val deviceId = snapshot.device?.androidId?.takeIf { it.isNotBlank() }
             ?: return SyncOutcome.NoAndroidId
         val localHash = SnapshotHasher.stableHash(snapshot)
 
         return try {
-            val status = api.getStatus(idToken, androidId)
+            val status = api.getStatus(idToken, deviceId)
             val local = stateStore.current()
             val needPush = SyncDecision.shouldPush(
                 force = force,
@@ -103,7 +103,7 @@ class DeviceSyncManager(
                 SyncOutcome.UpToDate
             } else {
                 val payload = DeviceSyncPayload(
-                    androidId = androidId,
+                    deviceId = deviceId,
                     deviceName = snapshot.device?.name,
                     manufacturer = snapshot.device?.manufacturer,
                     model = snapshot.device?.model,
@@ -114,7 +114,7 @@ class DeviceSyncManager(
                     snapshot = snapshot,
                 )
                 val result = api.postSync(idToken, payload)
-                stateStore.update(now(), localHash, androidId)
+                stateStore.update(now(), localHash, deviceId)
                 SyncOutcome.Synced(result.lastSyncedAt)
             }
         } catch (e: Exception) {

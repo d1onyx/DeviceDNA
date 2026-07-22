@@ -88,6 +88,7 @@ import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHourSlot
 import com.devstdvad.devicedna.domain.batteryintelligence.ChargingHourStatus
 import com.devstdvad.devicedna.domain.batteryintelligence.ChargingSessionSummary
 import com.devstdvad.devicedna.domain.batteryintelligence.estimateCapacityRetentionPercent
+import com.devstdvad.devicedna.platform.PlatformInfo
 import com.devstdvad.devicedna.presentation.common.LoadingScreen
 import com.devstdvad.devicedna.presentation.common.SettingsFormatters
 import com.devstdvad.devicedna.di.resolveViewModel
@@ -107,8 +108,6 @@ fun BatteryIntelligenceScreen(
     val colors = AppTheme.colors
     val feedback = LocalAppFeedback.current
     var selectedExportFormat by remember { mutableStateOf(ExportFormat.Json) }
-    // Export sharing + import file-picking are handled inside the ViewModel via the platform
-    // FileSharer / FileImporter — no Intent/ActivityResult plumbing in the shared UI.
 
     LaunchedEffect(exportState.importResult) {
         if (exportState.importResult != null) feedback?.confirm()
@@ -361,6 +360,11 @@ private fun DailyChargingTimeline(
     SectionTitle(Icons.Outlined.BatteryChargingFull, stringRes("battery_intelligence_charging_history"))
     Spacer(Modifier.height(10.dp))
 
+    if (!PlatformInfo.isIos && !settings.backgroundMonitoring) {
+        BatteryBackgroundMonitoringOffCard()
+        Spacer(Modifier.height(12.dp))
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -575,9 +579,6 @@ private fun HourlyChart(
                     }
                 }
             }
-            // Hour labels drawn in the same width/coordinate space as the chart, centred on each
-            // 3-hour gridline (ends anchored inward) so they line up on any screen.
-            // Multiplatform text rendering via TextMeasurer (no android.graphics).
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()

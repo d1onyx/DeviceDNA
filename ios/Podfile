@@ -8,10 +8,6 @@ target 'DeviceDNAApp' do
   pod 'FirebaseAuth'
   pod 'GoogleSignIn'
 
-  # Remote config: GitLive firebase-firestore in the shared framework links against the native
-  # Firestore SDK, so its symbols must resolve at final app link.
-  pod 'FirebaseFirestore'
-
   # Ads (AdMob + consent management for EEA/UK + ATT)
   pod 'Google-Mobile-Ads-SDK'
   pod 'GoogleUserMessagingPlatform'

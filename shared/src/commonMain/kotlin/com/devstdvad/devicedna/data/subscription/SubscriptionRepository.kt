@@ -1,13 +1,14 @@
 package com.devstdvad.devicedna.data.subscription
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 class SubscriptionRepository(
     private val store: PremiumEntitlementsStore,
     private val billingGateway: SubscriptionBillingGateway,
     private val verifier: SubscriptionVerifier? = null,
-    // When true, dev purchases are activated through the backend (persisted to Neon) instead of
-    // being unlocked locally. Lets the dev build exercise the real client→backend→Neon flow.
+    // When true, dev purchases are activated through the backend (persisted to D1) instead of
+    // being unlocked locally. Lets the dev build exercise the real client→backend→D1 flow.
     private val devUsesBackend: Boolean = false,
     // When true, the backend is the source of truth for entitlements, so refreshEntitlements()
     // can clear local premium if the backend reports none. False for pure local dev unlock (where
@@ -55,6 +56,14 @@ class SubscriptionRepository(
     private suspend fun saveVerified(entitlements: PremiumEntitlements): SubscriptionOperationResult =
         when (entitlements.source) {
             EntitlementSource.Play -> verifyPlayPurchase(entitlements)
+            EntitlementSource.AppStore -> {
+                // StoreKit already verified the transaction on-device, so Premium remains usable
+                // for guests/offline users. Backend verification is a best-effort account sync
+                // and is retried after sign-in and on later StoreKit entitlement updates.
+                store.save(entitlements)
+                syncAppStoreEntitlement(entitlements)
+                SubscriptionOperationResult.Success
+            }
             EntitlementSource.Dev -> if (devUsesBackend) {
                 activateDevSubscription()
             } else {
@@ -66,6 +75,17 @@ class SubscriptionRepository(
                 SubscriptionOperationResult.Success
             }
         }
+
+    suspend fun syncAppStoreEntitlement() {
+        syncAppStoreEntitlement(store.entitlements.first())
+    }
+
+    private suspend fun syncAppStoreEntitlement(entitlements: PremiumEntitlements) {
+        if (entitlements.source != EntitlementSource.AppStore || !entitlements.isActive) return
+        val productId = entitlements.productId?.takeIf { it.isNotBlank() } ?: return
+        val transactionId = entitlements.purchaseToken?.takeIf { it.isNotBlank() } ?: return
+        verifier?.verifyAppStorePurchase(productId, transactionId)
+    }
 
     private suspend fun verifyPlayPurchase(entitlements: PremiumEntitlements): SubscriptionOperationResult {
         val productId = entitlements.productId
@@ -80,7 +100,7 @@ class SubscriptionRepository(
         return verification.verifyGooglePlayPurchase(productId, purchaseToken).persist()
     }
 
-    // Dev subscriptions are also persisted server-side (Neon) so the dev flow mirrors production;
+    // Dev subscriptions are also persisted server-side (D1) so the dev flow mirrors production;
     // the backend grants a short-lived entitlement and we store whatever it returns.
     private suspend fun activateDevSubscription(): SubscriptionOperationResult {
         val verification = verifier

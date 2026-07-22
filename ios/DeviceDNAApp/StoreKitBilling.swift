@@ -126,6 +126,9 @@ final class StoreKitBilling {
         if let transaction = await activeTransaction() {
             let outcome = Self.outcome(from: transaction)
             try? await store.save(entitlements: gateway.toEntitlements(outcome: outcome))
+            // When Firebase auth exists this claims/refreshes the Apple transaction in D1. For a
+            // guest it is intentionally deferred; AppNavigation retries immediately after sign-in.
+            try? await KoinBridge.shared.subscriptionRepository().syncAppStoreEntitlement()
         } else {
             try? await store.clear()
         }

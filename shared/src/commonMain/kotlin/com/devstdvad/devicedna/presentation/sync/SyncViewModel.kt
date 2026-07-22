@@ -31,7 +31,7 @@ class SyncViewModel(
     private val _state = MutableStateFlow(SyncUiState())
     val state: StateFlow<SyncUiState> = _state.asStateFlow()
 
-    private var autoTriggered = false
+    private var lastAutoTriggeredAccountKey: String? = null
     private var checkedAccountKey: String? = null
 
     init {
@@ -78,10 +78,10 @@ class SyncViewModel(
         }
     }
 
-    /** Called on startup — syncs only once per ViewModel lifetime. */
-    fun triggerOnce() {
-        if (autoTriggered) return
-        autoTriggered = true
+    /** Automatically syncs whenever the active account changes. */
+    fun triggerOnce(accountKey: String?) {
+        if (accountKey.isNullOrBlank() || lastAutoTriggeredAccountKey == accountKey) return
+        lastAutoTriggeredAccountKey = accountKey
         sync(force = false)
         // Re-check entitlements against the backend on startup so a server-side change
         // (revoked/expired subscription) is reflected even before the user opens the premium screen.

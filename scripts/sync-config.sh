@@ -25,7 +25,7 @@ require_values \
     androidApplicationId \
     iosBundleId iosWidgetBundleId iosAppGroupId iosBackgroundTaskId iosDeepLinkScheme \
     iosGoogleReversedClientId iosStoreKitPremiumProductId \
-    firebaseProjectId syncBaseUrl premiumSubProductId cfgPubKey \
+    firebaseProjectId syncBaseUrl premiumSubProductId \
     cloudflareWorkerName
 
 # Backend-only. A client-side sync stays useful without it, so warn instead of failing;
@@ -71,6 +71,11 @@ echo "==> backend/.dev.vars"
     dev_var INTERNAL_API_KEY "$(cfg internalApiKey)"
     dev_var GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL "$(cfg googlePlayServiceAccountEmail)"
     dev_var GOOGLE_PLAY_PRIVATE_KEY "$(cfg googlePlayPrivateKey)"
+    dev_var APPLE_APP_STORE_ISSUER_ID "$(cfg appStoreIssuerId)"
+    dev_var APPLE_APP_STORE_KEY_ID "$(cfg appStoreKeyId)"
+    dev_var APPLE_APP_STORE_PRIVATE_KEY "$(cfg appStorePrivateKey)"
+    dev_var APPLE_APP_BUNDLE_ID "$(cfg iosBundleId)"
+    dev_var APPLE_PREMIUM_PRODUCT_ID "$(cfg iosStoreKitPremiumProductId)"
     dev_var PLAY_RTDN_VERIFICATION_TOKEN "$(cfg playRtdnVerificationToken)"
     dev_var DEV_SUBSCRIPTIONS_ENABLED "$(cfg devSubscriptionsEnabled)"
 } > backend/.dev.vars
@@ -91,8 +96,6 @@ export SC_IOS_ADMOB_APP_ID="$(cfg iosAdMobAppId)"
 export SC_IOS_ADMOB_BANNER="$(cfg iosAdMobBannerAdUnitId)"
 export SC_IOS_ADMOB_INTERSTITIAL="$(cfg iosAdMobInterstitialAdUnitId)"
 export SC_SYNC_BASE_URL="$(cfg syncBaseUrl)"
-export SC_CFG_PUBKEY="$(cfg cfgPubKey)"
-export SC_CFG_DOC_PATH="$(cfg cfgDocPath)"
 
 python3 - <<'PY'
 import json, os
@@ -119,8 +122,6 @@ settings = {
     "IOS_ADMOB_BANNER_AD_UNIT_ID": env("SC_IOS_ADMOB_BANNER") or "ca-app-pub-3940256099942544/2934735716",
     "IOS_ADMOB_INTERSTITIAL_AD_UNIT_ID": env("SC_IOS_ADMOB_INTERSTITIAL") or "ca-app-pub-3940256099942544/4411468910",
     "SYNC_BASE_URL": env("SC_SYNC_BASE_URL").rstrip("/"),
-    "CFG_PUBKEY": env("SC_CFG_PUBKEY"),
-    "CFG_DOC_PATH": env("SC_CFG_DOC_PATH") or "cfg/state",
 }
 
 lines = [

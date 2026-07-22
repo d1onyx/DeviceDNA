@@ -207,6 +207,8 @@
     <string name="battery_intelligence_charging_advice">Charging advice</string>
     <string name="battery_intelligence_charging_history">Charging history</string>
     <string name="battery_intelligence_charging_history_empty">Charging history will appear after the app records charging snapshots.</string>
+    <string name="battery_intelligence_background_monitoring_off_title">Background monitoring is off</string>
+    <string name="battery_intelligence_background_monitoring_off_body">Charging history will not be recorded while Background monitoring is disabled. Enable it in Settings to keep tracking new charging sessions.</string>
     <string name="battery_intelligence_selected_hour">%1$s history</string>
     <string name="battery_intelligence_hour_empty">No battery snapshots were recorded for this hour.</string>
     <string name="battery_intelligence_charging_periods">Charging periods</string>

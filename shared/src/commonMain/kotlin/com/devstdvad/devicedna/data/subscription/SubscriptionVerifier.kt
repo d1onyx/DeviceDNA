@@ -6,7 +6,12 @@ interface SubscriptionVerifier {
         purchaseToken: String,
     ): SubscriptionVerificationResult
 
-    /** Dev-only: activates a short-lived Premium subscription via the backend (persisted to Neon). */
+    suspend fun verifyAppStorePurchase(
+        productId: String,
+        transactionId: String,
+    ): SubscriptionVerificationResult
+
+    /** Dev-only: activates a short-lived Premium subscription via the backend (persisted to D1). */
     suspend fun activateDevSubscription(): SubscriptionVerificationResult
 
     /** Re-reads the authoritative entitlement state from the backend (source of truth). */

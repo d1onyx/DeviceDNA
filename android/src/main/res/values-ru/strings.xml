@@ -207,6 +207,8 @@
     <string name="battery_intelligence_charging_advice">Советы по зарядке</string>
     <string name="battery_intelligence_charging_history">История зарядки</string>
     <string name="battery_intelligence_charging_history_empty">История зарядки появится после записи снимков состояния батареи.</string>
+    <string name="battery_intelligence_background_monitoring_off_title">Фоновый мониторинг выключен</string>
+    <string name="battery_intelligence_background_monitoring_off_body">История зарядки не будет записываться, пока фоновый мониторинг отключён. Включите его в настройках, чтобы отслеживать новые сессии зарядки.</string>
     <string name="battery_intelligence_selected_hour">История %1$s</string>
     <string name="battery_intelligence_hour_empty">За этот час нет записанных снимков батареи.</string>
     <string name="battery_intelligence_charging_periods">Периоды зарядки</string>

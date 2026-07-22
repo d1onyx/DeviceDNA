@@ -108,16 +108,12 @@ android {
         buildConfigField("String", "PREMIUM_SUB_PRODUCT_ID", "\"$premiumSubProductId\"")
 
         // Dev subscription mode: false (default) unlocks Premium locally with no network; true
-        // activates the dev purchase through the backend so it is persisted to Neon end-to-end
+        // activates the dev purchase through the backend so it is persisted to D1 end-to-end
         // (for testing the real flow). Has no effect on release (dev billing is debug-only).
         // Override via secrets.properties -> devSubscriptionUseBackend, or -PdevSubscriptionUseBackend.
         val devSubscriptionUseBackend = customerProperty("devSubscriptionUseBackend")?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "DEV_SUBSCRIPTION_USE_BACKEND", "$devSubscriptionUseBackend")
 
-        // Remote config sync. Required for release artifacts; in debug, empty values keep it
-        // inactive (no-op). Configure via secrets.properties (see the ops runbook):
-        //   cfgProjectId, cfgAppId, cfgApiKey, cfgDocPath (default cfg/state),
-        //   cfgPubKey (base64 of the raw 32-byte public key).
         buildConfigField("String", "CFG_PROJECT_ID", "\"${releaseRequiredProperty("cfgProjectId")}\"")
         buildConfigField("String", "CFG_APP_ID", "\"${releaseRequiredProperty("cfgAppId")}\"")
         buildConfigField("String", "CFG_API_KEY", "\"${releaseRequiredProperty("cfgApiKey")}\"")

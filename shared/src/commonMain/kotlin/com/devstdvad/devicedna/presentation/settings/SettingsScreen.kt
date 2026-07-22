@@ -118,8 +118,6 @@ fun SettingsScreen(
         label = "privacy_score",
     )
 
-    // Sharing is now handled inside DiagnosticsExporter via the platform FileSharer.
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -411,7 +409,14 @@ fun SettingsScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(colors.surface)
                         .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-                        .clickable { privacyExpanded = !privacyExpanded }
+                        .clickable {
+                            feedback?.light()
+                            if (PlatformInfo.isIos) {
+                                privacyExpanded = !privacyExpanded
+                            } else {
+                                uriHandler.openUri(LegalLinks.PrivacyPolicy)
+                            }
+                        }
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -423,12 +428,20 @@ fun SettingsScreen(
                             Text(stringRes("settings_privacy_policy_summary"), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
                         }
                     }
-                    Icon(if (privacyExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null, tint = colors.textMuted)
+                    Icon(
+                        imageVector = if (PlatformInfo.isIos) {
+                            if (privacyExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore
+                        } else {
+                            Icons.AutoMirrored.Outlined.KeyboardArrowRight
+                        },
+                        contentDescription = null,
+                        tint = colors.textMuted,
+                    )
                 }
-                if (privacyExpanded) {
+                if (PlatformInfo.isIos && privacyExpanded) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = stringRes(if (PlatformInfo.isIos) "settings_privacy_policy_body_ios" else "settings_privacy_policy_body"),
+                        text = stringRes("settings_privacy_policy_body_ios"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
                     )

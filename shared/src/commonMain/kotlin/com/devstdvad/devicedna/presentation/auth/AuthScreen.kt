@@ -1,7 +1,6 @@
 package com.devstdvad.devicedna.presentation.auth
 
 import com.devstdvad.devicedna.resources.stringRes
-import com.devstdvad.devicedna.platform.PlatformInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,15 +29,12 @@ import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -60,6 +57,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
+import com.devstdvad.devicedna.core.legal.LegalLinks
 
 @Composable
 fun AuthScreen(
@@ -68,13 +66,12 @@ fun AuthScreen(
     modifier: Modifier = Modifier,
     requirePrivacyConsent: Boolean = true,
     onAppleSignIn: () -> Unit = {},
-    // Apple Sign-In is offered only where it is natively available (iOS).
     showAppleSignIn: Boolean = false,
     onContinueWithoutAccount: (() -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
+    val uriHandler = LocalUriHandler.current
     var privacyAccepted by rememberSaveable(requirePrivacyConsent) { mutableStateOf(!requirePrivacyConsent) }
-    var showPolicy by rememberSaveable { mutableStateOf(false) }
     val privacyRequiredMessage = stringRes("auth_privacy_required")
 
     Column(
@@ -119,7 +116,6 @@ fun AuthScreen(
             Spacer(Modifier.height(24.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-//                AuthValue(Icons.Outlined.Fingerprint, stringRes("auth_value_private"), Modifier.weight(1f))
                 AuthValue(Icons.Outlined.CloudDone, stringRes("auth_value_sync"), Modifier.weight(1f))
                 AuthValue(Icons.Outlined.Memory, stringRes("auth_value_device"), Modifier.weight(1f))
             }
@@ -130,12 +126,10 @@ fun AuthScreen(
                 PrivacyConsentRow(
                     accepted = privacyAccepted,
                     onAcceptedChange = { privacyAccepted = it },
-                    onPolicyClick = { showPolicy = true },
+                    onPolicyClick = { uriHandler.openUri(LegalLinks.PrivacyPolicy) },
                 )
             }
 
-            // Reserved slot below the card: keeps the card fixed in place while the
-            // error / consent message appears or disappears.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -156,8 +150,6 @@ fun AuthScreen(
             }
 
             if (showAppleSignIn) {
-                // iOS: keep provider buttons full-width — side-by-side leaves hit boxes
-                // too small on Compose Multiplatform.
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -212,10 +204,6 @@ fun AuthScreen(
                 textAlign = TextAlign.Center,
             )
         }
-    }
-
-    if (showPolicy) {
-        PrivacyPolicySheet(onDismiss = { showPolicy = false })
     }
 }
 
@@ -278,70 +266,6 @@ private fun PrivacyConsentRow(
                 uncheckedBorderColor = colors.border,
             ),
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PrivacyPolicySheet(onDismiss: () -> Unit) {
-    val colors = AppTheme.colors
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = colors.surfaceElevated,
-        dragHandle = null,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp, vertical = 24.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(colors.accent.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.Security, contentDescription = null, tint = colors.accent, modifier = Modifier.size(26.dp))
-            }
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = stringRes("auth_privacy_policy_title"),
-                style = MaterialTheme.typography.headlineSmall,
-                color = colors.textPrimary,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringRes("auth_privacy_policy_summary"),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.textSecondary,
-            )
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = stringRes(if (PlatformInfo.isIos) "auth_privacy_policy_body_ios" else "auth_privacy_policy_body"),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.textSecondary,
-            )
-            Spacer(Modifier.height(24.dp))
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.accent,
-                    contentColor = colors.background,
-                ),
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Text(stringRes("auth_privacy_policy_close"), style = MaterialTheme.typography.titleMedium)
-            }
-            Spacer(Modifier.height(8.dp))
-        }
     }
 }
 
@@ -504,8 +428,6 @@ private fun AppleMark() {
             .background(Color.White),
         contentAlignment = Alignment.Center,
     ) {
-        // U+F8FF is Apple's private-use logo glyph; it renders on Apple platforms (iOS),
-        // which is the only place this button is shown.
         Text("\uF8FF", color = Color.Black, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }

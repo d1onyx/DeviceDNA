@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { and, count, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { devices, users } from "../db/schema";
+import { devices, userDevices, users } from "../db/schema";
 import { writeSnapshot } from "../lib/snapshot";
 import { validateSyncBody } from "../lib/sync-validation";
 import { cancelAccountSubscriptionBeforeDelete, getSubscriptionView } from "./subscriptions";
@@ -31,7 +31,8 @@ syncRoutes.get("/me", async (c) => {
 
 // Delete the account and all associated data (App Store 5.1.1(v) / Google Play requirement).
 // The app calls this while still authenticated, right before it deletes the Firebase Auth user.
-// Removing the users row cascades to devices + user_subscriptions via their onDelete FKs.
+// Removing the users row cascades to user_devices + user_subscriptions. A physical
+// device is removed only when no other account remains linked to it.
 syncRoutes.delete("/me", async (c) => {
   const claims = c.get("claims");
   const db = getDb(c.env.DB);
@@ -48,6 +49,25 @@ syncRoutes.delete("/me", async (c) => {
     );
   }
 
+  const linkedDevices = await db
+    .select({ deviceRowId: userDevices.deviceRowId })
+    .from(userDevices)
+    .where(eq(userDevices.userUid, claims.uid));
+
+  for (const linkedDevice of linkedDevices) {
+    const replacementOwner = await db
+      .select({ userUid: userDevices.userUid })
+      .from(userDevices)
+      .where(eq(userDevices.deviceRowId, linkedDevice.deviceRowId));
+    const replacementUid = replacementOwner.find((owner) => owner.userUid !== claims.uid)?.userUid;
+    if (replacementUid) {
+      await db
+        .update(devices)
+        .set({ userUid: replacementUid })
+        .where(eq(devices.id, linkedDevice.deviceRowId));
+    }
+  }
+
   await db.delete(users).where(eq(users.firebaseUid, claims.uid));
 
   // Drop the cached "account exists" entry so another device signed into the same account sees
@@ -58,15 +78,16 @@ syncRoutes.delete("/me", async (c) => {
 });
 
 // Cheap sync-status check for a specific device
-syncRoutes.get("/devices/:androidId/status", async (c) => {
+syncRoutes.get("/devices/:deviceId/status", async (c) => {
   const claims = c.get("claims");
-  const androidId = c.req.param("androidId");
+  const deviceId = c.req.param("deviceId");
   const db = getDb(c.env.DB);
 
   const rows = await db
     .select({ snapshotHash: devices.snapshotHash, lastSyncedAt: devices.lastSyncedAt })
-    .from(devices)
-    .where(and(eq(devices.userUid, claims.uid), eq(devices.androidId, androidId)))
+    .from(userDevices)
+    .innerJoin(devices, eq(userDevices.deviceRowId, devices.id))
+    .where(and(eq(userDevices.userUid, claims.uid), eq(devices.deviceId, deviceId)))
     .limit(1);
 
   if (rows.length === 0) {
@@ -79,7 +100,8 @@ syncRoutes.get("/devices/:androidId/status", async (c) => {
   });
 });
 
-// Full device snapshot push. Upserts user + device by (uid, androidId).
+// Full device snapshot push. The physical device is shared; user ownership is
+// recorded separately in user_devices.
 syncRoutes.post("/sync", bodyLimit({
   maxSize: 2 * 1024 * 1024,
   onError: (c) => c.json({ error: "sync_payload_too_large" }, 413),
@@ -95,14 +117,15 @@ syncRoutes.post("/sync", bodyLimit({
 
   const existingDevice = await db
     .select({ id: devices.id })
-    .from(devices)
-    .where(and(eq(devices.userUid, claims.uid), eq(devices.androidId, body.androidId)))
+    .from(userDevices)
+    .innerJoin(devices, eq(userDevices.deviceRowId, devices.id))
+    .where(and(eq(userDevices.userUid, claims.uid), eq(devices.deviceId, body.deviceId)))
     .limit(1);
   if (existingDevice.length === 0) {
     const [{ value: deviceCount }] = await db
       .select({ value: count() })
-      .from(devices)
-      .where(eq(devices.userUid, claims.uid));
+      .from(userDevices)
+      .where(eq(userDevices.userUid, claims.uid));
     if (deviceCount >= 10) return c.json({ error: "device_limit_reached" }, 409);
   }
 
@@ -126,13 +149,12 @@ syncRoutes.post("/sync", bodyLimit({
       },
     });
 
-  // 2) Device — one row per (user, androidId). Keep the row id stable across
-  // re-syncs so the normalized snapshot tables can be re-keyed to it.
+  // 2) Device — one row per physical device, shared by every linked account.
   const [device] = await db
     .insert(devices)
     .values({
       userUid: claims.uid,
-      androidId: body.androidId,
+      deviceId: body.deviceId,
       deviceName: body.deviceName ?? null,
       manufacturer: body.manufacturer ?? null,
       model: body.model ?? null,
@@ -142,8 +164,9 @@ syncRoutes.post("/sync", bodyLimit({
       lastSyncedAt: now,
     })
     .onConflictDoUpdate({
-      target: [devices.userUid, devices.androidId],
+      target: devices.deviceId,
       set: {
+        deviceId: body.deviceId,
         deviceName: body.deviceName ?? null,
         manufacturer: body.manufacturer ?? null,
         model: body.model ?? null,
@@ -155,7 +178,13 @@ syncRoutes.post("/sync", bodyLimit({
     })
     .returning({ id: devices.id });
 
-  // 3) Full diagnostics snapshot, exploded into the normalized tables.
+  // 3) Link the authenticated account to the shared physical device.
+  await db
+    .insert(userDevices)
+    .values({ userUid: claims.uid, deviceRowId: device.id })
+    .onConflictDoNothing();
+
+  // 4) Full diagnostics snapshot, exploded into the normalized tables.
   if (body.snapshot) {
     await writeSnapshot(db, device.id, body.snapshot);
   }

@@ -2,12 +2,19 @@ import { Hono } from "hono";
 import { eq, inArray } from "drizzle-orm";
 import { getDb } from "../db/client";
 import {
+  appStoreTransactionOwners,
   googlePlayPurchaseOwners,
   userSubscriptions,
   users,
   type UserSubscriptionRow,
 } from "../db/schema";
-import type { AppBindings } from "../types";
+import type { AppBindings, Env } from "../types";
+import {
+  AppStoreApiError,
+  verifyAppStoreTransaction,
+  type AppStoreServerConfig,
+  type VerifiedAppStoreTransaction,
+} from "../lib/app-store";
 import {
   cancelGooglePlaySubscription,
   mapGooglePlayStatus,
@@ -29,6 +36,16 @@ const allowedSubscriptionStatuses = new Set([
 export type Db = ReturnType<typeof getDb>;
 
 const cancelBeforeAccountDeleteStatuses = new Set(["active", "trialing", "grace_period"]);
+
+function appStoreConfig(env: Env): AppStoreServerConfig | null {
+  const issuerId = env.APPLE_APP_STORE_ISSUER_ID?.trim();
+  const keyId = env.APPLE_APP_STORE_KEY_ID?.trim();
+  const privateKey = env.APPLE_APP_STORE_PRIVATE_KEY?.trim();
+  const bundleId = env.APPLE_APP_BUNDLE_ID?.trim();
+  const premiumProductId = env.APPLE_PREMIUM_PRODUCT_ID?.trim();
+  if (!issuerId || !keyId || !privateKey || !bundleId || !premiumProductId) return null;
+  return { issuerId, keyId, privateKey, bundleId, premiumProductId };
+}
 
 export interface SubscriptionView {
   premium: boolean;
@@ -172,6 +189,42 @@ subscriptionRoutes.post("/subscription/google-play/verify", async (c) => {
   return c.json(await getSubscriptionView(db, claims.uid));
 });
 
+subscriptionRoutes.post("/subscription/app-store/verify", async (c) => {
+  const claims = c.get("claims");
+  const body = await c.req.json<{ productId?: string; transactionId?: string } | null>().catch(() => null);
+  const productId = body?.productId?.trim();
+  const transactionId = body?.transactionId?.trim();
+  const config = appStoreConfig(c.env);
+
+  if (!productId || !transactionId || !/^\d{1,64}$/.test(transactionId)) {
+    return c.json({ error: "app_store_transaction_required" }, 400);
+  }
+  if (!config) return c.json({ error: "app_store_not_configured" }, 503);
+  if (productId !== config.premiumProductId) {
+    return c.json({ error: "invalid_product_id" }, 400);
+  }
+
+  let transaction: VerifiedAppStoreTransaction;
+  try {
+    transaction = await verifyAppStoreTransaction(config, transactionId);
+  } catch (error) {
+    if (error instanceof AppStoreApiError && error.status === 404) {
+      return c.json({ error: "app_store_transaction_not_found" }, 400);
+    }
+    const detail = error instanceof Error ? error.message : "App Store verification failed.";
+    return c.json({ error: "app_store_verification_failed", detail }, 502);
+  }
+
+  const db = getDb(c.env.DB);
+  const result = await upsertAppStoreSubscription(db, {
+    userUid: claims.uid,
+    transaction,
+  });
+  if (!result.ok) return c.json({ error: "purchase_already_linked" }, 409);
+
+  return c.json(await getSubscriptionView(db, claims.uid));
+});
+
 internalSubscriptionRoutes.use("*", async (c, next) => {
   const expectedApiKey = c.env.INTERNAL_API_KEY;
   const actualApiKey = c.req.header("x-internal-api-key");
@@ -291,6 +344,77 @@ function isPremium(row: UserSubscriptionRow): boolean {
 export type UpsertGooglePlaySubscriptionResult =
   | { ok: true }
   | { ok: false; reason: "product_not_purchased" | "invalid_expiry" | "purchase_already_linked" };
+
+export type UpsertAppStoreSubscriptionResult =
+  | { ok: true }
+  | { ok: false; reason: "purchase_already_linked" };
+
+export async function upsertAppStoreSubscription(
+  db: Db,
+  params: {
+    userUid: string;
+    transaction: VerifiedAppStoreTransaction;
+    now?: Date;
+  },
+): Promise<UpsertAppStoreSubscriptionResult> {
+  const existingOwner = await db
+    .select({ userUid: appStoreTransactionOwners.userUid })
+    .from(appStoreTransactionOwners)
+    .where(eq(appStoreTransactionOwners.originalTransactionId, params.transaction.originalTransactionId))
+    .limit(1);
+  if (existingOwner[0]?.userUid && existingOwner[0].userUid !== params.userUid) {
+    return { ok: false, reason: "purchase_already_linked" };
+  }
+
+  await db
+    .insert(appStoreTransactionOwners)
+    .values({
+      originalTransactionId: params.transaction.originalTransactionId,
+      userUid: params.userUid,
+    })
+    .onConflictDoNothing();
+
+  const claimedOwner = await db
+    .select({ userUid: appStoreTransactionOwners.userUid })
+    .from(appStoreTransactionOwners)
+    .where(eq(appStoreTransactionOwners.originalTransactionId, params.transaction.originalTransactionId))
+    .limit(1);
+  if (claimedOwner[0]?.userUid !== params.userUid) {
+    return { ok: false, reason: "purchase_already_linked" };
+  }
+
+  const now = params.now ?? new Date();
+  const values = {
+    userUid: params.userUid,
+    status: params.transaction.active ? "active" : "expired",
+    provider: "app_store",
+    productId: params.transaction.productId,
+    originalTransactionId: params.transaction.originalTransactionId,
+    latestTransactionId: params.transaction.transactionId,
+    latestPurchaseToken: null,
+    expiresAt: params.transaction.expiresAt,
+    updatedAt: now,
+  };
+
+  await db
+    .insert(userSubscriptions)
+    .values(values)
+    .onConflictDoUpdate({
+      target: userSubscriptions.userUid,
+      set: {
+        status: values.status,
+        provider: values.provider,
+        productId: values.productId,
+        originalTransactionId: values.originalTransactionId,
+        latestTransactionId: values.latestTransactionId,
+        latestPurchaseToken: values.latestPurchaseToken,
+        expiresAt: values.expiresAt,
+        updatedAt: values.updatedAt,
+      },
+    });
+
+  return { ok: true };
+}
 
 /**
  * Persists the authoritative Google Play subscription state for a user, derived from a verified

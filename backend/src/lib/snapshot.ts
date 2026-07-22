@@ -68,7 +68,8 @@ interface DeviceInfoDto {
   hardware: string;
   codename: string;
   buildFingerprint: string;
-  androidId: string;
+  deviceId?: string;
+  androidId?: string;
   supportedAbis?: string[];
   isRooted: boolean;
   bootloader: string;
@@ -426,7 +427,7 @@ async function insertDeviceInfo(db: Db, deviceId: string, d?: DeviceInfoDto | nu
     hardware: d.hardware,
     codename: d.codename,
     buildFingerprint: d.buildFingerprint,
-    androidId: d.androidId,
+    platformDeviceId: d.deviceId ?? d.androidId ?? "",
     isRooted: d.isRooted,
     bootloader: d.bootloader,
     socName: d.socName ?? "",

@@ -373,7 +373,7 @@ class IosDeviceRepository : DeviceRepository {
             hardware = machine,
             codename = "",
             buildFingerprint = "",
-            // identifierForVendor fills the stable per-install id role androidId plays on Android.
+            // identifierForVendor is the stable platform device identifier used by sync on iOS.
             androidId = device.identifierForVendor?.UUIDString ?: "",
             supportedAbis = listOf(if (machine.startsWith("x86")) "x86_64" else "arm64"),
             isRooted = suspicious.isNotEmpty(),
