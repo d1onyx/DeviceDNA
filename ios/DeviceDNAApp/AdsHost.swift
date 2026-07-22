@@ -45,8 +45,6 @@ final class AdsHost: NSObject {
         started && (Self.isUsingGoogleDemoAds || ConsentInformation.shared.canRequestAds)
     }
 
-    var forceShowTestAds: Bool { Self.isUsingGoogleDemoAds }
-
     // MARK: - Startup: consent → ATT → SDK
 
     /// Runs the UMP consent flow, then starts the Google Mobile Ads SDK. Safe to call

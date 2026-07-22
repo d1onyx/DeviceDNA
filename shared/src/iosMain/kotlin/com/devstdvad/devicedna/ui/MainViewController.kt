@@ -46,7 +46,6 @@ fun MainViewController(
     onAppleSignIn: () -> Unit = {},
     interstitial: InterstitialAds = NoOpInterstitialAds,
     bannerViewFactory: (() -> UIView)? = null,
-    forceShowAds: Boolean = false,
     onAdPrivacyOptions: () -> Unit = {},
 ): UIViewController = ComposeUIViewController {
     val settingsStore = KoinBridge.settingsStore()
@@ -100,7 +99,7 @@ fun MainViewController(
         onDeepLinkHandled = { DeepLinkHolder.consume() },
         interstitial = interstitial,
         topBanner = { enabled ->
-            if ((enabled || forceShowAds) && canShowAds && bannerViewFactory != null) {
+            if (enabled && canShowAds && bannerViewFactory != null) {
                 UIKitView(
                     factory = bannerViewFactory,
                     modifier = Modifier
