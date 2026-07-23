@@ -39,7 +39,21 @@ final class AdsHost: NSObject {
     private var sdkStarting = false
     private var consentFlowStarted = false
     private var interstitialAd: InterstitialAd?
-    private var pendingBanners: [BannerView] = []
+    private var bannerRequested = false
+
+    // Compose's UIKitView factory can be invoked more than once across recompositions
+    // (e.g. while `enabled`/`canShowAds` settle during SDK startup); a single cached
+    // BannerView avoids spawning extra, never-loaded banner instances each time.
+    private lazy var bannerView: BannerView = {
+        let banner = BannerView(adSize: AdSizeBanner)
+        banner.adUnitID = Self.bannerAdUnitId
+        banner.delegate = self
+        // Compose punches a transparent hole in its Skia canvas for this UIKitView; without an
+        // opaque background here, that hole shows the raw (black) layer behind it until — or
+        // unless — an ad creative paints over it.
+        banner.backgroundColor = .secondarySystemBackground
+        return banner
+    }()
 
     var isPrivacyOptionsRequired: Bool {
         ConsentInformation.shared.privacyOptionsRequirementStatus == .required
@@ -154,8 +168,10 @@ final class AdsHost: NSObject {
             NSLog("DeviceDNA/Ads: Mobile Ads SDK started")
             self.publishState()
             self.loadInterstitial()
-            self.pendingBanners.forEach { self.loadBannerWhenReady($0) }
-            self.pendingBanners.removeAll()
+            if self.bannerRequested {
+                self.bannerRequested = false
+                self.loadBannerWhenReady(self.bannerView)
+            }
         }
     }
 
@@ -170,23 +186,16 @@ final class AdsHost: NSObject {
     // MARK: - Banner (factory consumed by the Compose UIKitView slot)
 
     func makeBannerView() -> UIView {
-        let banner = BannerView(adSize: AdSizeBanner)
-        banner.adUnitID = Self.bannerAdUnitId
-        banner.delegate = self
-        // Compose punches a transparent hole in its Skia canvas for this UIKitView; without an
-        // opaque background here, that hole shows the raw (black) layer behind it until — or
-        // unless — an ad creative paints over it.
-        banner.backgroundColor = .secondarySystemBackground
         NSLog(
-            "DeviceDNA/Ads: banner view created; mode=%@",
+            "DeviceDNA/Ads: banner view requested; mode=%@",
             Self.isUsingGoogleDemoAds ? "google-demo" : "custom"
         )
         if started {
-            loadBannerWhenReady(banner)
+            loadBannerWhenReady(bannerView)
         } else {
-            pendingBanners.append(banner)
+            bannerRequested = true
         }
-        return banner
+        return bannerView
     }
 
     private func loadBannerWhenReady(_ banner: BannerView, attempt: Int = 0) {

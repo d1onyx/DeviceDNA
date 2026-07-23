@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.devstdvad.devicedna.core.design.AppTheme
 import com.devstdvad.devicedna.core.design.component.ThermalTile
@@ -90,6 +91,8 @@ fun ThermalScreen(
                             text = SettingsFormatters.formatTemperatureWhole(maxTemp, settings.temperatureUnit),
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = if (maxTemp >= 60f) colors.critical else if (maxTemp >= 42f) colors.thermalColor else colors.sensorsColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(stringRes("thermal_field_peak"), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                     }
@@ -106,6 +109,8 @@ fun ThermalScreen(
                                     "fair" -> colors.warning
                                     else -> colors.sensorsColor
                                 },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Text(stringRes("thermal_field_state"), style = MaterialTheme.typography.labelSmall, color = colors.textMuted)
                         }
