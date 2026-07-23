@@ -31,10 +31,6 @@ final class AdsHost: NSObject {
             interstitialAdUnitId == googleDemoInterstitialAdUnitId
     }
 
-    /// Gates the on-screen ad-status caption in MainViewController — only ever true for the
-    /// unsigned CI test build (Google demo ad ids), never for a real App Store build.
-    static var isTestBuild: Bool { isUsingGoogleDemoAds }
-
     private var started = false
     private var sdkStarting = false
     private var consentFlowStarted = false
@@ -202,7 +198,6 @@ final class AdsHost: NSObject {
         guard let presenter = Self.topViewController() else {
             guard attempt < 40 else {
                 NSLog("DeviceDNA/Ads: no presenter available for banner")
-                IosAdsState.shared.updateBannerStatus(status: "no presenter found (gave up after 10s)")
                 return
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self, weak banner] in
@@ -213,7 +208,6 @@ final class AdsHost: NSObject {
         }
         banner.rootViewController = presenter
         NSLog("DeviceDNA/Ads: banner request")
-        IosAdsState.shared.updateBannerStatus(status: "requesting…")
         banner.load(Request())
     }
 
@@ -237,11 +231,7 @@ final class AdsHost: NSObject {
     private var onInterstitialDismissed: (() -> Void)?
 
     private func loadInterstitial() {
-        guard canShowAds else {
-            IosAdsState.shared.updateInterstitialStatus(status: "skipped (canShowAds=false)")
-            return
-        }
-        IosAdsState.shared.updateInterstitialStatus(status: "requesting…")
+        guard canShowAds else { return }
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -251,22 +241,15 @@ final class AdsHost: NSObject {
                 )
                 ad.fullScreenContentDelegate = self
                 self.interstitialAd = ad
-                IosAdsState.shared.updateInterstitialStatus(status: "ready ✓")
             } catch {
                 NSLog("DeviceDNA/Ads: interstitial failed to load: %@", error.localizedDescription)
                 self.interstitialAd = nil
-                IosAdsState.shared.updateInterstitialStatus(status: "failed: \(error.localizedDescription)")
             }
         }
     }
 
     private func showInterstitial(onShowing: @escaping () -> Void, onDismissed: @escaping () -> Void) {
-        guard canShowAds, let ad = interstitialAd, let presenter = Self.topViewController() else {
-            IosAdsState.shared.updateInterstitialStatus(
-                status: "show requested but not ready (canShowAds=\(canShowAds), hasAd=\(interstitialAd != nil))"
-            )
-            return
-        }
+        guard canShowAds, let ad = interstitialAd, let presenter = Self.topViewController() else { return }
         interstitialAd = nil
         onInterstitialDismissed = onDismissed
         onShowing()
@@ -303,11 +286,9 @@ extension AdsHost: FullScreenContentDelegate {
 extension AdsHost: BannerViewDelegate {
     func bannerViewDidReceiveAd(_ bannerView: BannerView) {
         NSLog("DeviceDNA/Ads: banner loaded")
-        IosAdsState.shared.updateBannerStatus(status: "loaded ✓")
     }
 
     func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
         NSLog("DeviceDNA/Ads: banner failed to load: %@", error.localizedDescription)
-        IosAdsState.shared.updateBannerStatus(status: "failed: \(error.localizedDescription)")
     }
 }

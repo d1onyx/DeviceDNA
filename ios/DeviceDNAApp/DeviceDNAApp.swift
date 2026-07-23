@@ -284,8 +284,7 @@ struct ComposeRootView: UIViewControllerRepresentable {
             },
             interstitial: AdsHost.shared.interstitial,
             bannerViewFactory: { AdsHost.shared.makeBannerView() },
-            onAdPrivacyOptions: { AdsHost.shared.presentPrivacyOptions() },
-            showAdDiagnostics: AdsHost.isTestBuild
+            onAdPrivacyOptions: { AdsHost.shared.presentPrivacyOptions() }
         )
     }
 

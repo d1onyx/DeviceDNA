@@ -89,7 +89,7 @@ fun ThermalScreen(
                     androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
                         Text(
                             text = SettingsFormatters.formatTemperatureWhole(maxTemp, settings.temperatureUnit),
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = if (maxTemp >= 60f) colors.critical else if (maxTemp >= 42f) colors.thermalColor else colors.sensorsColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -102,7 +102,7 @@ fun ThermalScreen(
                         androidx.compose.foundation.layout.Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
                             Text(
                                 text = stateName,
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                 color = when (stateName.lowercase()) {
                                     "critical" -> colors.critical
                                     "serious" -> colors.thermalColor
